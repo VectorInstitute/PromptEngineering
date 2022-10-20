@@ -2,11 +2,11 @@ black
 flake8
 isort
 mypy
+numpy
 pre-commit
 pytest
 pytest-cov
 toml
+torch
 types-requests
 types-setuptools
-numpy
-torch
