@@ -130,3 +130,9 @@ dmypy.json
 
 # pycharm
 .idea/
+
+# vscode
+launch.json
+
+#mac
+.DS_Store
