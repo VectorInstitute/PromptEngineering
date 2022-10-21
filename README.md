@@ -12,7 +12,7 @@ pip install -r requirements.txt
 
 ### For Experimental Codes [Saeed]
 ```
-make install_prompt_dev
+bash install_prompt_dev.sh
 ```
 
 # using pre-commit hooks

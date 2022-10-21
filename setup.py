@@ -38,7 +38,7 @@ setup(
     install_requires=INSTALL_REQUIRES,
     extras_require={
         'dev': [
-            'jax[cpu]',
+            'ipython'
         ]
     }
 )
