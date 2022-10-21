@@ -10,6 +10,11 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
+### For Experimental Codes [Saeed]
+```
+make install_prompt_dev
+```
+
 # using pre-commit hooks
 To check your code at commit time
 ```
