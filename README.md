@@ -10,7 +10,7 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### For Experimental Codes [For Saeed]
+### Alternative installation for development
 On vector's cluster
 ```
     bash install_dev_cluster.sh

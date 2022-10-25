@@ -9,16 +9,24 @@ VERSION = "0.1"
 
 # Publicly Available Packages (PyPi)
 INSTALL_REQUIRES = [
+    "ipython",
+    "jupyterlab",
+    "jax",
+    "flax",
+    "numpy",
+    "torch",
+]
+
+DEV_REQUIRES = [
+    "nbqa[toolchain]",
     "black",
     "flake8",
     "isort",
     "mypy",
-    "numpy",
     "pre-commit",
     "pytest",
     "pytest-cov",
     "toml",
-    "torch",
     "types-requests",
     "types-setuptools",
 ]
@@ -37,5 +45,5 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=INSTALL_REQUIRES,
-    extras_require={"dev": ["ipython", "jupyterlab", "jax", "flax", "nbqa[toolchain]"]},
+    extras_require={"dev": DEV_REQUIRES},
 )
