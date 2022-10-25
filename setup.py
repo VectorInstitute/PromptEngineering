@@ -37,5 +37,5 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=INSTALL_REQUIRES,
-    extras_require={"dev": ["ipython", "jupyterlab", "jax", "flax"]},
+    extras_require={"dev": ["ipython", "jupyterlab", "jax", "flax", "nbqa[toolchain]"]},
 )
