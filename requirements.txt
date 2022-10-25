@@ -3,10 +3,10 @@ flake8
 isort
 mypy
 numpy
-pre-commit
+pre - commit
 pytest
-pytest-cov
+pytest - cov
 toml
 torch
-types-requests
-types-setuptools
+types - requests
+types - setuptools
