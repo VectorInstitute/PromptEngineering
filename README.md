@@ -10,9 +10,15 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### For Experimental Codes [Saeed]
+### For Experimental Codes [For Saeed]
+On vector's cluster
 ```
-bash install_prompt_dev.sh
+    bash install_dev_cluster.sh
+```
+
+On local mac
+```
+    bash install_dev_mac.sh
 ```
 
 # using pre-commit hooks
