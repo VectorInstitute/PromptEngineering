@@ -1,7 +1,11 @@
 #!/bin/bash
 
-module load jax0.2.24-cuda11.0-python3.8_jupyter
+# install main module
+module load python/3.8.0
 python -m venv env
 source env/bin/activate
-./env/bin/python -m pip install --upgrade pip
-./env/bin/python -m pip install -e .[dev]
+pip install --upgrade pip
+pip install -e .[dev]
+
+# install google soft-prompt
+bash src/reference_implementations/google_soft_prompt/install_module.sh

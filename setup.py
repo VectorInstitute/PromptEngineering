@@ -11,10 +11,6 @@ VERSION = "0.1"
 INSTALL_REQUIRES = [
     "ipython",
     "jupyterlab",
-    "jax",
-    "flax",
-    "numpy",
-    "torch",
 ]
 
 DEV_REQUIRES = [
