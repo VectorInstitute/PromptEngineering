@@ -4,13 +4,29 @@ This repository holds all of the code associated with the project considering pr
 The static code checker runs on python3.8
 
 # Installing dependencies
-Remember to activate your associated virutal environment in order to install the dependencies in a separate env from your machine.
+Remember to activate your associated virtual environment in order to install the dependencies in a separate env from your machine.
 ```
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
+## For Developers and Contributers
+If you wish to install the package in the editable mode with all the development requirements, you should use the following command once you activate your virtual environment:
+```
+pip install --upgrade pip
+pip install -e .[dev]
+```
 
-# using pre-commit hooks
+On vector's cluster (Mars), you can alternatively run the following script to set up the development environment with the necessary `python3.8`:
+```
+bash install_dev_cluster.sh
+```
+
+Similarly on a local mac, you can simply run the following script to set up `python3.8` and the env:
+```
+bash install_dev_mac.sh
+```
+
+### Using Pre-commit Hooks
 To check your code at commit time
 ```
 pre-commit install
