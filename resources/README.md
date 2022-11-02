@@ -46,3 +46,7 @@
         -   https://github.com/google/flaxformer/
         -   https://github.com/google/flaxformer/blob/main/flaxformer/t5x/configs/t5/models/t5_1_1_base.gin
         -   https://github.com/google/flaxformer/blob/main/flaxformer/t5x/configs/t5/architectures/t5_1_1_flaxformer.gin
+
+    # Reading T5x
+        -   Use the example configs.
+        -   https://github.com/google-research/t5x/tree/main/t5x/examples/t5/t5_1_1
