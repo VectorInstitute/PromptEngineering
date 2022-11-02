@@ -16,14 +16,9 @@ pip install --upgrade pip
 pip install -e .[dev]
 ```
 
-On vector's cluster (Mars), you can alternatively run the following script to set up the development environment with the necessary `python3.9`:
+On vector's cluster, you must run the following script to set up the development environment with the necessary `python3.9`:
 ```
 bash install_dev_cluster.sh
-```
-
-Similarly on a local mac, you can simply run the following script to set up `python3.9` and the env:
-```
-bash install_dev_mac.sh
 ```
 
 ### Using Pre-commit Hooks
@@ -35,4 +30,22 @@ pre-commit install
 You can also get pre-commit to fix your code
 ```
 pre-commit run
+```
+# Running T5x
+We currently support running T5x only on the vector's cluster.
+Make sure you install the cluster dependencies via the following command:
+```
+bash install_dev_cluster.sh
+```
+
+To start training a translation model using T5x, we submit the following slurm job.
+```
+sbatch src/reference_implementations/t5x/run_multinode_2_2.slrm <path/to/a_t5x_workspace/dir> <path/to/a_t5x_log/dir>
+```
+
+Then, you can monitor the training status using `tensorboard` by specifying the directory used for saving models:
+`MODEL_DIR` is defined at `src/reference_implementations/t5x/run_t5x.sh`
+
+```
+tensorboard --logdir=MODEL_DIR --bind_all
 ```

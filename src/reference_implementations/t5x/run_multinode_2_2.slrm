@@ -1,0 +1,60 @@
+#!/bin/bash
+
+#SBATCH --job-name=t5x-multinode-experiments
+#SBATCH --nodes=2
+#SBATCH --ntasks=4
+#SBATCH --ntasks-per-node=2
+#SBATCH --cpus-per-task=8
+#SBATCH --gres=gpu:2
+#SBATCH --mem=64G
+#SBATCH --partition=rtx6000
+#SBATCH --qos=high
+#SBATCH --output=job_%x_%j.out
+#SBATCH --error=job_%x_%j.err
+
+# Note:
+#	  ntasks: Total number of processes to use across world
+#	  ntasks-per-node: How many processes each node should create
+#		- If this is equal to the number of GPUs on the node, each GPU will run
+#			a copy of the `srun ...` code
+#		- `jax.distributed.initialize` requires that each GPU run a copy of the
+#			code, in order to call initialize with no arguments
+
+# Set location of host and access port
+MAIN_HOST=$(hostname -s)
+export MASTER_ADDR=$MAIN_HOST
+export MASTER_PORT=52069
+
+# Set NCCL options
+#export NCCL_DEBUG=INFO
+export NCCL_IB_DISABLE=1
+
+if [[ "${SLURM_JOB_PARTITION}" == "t4v2" ]] || \
+    [[ "${SLURM_JOB_PARTITION}" == "rtx6000" ]]; then
+    echo export NCCL_SOCKET_IFNAME=bond0 on "${SLURM_JOB_PARTITION}"
+    export NCCL_SOCKET_IFNAME=bond0
+fi
+
+# Process input args
+WORKSPACE_DIR="$1_${SLURM_JOB_ID}"
+LOG_DIR=$2
+LOG_PATH="${LOG_DIR}/log_${SLURM_JOB_ID}_rank_\${SLURM_PROCID}.log"
+
+echo "Creating worker workspaces in: ${WORKSPACE_DIR}"
+echo "Placing logs in: ${LOG_DIR}"
+
+echo "World size: ${SLURM_NTASKS}"
+echo "Number of nodes: ${SLURM_NNODES}"
+NUM_GPUs=$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
+echo "GPUs per node: ${NUM_GPUs}"
+
+# Make workspace and logging directories, then move to workspace
+mkdir -p "${WORKSPACE_DIR}"
+mkdir -p "${LOG_DIR}"
+
+cp -r "src/reference_implementations/t5x/run_t5x.sh" "${WORKSPACE_DIR}"
+
+cd "${WORKSPACE_DIR}" || exit
+
+# Run on all nodes
+/opt/slurm/bin/srun -N"${SLURM_NNODES}" -l bash -c "bash run_t5x.sh $* >> ${LOG_PATH} 2>&1"
