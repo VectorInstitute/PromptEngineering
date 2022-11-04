@@ -4,6 +4,12 @@ This repository holds all of the code associated with the project considering pr
 The static code checker runs on python3.9
 
 # Installing dependencies
+
+## Installing Bazel
+First, make sure you have bazel installed in your system:
+```
+bash install_bazel.sh
+```
 Remember to activate your associated virtual environment in order to install the dependencies in a separate env from your machine.
 ```
 pip install --upgrade pip
