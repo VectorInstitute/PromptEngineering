@@ -5,26 +5,16 @@ The static code checker runs on python3.9
 
 # Installing dependencies
 
-## Installing Bazel
-First, make sure you have bazel installed in your system:
+## Installing on macOS
+If you wish to install the package in macOS for local development, you should call the following script to install `python3.9` on macOS and then setup the virtual env for the module you want to install. This approach only installs the ML libraries (`pytorch`, `tensorflow`, `jax`) for the CPU. If you also want to install the package in the editable mode with all the development requirements, you should use the flag `DEV=true` when you run the script, otherwise use the flag `DEV=false`.
 ```
-bash install_bazel.sh
-```
-Remember to activate your associated virtual environment in order to install the dependencies in a separate env from your machine.
-```
-pip install --upgrade pip
-pip install -r requirements.txt
-```
-## For Developers and Contributers
-If you wish to install the package in the editable mode with all the development requirements, you should use the following command once you activate your virtual environment:
-```
-pip install --upgrade pip
-pip install -e .[dev]
+bash setup.sh OS=mac ENV_NAME=t5x DEV=true
 ```
 
-On vector's cluster, you must run the following script to set up the development environment with the necessary `python3.9`:
+## Installing on Vector's Cluster
+You can call `setup.sh` with the `OS=vcluster` flag. This installs python in the linux cluster of Vector and installs the ML libraries for the GPU cards.
 ```
-bash install_dev_cluster.sh
+bash setup.sh OS=vcluster ENV_NAME=t5x DEV=true
 ```
 
 ### Using Pre-commit Hooks
@@ -41,7 +31,7 @@ pre-commit run
 We currently support running T5x only on the vector's cluster.
 Make sure you install the cluster dependencies via the following command:
 ```
-bash install_dev_cluster.sh
+bash setup.sh OS=vcluster ENV_NAME=t5x DEV=false
 ```
 
 To start training a translation model using T5x, we submit the following slurm job.
@@ -53,5 +43,5 @@ Then, you can monitor the training status using `tensorboard` by specifying the 
 `MODEL_DIR` is defined at `src/reference_implementations/t5x/run_t5x.sh`
 
 ```
-tensorboard --logdir=MODEL_DIR --bind_all
+tensorboard --logdir=MODEL_DIR
 ```

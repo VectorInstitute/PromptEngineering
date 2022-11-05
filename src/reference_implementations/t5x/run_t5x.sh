@@ -4,9 +4,13 @@ echo "Hostname: $(hostname -s)"
 echo "Node Rank ${SLURM_PROCID}"
 
 # prepare environment
-source ${HOME}/codes/PromptEngineering/env/bin/activate
+source ${HOME}/codes/PromptEngineering/t5x-env/bin/activate
 
-export PATH="${HOME}/codes/PromptEngineering/env/bin:/pkgs/cuda-11.3/bin:$PATH"
+# Define these env variables to run ML models on cuda and gpu workers properly.
+# without these, tensorflow or jax will not detect any GPU cards.
+# we point to the specific cuda and cudnn versions available on the cluster.
+
+export PATH="${HOME}/codes/PromptEngineering/t5x-env/bin:/pkgs/cuda-11.3/bin:$PATH"
 
 export LD_LIBRARY_PATH="/scratch/ssd001/pkgs/cudnn-11.4-v8.2.4.15/lib64:/scratch/ssd001/pkgs/cuda-11.3/targets/x86_64-linux/lib"
 
@@ -18,7 +22,7 @@ echo "Using Python from: $(which python)"
 PROJECT_DIR=${HOME}"/codes/PromptEngineering/src/reference_implementations/t5x"
 
 # Directory where the t5x is cloned.
-T5X_DIR=${HOME}"/codes/PromptEngineering/env/lib/python3.9/site-packages"
+T5X_DIR=${HOME}"/codes/PromptEngineering/t5x-env/lib/python3.9/site-packages"
 
 TFDS_DATA_DIR="/scratch/ssd004/scratch/snajafi/data_temp/t5x-exps/data"
 
