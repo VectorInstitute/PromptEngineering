@@ -18,9 +18,17 @@ function install_python () {
 
 function install_env () {
 	install_python
-	python -m venv $ENV_NAME-env
-	source $ENV_NAME-env/bin/activate
-	pip install --upgrade pip
+	if [ "$OS" = "mac" ]; then
+		python3.9 -m venv $ENV_NAME-env
+		source $ENV_NAME-env/bin/activate
+		pip install --upgrade pip
+
+	elif [ "$OS" = "vcluster" ]; then
+		python -m venv $ENV_NAME-env
+		source $ENV_NAME-env/bin/activate
+		pip install --upgrade pip
+
+	fi
 }
 
 function install_ml_libraries () {
@@ -49,7 +57,7 @@ function install_ml_libraries () {
 function install_prompt_package () {
 	if [ "$DEV" = "true" ]; then
 		# Installs pre-commit tools as well.
-		pip install -e .[dev]
+		pip install -e .'[dev]'
 
 	elif [ "$DEV" = "false" ]; then
 		pip install .
