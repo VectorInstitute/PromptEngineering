@@ -1,34 +1,18 @@
 #!/bin/bash
 
-echo "Hostname: $(hostname -s)"
-echo "Node Rank ${SLURM_PROCID}"
-
-# prepare environment
-source ${HOME}/codes/PromptEngineering/t5x-env/bin/activate
-
-# Define these env variables to run ML models on cuda and gpu workers properly.
-# without these, tensorflow or jax will not detect any GPU cards.
-# we point to the specific cuda and cudnn versions available on the cluster.
-
-export PATH="${HOME}/codes/PromptEngineering/t5x-env/bin:/pkgs/cuda-11.3/bin:$PATH"
-
-export LD_LIBRARY_PATH="/scratch/ssd001/pkgs/cudnn-11.4-v8.2.4.15/lib64:/scratch/ssd001/pkgs/cuda-11.3/targets/x86_64-linux/lib"
-
-export XLA_FLAGS='--xla_gpu_simplify_all_fp_conversions --xla_gpu_all_reduce_combine_threshold_bytes=136314880 ${XLA_FLAGS}'
-
-echo "Using Python from: $(which python)"
+bash ../setup_gpu_worker.sh
 
 # Directory to find the input gin file.
-PROJECT_DIR=${HOME}"/codes/PromptEngineering/src/reference_implementations/t5x"
+PROJECT_DIR="."
 
 # Directory where the t5x is cloned.
-T5X_DIR=${HOME}"/codes/PromptEngineering/t5x-env/lib/python3.9/site-packages"
+T5X_DIR="`python3 -m prompt_tuning.scripts.find_module t5x`/.."
 
 TFDS_DATA_DIR="/scratch/ssd004/scratch/snajafi/data_temp/t5x-exps/data"
 
 MODEL_DIR="/scratch/ssd004/scratch/snajafi/data_temp/t5x-exps/model"
 
-python ${T5X_DIR}/t5x/train.py \
+python -m t5x/train.py \
     --gin_search_paths=${PROJECT_DIR} \
     --gin_file="base_wmt_train.gin" \
     --gin.MODEL_DIR=\"${MODEL_DIR}\" \
