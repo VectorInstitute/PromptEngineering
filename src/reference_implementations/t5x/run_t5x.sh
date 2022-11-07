@@ -12,10 +12,11 @@ done
 # Current directory to find the local gin config file.
 PROJECT_DIR=$( dirname -- "$0"; )
 
+# We source to keep the internal env variables defined.
 source ${PROJECT_DIR}/../setup_gpu_worker.sh
 
 # Directory where the t5x is cloned.
-T5X_DIR="`python3 -m prompt_tuning.scripts.find_module t5x`/.."
+T5X_DIR="`python3 -m src.find_module t5x`/.."
 
 TFDS_DATA_DIR=$DATA_DIR
 MODEL_DIR=$MODEL_DIR

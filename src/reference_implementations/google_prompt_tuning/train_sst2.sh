@@ -6,14 +6,15 @@
 # Current directory to find the local gin config file.
 PROJECT_DIR=$( dirname -- "$0"; )
 
+# We source to keep the internal env variables defined.
 source ${PROJECT_DIR}/../setup_gpu_worker.sh
 
 TFDS_DATA_DIR=$DATA_DIR
 MODEL_DIR=$MODEL_DIR
 
-T5X_DIR="`python3 -m prompt_tuning.scripts.find_module t5x`/.."
-FLAXFORMER_DIR="`python3 -m prompt_tuning.scripts.find_module flaxformer`/.."
-PROMPT_DIR="`python3 -m prompt_tuning.scripts.find_module prompt_tuning`/.."
+T5X_DIR="`python3 -m src.find_module t5x`/.."
+FLAXFORMER_DIR="`python3 -m src.find_module flaxformer`/.."
+PROMPT_DIR="`python3 -m src.find_module prompt_tuning`/.."
 echo "Searching for gin configs in:"
 echo "- ${T5X_DIR}"
 echo "- ${FLAXFORMER_DIR}"
