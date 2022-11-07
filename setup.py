@@ -8,14 +8,7 @@ README = open(os.path.join(HERE, "README.md")).read()
 VERSION = "0.1"
 
 # Publicly Available Packages (PyPi)
-INSTALL_REQUIRES = [
-    "ipython",
-    "jupyterlab",
-    "jax",
-    "flax",
-    "numpy",
-    "torch",
-]
+INSTALL_REQUIRES = ["ipython", "jupyterlab"]
 
 DEV_REQUIRES = [
     "nbqa[toolchain]",
