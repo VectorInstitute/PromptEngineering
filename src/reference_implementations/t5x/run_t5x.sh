@@ -1,18 +1,26 @@
 #!/bin/bash
 
-bash ../setup_gpu_worker.sh
+# For reading key=value arguments
+for ARGUMENT in "$@"
+do
+	KEY=$(echo $ARGUMENT | cut -f1 -d=)
+	KEY_LENGTH=${#KEY}
+	VALUE="${ARGUMENT:$KEY_LENGTH+1}"
+	export "$KEY"="$VALUE"
+done
 
-# Directory to find the input gin file.
-PROJECT_DIR="."
+# Current directory to find the local gin config file.
+PROJECT_DIR=$( dirname -- "$0"; )
+
+source ${PROJECT_DIR}/../setup_gpu_worker.sh
 
 # Directory where the t5x is cloned.
 T5X_DIR="`python3 -m prompt_tuning.scripts.find_module t5x`/.."
 
-TFDS_DATA_DIR="/scratch/ssd004/scratch/snajafi/data_temp/t5x-exps/data"
+TFDS_DATA_DIR=$DATA_DIR
+MODEL_DIR=$MODEL_DIR
 
-MODEL_DIR="/scratch/ssd004/scratch/snajafi/data_temp/t5x-exps/model"
-
-python -m t5x/train.py \
+python -m t5x.train \
     --gin_search_paths=${PROJECT_DIR} \
     --gin_file="base_wmt_train.gin" \
     --gin.MODEL_DIR=\"${MODEL_DIR}\" \

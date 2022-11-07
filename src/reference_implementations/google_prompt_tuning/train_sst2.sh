@@ -1,12 +1,15 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 # Adapted the original training script to run on vector's cluster with GPUs.
 # Original scripts: https://github.com/google-research/prompt-tuning/tree/main/prompt_tuning/scripts
 
-bash ../setup_gpu_worker.sh
+# Current directory to find the local gin config file.
+PROJECT_DIR=$( dirname -- "$0"; )
 
-TFDS_DATA_DIR="/scratch/ssd004/scratch/snajafi/data_temp/google-prompt-sst2-exps/data"
-MODEL_DIR="/scratch/ssd004/scratch/snajafi/data_temp/google-prompt-sst2-exps/model"
+source ${PROJECT_DIR}/../setup_gpu_worker.sh
+
+TFDS_DATA_DIR=$DATA_DIR
+MODEL_DIR=$MODEL_DIR
 
 T5X_DIR="`python3 -m prompt_tuning.scripts.find_module t5x`/.."
 FLAXFORMER_DIR="`python3 -m prompt_tuning.scripts.find_module flaxformer`/.."
@@ -19,7 +22,7 @@ echo "============================="
 PRETRAINED_MODEL="gs://t5-data/pretrained_models/t5x/t5_1_1_lm100k_base/checkpoint_1100000"
 
 python -m t5x.train \
-  --gin_search_paths="${T5X_DIR},${FLAXFORMER_DIR},${PROMPT_DIR}" \
+  --gin_search_paths="${PROJECT_DIR},${T5X_DIR},${FLAXFORMER_DIR},${PROMPT_DIR}" \
   --gin_file="prompt_tuning/configs/models/t5_1_1_base_prompt.gin" \
   --gin_file="prompt_tuning/configs/prompts/from_class_labels.gin" \
   --gin_file="prompt_tuning/configs/runs/prompt_finetune.gin" \
