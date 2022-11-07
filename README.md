@@ -36,6 +36,7 @@ bash setup.sh OS=vcluster ENV_NAME=t5x DEV=false
 
 To start training a translation model using T5x, we submit the following slurm job.
 ```
+source t5x-env/bin/activate
 sbatch src/reference_implementations/t5x/run_multinode_2_2.slrm \
        <path/to/a_t5x_run_script.sh> \
        <path/to/a_t5x_log/dir> \
@@ -45,6 +46,7 @@ sbatch src/reference_implementations/t5x/run_multinode_2_2.slrm \
 
 For example:
 ```
+source t5x-env/bin/activate
 sbatch src/reference_implementations/run_multinode_2_2.slrm \
        src/reference_implementations/t5x/run_t5x.sh \
        ./t5x-exps-logs \
