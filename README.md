@@ -37,7 +37,7 @@ bash setup.sh OS=vcluster ENV_NAME=t5x DEV=false
 To start training a translation model using T5x, we submit the following slurm job.
 ```
 source t5x-env/bin/activate
-sbatch src/reference_implementations/t5x/run_multinode_2_2.slrm \
+sbatch src/reference_implementations/run_multinode_2_2.slrm \
        <path/to/a_t5x_run_script.sh> \
        <path/to/a_t5x_log/dir> \
        <path/to/a_model_save/dir> \
@@ -57,4 +57,35 @@ sbatch src/reference_implementations/run_multinode_2_2.slrm \
 Then, you can monitor the training status using `tensorboard` by specifying the directory used for saving models:
 ```
 tensorboard --logdir=/scratch/ssd004/scratch/snajafi/data_temp/t5x-exps/model
+```
+
+# Running google-prompt-tuning
+Make sure you install the cluster dependencies via the following command:
+```
+bash setup.sh OS=vcluster ENV_NAME=google_prompt_tuning DEV=True
+```
+
+Then submit the following slurm job for training prompts for binary sentiment analysis.
+```
+source google_prompt_tuning-env/bin/activate
+sbatch src/reference_implementations/run_multinode_2_2.slrm \
+       <path/to/a_t5x_run_script.sh> \
+       <path/to/a_t5x_log/dir> \
+       <path/to/a_model_save/dir> \
+       <path/to/a_data_save/dir>
+```
+
+For example:
+```
+source google_prompt_tuning-env/bin/activate
+sbatch src/reference_implementations/run_multinode_2_2.slrm \
+       src/reference_implementations/google_prompt_tuning/train_sst2.sh \
+       ./google-prompt-tuning-exps-logs \
+       /scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tuning-exps/model \
+       /scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tuning-exps/data
+```
+
+Then, you can monitor the training status using `tensorboard` by specifying the directory used for saving models:
+```
+tensorboard --logdir=/scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tuning-exps/model
 ```

@@ -72,6 +72,8 @@ function install_reference_methods () {
 
 	elif [ "$ENV_NAME" = "google_prompt_tuning" ]; then
 		bash src/reference_implementations/google_prompt_tuning/install_module.sh
+		# downgrade flax
+		pip install flax==0.5.1
 	fi
 
 }
