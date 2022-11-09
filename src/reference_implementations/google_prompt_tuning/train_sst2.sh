@@ -48,8 +48,8 @@ python -m t5x.train \
   --gin.TASK_FEATURE_LENGTHS="{'inputs': 512, 'targets': 8}" \
   --gin.INITIAL_CHECKPOINT_PATH="'${PRETRAINED_MODEL}'" \
   --gin.TRAIN_STEPS="1_150_000" \
-  --gin.BATCH_SIZE="32" \
-  --gin.PjitPartitioner.num_partitions=${SLURM_NTASKS} \
+  --gin.BATCH_SIZE="64" \
+  --gin.PjitPartitioner.num_partitions=1 \
   --gin.USE_CACHED_TASKS="False" \
   --tfds_data_dir=${TFDS_DATA_DIR} \
   --multiprocess_gpu \
