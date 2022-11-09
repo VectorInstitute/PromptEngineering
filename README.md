@@ -59,7 +59,9 @@ Then, you can monitor the training status using `tensorboard` by specifying the 
 tensorboard --logdir=/scratch/ssd004/scratch/snajafi/data_temp/t5x-exps/model
 ```
 
-# Running google-prompt-tuning
+# Using google-prompt-tuning
+The following lines outline the steps to train the google's soft-prompt code based on t5x for the binary sentiment analysis task on the vector's cluster.
+
 Make sure you install the cluster dependencies via the following command:
 ```
 bash setup.sh OS=vcluster ENV_NAME=google_prompt_tuning DEV=True

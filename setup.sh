@@ -37,14 +37,14 @@ function install_ml_libraries () {
 		pip install torch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 --no-cache-dir
 
 		# Installs tensorflow cpu on mac.
-		pip install https://storage.googleapis.com/tensorflow/mac/cpu/tensorflow-2.10.0-cp39-cp39-macosx_10_14_x86_64.whl
+		pip install https://storage.googleapis.com/tensorflow/mac/cpu/tensorflow-2.9.2-cp39-cp39-macosx_10_14_x86_64.whl
 
 		# Installs jax for cpu on mac.
 		pip install --upgrade "jax[cpu]"
 
 	elif [ "$OS" = "vcluster" ]; then
 		# Installs tensorflow gpu for python 3.9.10
-		pip install https://storage.googleapis.com/tensorflow/linux/gpu/tensorflow_gpu-2.10.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+		pip install https://storage.googleapis.com/tensorflow/linux/gpu/tensorflow_gpu-2.9.2-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
 
 		# Installs torch for python 3.9.10 and cuda 11.3. These are fixed for cluster cuda version.
 		pip install torch==1.12.1+cu113 torchvision==0.13.1+cu113 torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cu113 --no-cache-dir
@@ -72,7 +72,7 @@ function install_reference_methods () {
 
 	elif [ "$ENV_NAME" = "google_prompt_tuning" ]; then
 		bash src/reference_implementations/google_prompt_tuning/install_module.sh
-		# downgrade flax
+		# downgrade flax due to error prompt-tuning raises as the library uses older version of flax.
 		pip install flax==0.5.1
 	fi
 

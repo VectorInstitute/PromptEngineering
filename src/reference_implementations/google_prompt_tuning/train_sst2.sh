@@ -30,7 +30,11 @@ echo "- ${FLAXFORMER_DIR}"
 echo "- ${PROMPT_DIR}"
 echo "============================="
 
+# Remember that soft-prompt paper fine-tunes T5 on pure LM decoding which is extra to T5 of huggingface.
 PRETRAINED_MODEL="gs://t5-data/pretrained_models/t5x/t5_1_1_lm100k_base/checkpoint_1100000"
+
+# `TRAIN_STEPS` should include pre-training steps, e.g., if pre-trained ckpt
+# has 1M steps, TRAIN_STEPS = 1.1M will perform 0.1M fine-tuning steps.
 
 python -m t5x.train \
   --gin_search_paths="${PROJECT_DIR},${T5X_DIR},${FLAXFORMER_DIR},${PROMPT_DIR}" \
@@ -43,7 +47,9 @@ python -m t5x.train \
   --gin.MIXTURE_OR_TASK_MODULE="'prompt_tuning.data.glue'" \
   --gin.TASK_FEATURE_LENGTHS="{'inputs': 512, 'targets': 8}" \
   --gin.INITIAL_CHECKPOINT_PATH="'${PRETRAINED_MODEL}'" \
-  --gin.TRAIN_STEPS="10_000" \
+  --gin.TRAIN_STEPS="1_150_000" \
+  --gin.BATCH_SIZE="32" \
+  --gin.PjitPartitioner.num_partitions=${SLURM_NTASKS} \
   --gin.USE_CACHED_TASKS="False" \
   --tfds_data_dir=${TFDS_DATA_DIR} \
   --multiprocess_gpu \

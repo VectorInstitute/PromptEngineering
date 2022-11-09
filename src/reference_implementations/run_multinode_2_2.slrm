@@ -8,7 +8,7 @@
 #SBATCH --gres=gpu:2
 #SBATCH --mem=64G
 #SBATCH --partition=t4v2
-#SBATCH --qos=high
+#SBATCH --qos=normal
 #SBATCH --output=job_%x_%j.out
 #SBATCH --error=job_%x_%j.err
 
