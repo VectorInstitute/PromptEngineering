@@ -90,9 +90,9 @@ for _, feats in features.MODEL_TO_FEATURES.items():
                 source=seqio.TFExampleDataSource(
                     split_to_filepattern={"example": tfrecord_name},
                     feature_description={
-                        "idx": tf.io.FixedLenFeature,
-                        "sentence": tf.io.VarLenFeature,
-                        "label": tf.io.FixedLenFeature,
+                        "idx": tf.io.FixedLenFeature(tf.int64),
+                        "sentence": tf.io.VarLenFeature(tf.string),
+                        "label": tf.io.FixedLenFeature(tf.int64),
                     },
                 ),
                 preprocessors=[
