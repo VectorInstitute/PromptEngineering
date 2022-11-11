@@ -64,7 +64,7 @@ The following lines outline the steps to train the google's soft-prompt code bas
 
 Make sure you install the cluster dependencies via the following command:
 ```
-bash setup.sh OS=vcluster ENV_NAME=google_prompt_tuning DEV=True
+bash setup.sh OS=vcluster ENV_NAME=google_prompt_tuning DEV=true
 ```
 
 Then submit the following slurm job for training prompts for binary sentiment analysis.
