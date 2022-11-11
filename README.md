@@ -91,3 +91,13 @@ Then, you can monitor the training status using `tensorboard` by specifying the 
 ```
 tensorboard --logdir=/scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tuning-exps/model
 ```
+
+Inference:
+```
+source google_prompt_tuning-env/bin/activate
+sbatch src/reference_implementations/run_multinode_2_2.slrm \
+       src/reference_implementations/google_prompt_tuning/infer_sst2.sh \
+       ./google-prompt-tuning-infer-exps-logs \
+       /scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tuning-exps/model/checkpoint_1144000 \
+       /scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tuning-exps/data/infer
+```
