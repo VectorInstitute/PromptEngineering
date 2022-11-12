@@ -88,11 +88,11 @@ for _, feats in features.MODEL_TO_FEATURES.items():
             seqio.TaskRegistry.add(
                 "example_binary_sentiment_analysis",
                 source=seqio.TFExampleDataSource(
-                    split_to_filepattern={"example": tfrecord_name},
+                    split_to_filepattern={"test": tfrecord_name},
                     feature_description={
-                        "idx": tf.io.FixedLenFeature(tf.int64),
-                        "sentence": tf.io.VarLenFeature(tf.string),
-                        "label": tf.io.FixedLenFeature(tf.int64),
+                        "idx": tf.io.FixedLenFeature(shape=(), dtype=tf.int64),
+                        "sentence": tf.io.FixedLenFeature(shape=(), dtype=tf.string),
+                        "label": tf.io.FixedLenFeature(shape=(), dtype=tf.int64),
                     },
                 ),
                 preprocessors=[

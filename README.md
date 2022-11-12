@@ -93,11 +93,13 @@ tensorboard --logdir=/scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tun
 ```
 
 Inference:
+
+The following commands read the input file `src/reference_implementations/google_prompt_tuning/resources/example_input_sentences.csv` and store the predictions at `/scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tuning-exps/model/inference_eval/`:
 ```
 source google_prompt_tuning-env/bin/activate
 sbatch src/reference_implementations/run_multinode_2_2.slrm \
        src/reference_implementations/google_prompt_tuning/infer_sst2.sh \
        ./google-prompt-tuning-infer-exps-logs \
-       /scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tuning-exps/model/checkpoint_1144000 \
+       /scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tuning-exps/model \
        /scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tuning-exps/data/infer
 ```
