@@ -73,7 +73,7 @@ class PromptedT5(torch.nn.Module):
         return
 
 
-def construct_optimizer(t5_model: torch.nn.Module, learning_rate: float) -> Optimizer:
+def construct_optimizer(model: torch.nn.Module, learning_rate: float) -> Optimizer:
     """Define the adafactor optimizer over the parameters."""
 
     # Configurations suggested by the T5 paper.
@@ -81,7 +81,7 @@ def construct_optimizer(t5_model: torch.nn.Module, learning_rate: float) -> Opti
     # to know more about Adafactor: https://arxiv.org/abs/1804.04235
     # Adafactor has small memory footprint compared to adam in transformers.
     optimizer = Adafactor(
-        t5_model.parameters(),
+        model.parameters(),
         lr=learning_rate,
         eps=(1e-30, 1e-3),
         clip_threshold=1.0,
@@ -144,7 +144,19 @@ def no_weights_opt(t5_model: torch.nn.Module, learning_rate: float) -> Optimizer
     input will be augmented with some prompt instructions + in-context
     examples."""
 
+    # don't waste time storing grad data.
     for _, param in t5_model.named_parameters():
         param.requires_grad = False
 
     return construct_optimizer(t5_model, learning_rate)
+
+
+def soft_prompt_opt(t5_model: torch.nn.Module, prompt_model: torch.nn.Module, learning_rate: float) -> Optimizer:
+    """Define the optimizer that only fine-tunes the prompt vectors on the
+    downstream task."""
+    # don't waste time storing grad data.
+    for _, param in t5_model.named_parameters():
+        param.requires_grad = False
+
+    # don't register the t5_model, only register the prompt vectors.
+    return construct_optimizer(model=prompt_model, learning_rate=learning_rate)
