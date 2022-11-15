@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=t5x-multinode-experiments
+#SBATCH --job-name=prompt-multinode-experiments
 #SBATCH --nodes=2
 #SBATCH --ntasks=4
 #SBATCH --ntasks-per-node=2
@@ -8,7 +8,7 @@
 #SBATCH --gres=gpu:2
 #SBATCH --mem=64G
 #SBATCH --partition=t4v2
-#SBATCH --qos=high
+#SBATCH --qos=normal
 #SBATCH --output=job_%x_%j.out
 #SBATCH --error=job_%x_%j.err
 
@@ -26,7 +26,7 @@ export MASTER_ADDR=$MAIN_HOST
 export MASTER_PORT=52069
 
 # Set NCCL options
-#export NCCL_DEBUG=INFO
+# export NCCL_DEBUG=INFO
 # NCCL backend to communicate between GPU workers is not provided in vector's cluster.
 # Disable this option in slurm.
 export NCCL_IB_DISABLE=1
@@ -38,11 +38,12 @@ if [[ "${SLURM_JOB_PARTITION}" == "t4v2" ]] || \
 fi
 
 # Process input args
-WORKSPACE_DIR="$1_${SLURM_JOB_ID}"
+SCRIPT=$1
 LOG_DIR=$2
 LOG_PATH="${LOG_DIR}/log_${SLURM_JOB_ID}_rank_\${SLURM_PROCID}.log"
+MODEL_DIR=$3
+DATA_DIR=$4
 
-echo "Creating worker workspaces in: ${WORKSPACE_DIR}"
 echo "Placing logs in: ${LOG_DIR}"
 
 echo "World size: ${SLURM_NTASKS}"
@@ -50,13 +51,9 @@ echo "Number of nodes: ${SLURM_NNODES}"
 NUM_GPUs=$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
 echo "GPUs per node: ${NUM_GPUs}"
 
-# Make workspace and logging directories, then move to workspace
-mkdir -p "${WORKSPACE_DIR}"
+# Make logging directories.
 mkdir -p "${LOG_DIR}"
 
-cp -r "src/reference_implementations/t5x/run_t5x.sh" "${WORKSPACE_DIR}"
-
-cd "${WORKSPACE_DIR}" || exit
-
 # Run on all nodes
-/opt/slurm/bin/srun -N"${SLURM_NNODES}" -l bash -c "bash run_t5x.sh $* >> ${LOG_PATH} 2>&1"
+/opt/slurm/bin/srun -N"${SLURM_NNODES}" -l \
+    bash -c "bash ${SCRIPT} DATA_DIR=${DATA_DIR} MODEL_DIR=${MODEL_DIR} >> ${LOG_PATH} 2>&1"
