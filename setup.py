@@ -22,6 +22,7 @@ DEV_REQUIRES = [
     "toml",
     "types-requests",
     "types-setuptools",
+    "docformatter",
 ]
 
 setup(

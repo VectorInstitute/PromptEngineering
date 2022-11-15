@@ -78,6 +78,9 @@ function install_reference_methods () {
 		bash src/reference_implementations/google_prompt_tuning/install_module.sh
 		# downgrade flax due to error prompt-tuning raises as the library uses older version of flax.
 		pip install flax==0.5.1
+
+	elif [ "$ENV_NAME" = "prompt_torch" ]; then
+		pip install transformers datasets
 	fi
 
 }
