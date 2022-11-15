@@ -37,6 +37,8 @@ function install_ml_libraries () {
 		pip install torch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 --no-cache-dir
 
 		# Installs tensorflow cpu on mac.
+		# Tensorflow 2.10 cannot recognize the cublas library.
+		# https://github.com/google-research/multinerf/issues/47#issuecomment-1258045656
 		pip install https://storage.googleapis.com/tensorflow/mac/cpu/tensorflow-2.9.2-cp39-cp39-macosx_10_14_x86_64.whl
 
 		# Installs jax for cpu on mac.
@@ -44,6 +46,8 @@ function install_ml_libraries () {
 
 	elif [ "$OS" = "vcluster" ]; then
 		# Installs tensorflow gpu for python 3.9.10
+		# Tensorflow 2.10 cannot recognize the cublas library.
+		# https://github.com/google-research/multinerf/issues/47#issuecomment-1258045656
 		pip install https://storage.googleapis.com/tensorflow/linux/gpu/tensorflow_gpu-2.9.2-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
 
 		# Installs torch for python 3.9.10 and cuda 11.3. These are fixed for cluster cuda version.

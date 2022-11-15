@@ -30,11 +30,13 @@ echo "- ${FLAXFORMER_DIR}"
 echo "- ${PROMPT_DIR}"
 echo "============================="
 
-# Remember that soft-prompt paper fine-tunes T5 on pure LM decoding which is extra to T5 of huggingface.
+# Remember that soft-prompt paper fine-tunes T5 on prefix LM  which is extra to T5 of huggingface.
+# Based on my presentation, I explained that T5x does extra LM adaptation step
+#  over the span reconstruction pre-training of normal T5s.
 PRETRAINED_MODEL="gs://t5-data/pretrained_models/t5x/t5_1_1_lm100k_base/checkpoint_1100000"
 
 # `TRAIN_STEPS` should include pre-training steps, e.g., if pre-trained ckpt
-# has 1M steps, TRAIN_STEPS = 1.1M will perform 0.1M fine-tuning steps.
+# has 1M steps, TRAIN_STEPS = 1.1M will perform 0.1M prompt-tuning steps.
 
 python -m t5x.train \
   --gin_search_paths="${PROJECT_DIR},${T5X_DIR},${FLAXFORMER_DIR},${PROMPT_DIR}" \
