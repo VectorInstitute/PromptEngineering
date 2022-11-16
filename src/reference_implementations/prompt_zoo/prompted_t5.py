@@ -14,13 +14,13 @@ The module implements the following baselines:
 """
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Dict, Iterator, List, Optional
 
 import torch
-from torch.optim.optimizer import Optimizer
-from transformers import Adafactor, T5ForConditionalGeneration, T5Tokenizer
+from transformers import T5ForConditionalGeneration, T5Tokenizer
 
-from src.reference_implementations.prompt_zoo.model_utility import set_random_seed
+from src.reference_implementations.prompt_zoo.model_utility import clear_cache, set_random_seed
+from src.reference_implementations.prompt_zoo.prompt_optimizers import optimizer_definer
 
 # the t5-base model with the extra LM adaptation steps.
 # https://huggingface.co/google/t5-base-lm-adapt
@@ -37,6 +37,7 @@ class ConfigParameters:
     decoder_max_length: int = 32
     config_file: str = "config.ini"
     gpu: bool = False
+    device: Optional[str] = None
     learning_rate: float = 0.0005
     max_epochs: int = 16
     mode: str = "train"
@@ -48,115 +49,154 @@ class ConfigParameters:
     checkpoint: Optional[str] = None
     training_steps: Optional[int] = 1
 
-    # Related to decoding.
-    no_repeat_ngram_size: Optional[int] = 2
-
     # Which T5 checkpoint to download from huggingface?
     model_name: str = MODEL_NAME
+
+    # Decide what type of experiment we want with respect to prompts and T5s.
+    t5_exp_type: str = "all_finetune"
 
 
 class PromptedT5(torch.nn.Module):
     """Wrapper class around the T5 Model to experiment with different prompt
     ideas."""
 
-    def __init__(self, cfg: ConfigParameters) -> None:
+    def __init__(self, cfg: ConfigParameters, exp_type: str, prompt_model: Optional[torch.nn.Module] = None) -> None:
         super(PromptedT5, self).__init__()
         self.config = cfg
 
+        # exp_type is one of the options in EXP_TYPES.
+        self.config.t5_exp_type = exp_type
+
         set_random_seed(cfg.seed)
+
+        # check the gpu actually exists and setup device.
+        self.config.gpu = self.config.gpu and torch.cuda.is_available()
+        self.config.device = torch.device("cuda" if self.config.gpu else "cpu")
 
         # construct tokenizer
         self.tokenizer = T5Tokenizer.from_pretrained(self.config.model_name)
 
         # construct the underlying t5 model
         self.model = T5ForConditionalGeneration.from_pretrained(self.config.model_name)
+
+        # put model on gpu or cpu.
+        self.model.to(self.config.device)
+        self.prompt_model = prompt_model
+        if self.prompt_model is not None:
+            self.prompt_model.to(self.config.device)
+
+        self.setup_optimizer()
         return
 
+    def setup_optimizer(self) -> None:
+        """Based on the experiment type, setup the optimizer."""
+        train_args = {
+            "t5_model": self.model,
+            "learning_rate": self.config.learning_rate,
+            "prompt_model": self.prompt_model,
+        }
+        exp_type = self.config.t5_exp_type
+        self.optimizer = optimizer_definer[exp_type](**train_args)
+        return
 
-def construct_optimizer(model: torch.nn.Module, learning_rate: float) -> Optimizer:
-    """Define the adafactor optimizer over the parameters."""
+    def train_mode_on(self) -> None:
+        """Before every forward-backward iteration over batch, clear gpu cache,
+        turn on tain mode, and zero the optimizer gradient state."""
 
-    # Configurations suggested by the T5 paper.
-    # https://discuss.huggingface.co/t/t5-finetuning-tips/684/35
-    # to know more about Adafactor: https://arxiv.org/abs/1804.04235
-    # Adafactor has small memory footprint compared to adam in transformers.
-    optimizer = Adafactor(
-        model.parameters(),
-        lr=learning_rate,
-        eps=(1e-30, 1e-3),
-        clip_threshold=1.0,
-        decay_rate=-0.8,
-        beta1=None,
-        weight_decay=0.0,
-        relative_step=False,
-        scale_parameter=False,
-        warmup_init=False,
-    )
-    return optimizer
+        clear_cache()
 
+        # turn on training mode which enables dropout.
+        self.model.train()
 
-def all_weights_opt(t5_model: torch.nn.Module, learning_rate: float) -> Optimizer:
-    """Define the optimizer that fine-tunes all the weights in the T5 model."""
-    return construct_optimizer(t5_model, learning_rate)
+        if self.prompt_model is not None:
+            self.prompt_model.train()
 
+        self.optimizer.zero_grad()
+        return
 
-def input_embeddings_opt(t5_model: torch.nn.Module, learning_rate: float) -> Optimizer:
-    """Define the optimizer that only fine-tunes the shared input embedding
-    layer of the T5 encoder/decoder."""
+    def predict_mode_on(self) -> None:
+        """For each iteration of prediction over batch, clear gpu cache, turn
+        on eval mode."""
 
-    for name, param in t5_model.named_parameters():
-        if name == "shared.weight":
-            param.requires_grad = True
-        else:
-            param.requires_grad = False
+        clear_cache()
 
-    return construct_optimizer(t5_model, learning_rate)
+        # turn on eval mode which disables dropout.
+        self.model.eval()
 
+        if self.prompt_model is not None:
+            self.prompt_model.eval()
 
-def output_embeddings_opt(t5_model: torch.nn.Module, learning_rate: float) -> Optimizer:
-    """Define the optimizer that only fine-tunes the output LM head of the T5
-    decoder."""
+        return
 
-    for name, param in t5_model.named_parameters():
-        if name == "lm_head.weight":
-            param.requires_grad = True
-        else:
-            param.requires_grad = False
+    def move_to_gpu(self, batch: torch.utils.data.Dataset, keys: List[str]) -> Dict[str, torch.Tensor]:
+        """If gpu flag is set, move the batch tensors specified by keys into
+        the gpu and return a dictionary to access the gpu tensors."""
+        ret = {}
+        for key in keys:
+            val = batch[key]
+            if self.config.gpu:
+                val = val.to(self.config.device)
+            ret[key] = val
+        return ret
 
-    return construct_optimizer(t5_model, learning_rate)
+    def no_prompt_train(self, batch: torch.utils.data.Dataset) -> Dict[str, float]:
+        """The main train loop for the following cases of the T5 experiments:
 
+        1 - Fully fine-tuning all the parameters of the T5 model.
+        2 - Only fine-tuning the shared input embedding layer of the T5 encoder/decoder.
+        3 - Only fine-tuning the output embedding layer of the T5 decoder.
+        4 - Fine-tuning both the shared input embedding layer +
+            the output embedding layer of the T5 decoder.
+        """
 
-def input_output_embeddings_opt(t5_model: torch.nn.Module, learning_rate: float) -> Optimizer:
-    """Define the optimizer that fine-tunes both the shared input embedding
-    layer + the output embedding layer of the T5 decoder."""
+        self.train_mode_on()
+        loaded_batch = self.move_to_gpu(batch, keys=["input_ids", "attention_mask", "target_attention_mask", "labels"])
+        output = self.model(
+            input_ids=loaded_batch["input_ids"],
+            attention_mask=loaded_batch["input_mask"],
+            decoder_attention_mask=loaded_batch["target_mask"],
+            labels=loaded_batch["labels"],
+        )
 
-    for name, param in t5_model.named_parameters():
-        if name in ["lm_head.weight", "shared.weight"]:
-            param.requires_grad = True
-        else:
-            param.requires_grad = False
+        loss = output.loss
+        loss_value = loss.item()
 
-    return construct_optimizer(t5_model, learning_rate)
+        # backProp
+        loss.backward()
 
+        # optimize
+        self.optimizer.step()
 
-def no_weights_opt(t5_model: torch.nn.Module, learning_rate: float) -> Optimizer:
-    """Define the optimizer that does not fine-tune any weights, however, the
-    input will be augmented with some prompt instructions + in-context
-    examples."""
+        return {"loss_value": loss_value}
 
-    # don't waste time storing grad data.
-    for _, param in t5_model.named_parameters():
-        param.requires_grad = False
+    def no_prompt_predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
+        """The main prediction loop for the following cases of the T5
+        experiments:
 
-    return construct_optimizer(t5_model, learning_rate)
+        1 - Fully fine-tuning all the parameters of the T5 model.
+        2 - Only fine-tuning the shared input embedding layer of the T5 encoder/decoder.
+        3 - Only fine-tuning the output embedding layer of the T5 decoder.
+        4 - Fine-tuning both the shared input embedding layer +
+            the output embedding layer of the T5 decoder.
+        """
 
+        self.predict_mode_on()
+        loaded_batch = self.move_to_gpu(batch, keys=["input_ids", "attention_mask"])
 
-def soft_prompt_opt(t5_model: torch.nn.Module, prompt_model: torch.nn.Module, learning_rate: float) -> Optimizer:
-    """Define the optimizer that only fine-tunes the prompt vectors on the
-    downstream task."""
-    # don't waste time storing grad data.
-    for _, param in t5_model.named_parameters():
-        param.requires_grad = False
+        # use greedy decoding.
+        predictions = self.model.generate(
+            input_ids=loaded_batch["input_ids"],
+            attention_mask=loaded_batch["input_mask"],
+        )
 
-    # don't register the t5_model, only register the prompt vectors.
-    return construct_optimizer(model=prompt_model, learning_rate=learning_rate)
+        # all transformer special tokens will be removed
+        predictions_str = self.tokenizer.batch_decode(predictions, skip_special_tokens=True)
+
+        # not efficient, but let's pair input along the predictions.
+        inputs_str = self.tokenizer.batch_decode(loaded_batch["input_ids"], skip_special_tokens=True)
+        for index, pred_str in enumerate(predictions_str):
+            output_batch = {
+                "prediction": pred_str,
+                "input": inputs_str[index],
+            }
+            yield output_batch
