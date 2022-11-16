@@ -31,7 +31,7 @@ MODEL_NAME = "google/t5-base-lm-adapt"
 class ConfigParameters:
     """To store, edit and share general Model configurations."""
 
-    model_path: Optional[str] = None
+    model_path: str = "/tmp/"
     batch_size: int = 16
     source_max_length: int = 256
     decoder_max_length: int = 32
@@ -48,6 +48,7 @@ class ConfigParameters:
     seed: int = 8
     checkpoint: Optional[str] = None
     training_steps: Optional[int] = 1
+    steps_per_checkpoint: int = 100
 
     # Which T5 checkpoint to download from huggingface?
     model_name: str = MODEL_NAME
@@ -200,3 +201,21 @@ class PromptedT5(torch.nn.Module):
                 "input": inputs_str[index],
             }
             yield output_row
+
+    def train(self, batch: torch.utils.data.Dataset, exp_type: str = "all_finetune") -> Dict[str, float]:
+        """Switch over exp_type and call the correct train function over batch
+        for each experiment type."""
+        if exp_type in ["all_finetune", "input_finetune" "output_finetune", "input_output_finetune"]:
+            return self.no_prompt_train(batch)
+        else:
+            # TODO: implement the prompt train.
+            return self.no_prompt_train(batch)
+
+    def predict(self, batch: torch.utils.data.Dataset, exp_type: str = "all_finetune") -> Iterator[Dict[str, str]]:
+        """Switch over exp_type and call the correct predict function over
+        batch for each experiment type."""
+        if exp_type in ["all_finetune", "input_finetune" "output_finetune", "input_output_finetune"]:
+            return self.no_prompt_predict(batch)
+        else:
+            # TODO: implement the prompt predict.
+            return self.no_prompt_predict(batch)
