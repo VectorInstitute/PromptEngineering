@@ -64,7 +64,7 @@ class PromptedT5(torch.nn.Module):
         super(PromptedT5, self).__init__()
         self.config = cfg
 
-        # exp_type is one of the options in EXP_TYPES.
+        # exp_type is one of the options in optimizer_definer.
         self.config.t5_exp_type = exp_type
 
         set_random_seed(cfg.seed)
@@ -195,8 +195,8 @@ class PromptedT5(torch.nn.Module):
         # not efficient, but let's pair input along the predictions.
         inputs_str = self.tokenizer.batch_decode(loaded_batch["input_ids"], skip_special_tokens=True)
         for index, pred_str in enumerate(predictions_str):
-            output_batch = {
+            output_row = {
                 "prediction": pred_str,
                 "input": inputs_str[index],
             }
-            yield output_batch
+            yield output_row
