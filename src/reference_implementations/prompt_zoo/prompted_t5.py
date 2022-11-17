@@ -13,6 +13,7 @@ The module implements the following baselines:
     only fine-tune those prompt vectors on the downstream task.
 """
 
+import os
 from dataclasses import dataclass
 from typing import Dict, Iterator, List, Optional
 
@@ -46,7 +47,7 @@ class ConfigParameters:
     dev_file: Optional[str] = None
     prediction_output_file: Optional[str] = None
     seed: int = 8
-    checkpoint: Optional[str] = None
+    checkpoint: str = "NONE"
     training_steps: Optional[int] = 1
     steps_per_checkpoint: int = 100
 
@@ -86,7 +87,44 @@ class PromptedT5(torch.nn.Module):
         if self.prompt_model is not None:
             self.prompt_model.to(self.config.device)
 
-        self.setup_optimizer()
+        if self.config.mode == "train":
+            # create optimizer only for training.
+            self.setup_optimizer()
+        elif self.config.mode in ["test", "inference", "eval"]:
+            # load from the given checkpoint.
+            self.load()
+        return
+
+    def load(self) -> None:
+        """Loads the weights from the given checkpoint specified in config."""
+        m_path = self.config.model_path
+        ckp_name = self.config.checkpoint
+        model_ckp = os.path.join(m_path, "model_") + ckp_name
+        prompt_ckp = os.path.join(m_path, "prompt_model_") + ckp_name
+        self.model.load_state_dict(
+            torch.load(
+                model_ckp,
+                map_location=lambda storage, loc: storage,
+            )
+        )
+        if self.prompt_model is not None:
+            self.prompt_model.load_state_dict(
+                torch.load(
+                    prompt_ckp,
+                    map_location=lambda storage, loc: storage,
+                )
+            )
+        return
+
+    def save(self, checkpoint_name: str) -> None:
+        """Save the modules to the model_path for the specified checkpoint
+        name."""
+        m_path = self.config.model_path
+        if not os.path.exists(m_path):
+            os.makedirs(m_path)
+        torch.save(self.model.state_dict(), os.path.join(m_path, "model_") + checkpoint_name)
+        if self.prompt_model is not None:
+            torch.save(self.prompt_model.state_dict(), os.path.join(m_path, "prompt_model_") + checkpoint_name)
         return
 
     def setup_optimizer(self) -> None:
