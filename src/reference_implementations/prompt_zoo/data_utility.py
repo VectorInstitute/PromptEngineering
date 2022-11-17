@@ -15,9 +15,20 @@ def white_space_fix(text: str) -> str:
 
 
 def preprocess_semeval_sentiment(text: str) -> str:
-    """convert '-3: very negative emotional state can be inferred' to 'very
-    negative'."""
-    return text.replace("emotional state can be inferred", "").strip().split(":")[1].strip()
+    """convert '-3: very negative emotional state can be inferred' to 'negative'."""
+
+    # convert a 7-class sentiment analysis task to a 3 class sentiment analysis.
+    sentiment_mapper = {
+        "moderately negative": "negative",
+        "very negative": "negative",
+        "slightly negative": "negative",
+        "slightly positive": "positive",
+        "very positive": "positive",
+        "moderately positive": "positive",
+        "neutral or mixed": "neutral",
+    }
+    sentiment = text.replace("emotional state can be inferred", "").strip().split(":")[1].strip()
+    return sentiment_mapper[sentiment]
 
 
 def read_semeval_sentiment_file(file_path: str) -> tuple[List[str], List[str]]:
