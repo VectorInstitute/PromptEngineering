@@ -14,91 +14,66 @@ The module implements the following baselines:
 """
 
 import os
-from dataclasses import dataclass
 from typing import Dict, Iterator, List, Optional
 
 import torch
+from absl import flags
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 
 from src.reference_implementations.prompt_zoo.model_utility import clear_cache, set_random_seed
 from src.reference_implementations.prompt_zoo.prompt_optimizers import optimizer_definer
 
+FLAGS = flags.FLAGS
+flags.DEFINE_string("t5_exp_type", "all_finetune", "The type of experiment with the T5 model.")
+flags.DEFINE_integer("seed", 42, "the seed number")
+flags.DEFINE_bool("gpu", False, "Whether to put the model on gpu or not?")
+
 # the t5-base model with the extra LM adaptation steps.
 # https://huggingface.co/google/t5-base-lm-adapt
-MODEL_NAME = "google/t5-base-lm-adapt"
+flags.DEFINE_string("t5_pretrained_model", "google/t5-base-lm-adapt", "initial pre-trained model to use as T5.")
 
-
-@dataclass
-class ConfigParameters:
-    """To store, edit and share general Model configurations."""
-
-    model_path: str = "/tmp/"
-    batch_size: int = 16
-    source_max_length: int = 256
-    decoder_max_length: int = 32
-    config_file: str = "config.ini"
-    gpu: bool = False
-    device: Optional[str] = None
-    learning_rate: float = 0.0005
-    max_epochs: int = 16
-    mode: str = "train"
-    train_file: Optional[str] = None
-    test_file: Optional[str] = None
-    dev_file: Optional[str] = None
-    prediction_output_file: Optional[str] = None
-    seed: int = 8
-    checkpoint: str = "NONE"
-    training_steps: Optional[int] = 1
-    steps_per_checkpoint: int = 100
-
-    # Which T5 checkpoint to download from huggingface?
-    model_name: str = MODEL_NAME
-
-    # Decide what type of experiment we want with respect to prompts and T5s.
-    t5_exp_type: str = "all_finetune"
+flags.DEFINE_string("mode", "train", "the mode of run? train or test")
+flags.DEFINE_string("model_path", "/tmp/", "main directory to save or load the model from")
+flags.DEFINE_string("checkpoint", None, "checkpoint name to load from.")
 
 
 class PromptedT5(torch.nn.Module):
     """Wrapper class around the T5 Model to experiment with different prompt
     ideas."""
 
-    def __init__(self, cfg: ConfigParameters, exp_type: str, prompt_model: Optional[torch.nn.Module] = None) -> None:
+    def __init__(self, prompt_model: Optional[torch.nn.Module] = None) -> None:
         super(PromptedT5, self).__init__()
-        self.config = cfg
 
-        # exp_type is one of the options in optimizer_definer.
-        self.config.t5_exp_type = exp_type
-
-        set_random_seed(cfg.seed)
+        set_random_seed(FLAGS.seed)
 
         # check the gpu actually exists and setup device.
-        self.config.gpu = self.config.gpu and torch.cuda.is_available()
-        self.config.device = torch.device("cuda" if self.config.gpu else "cpu")
+        self.gpu_check = FLAGS.gpu and torch.cuda.is_available()
+        self.device = torch.device("cuda" if self.gpu_check else "cpu")
 
         # construct tokenizer
-        self.tokenizer = T5Tokenizer.from_pretrained(self.config.model_name)
+        self.tokenizer = T5Tokenizer.from_pretrained(FLAGS.t5_pretrained_model)
 
         # construct the underlying t5 model
-        self.model = T5ForConditionalGeneration.from_pretrained(self.config.model_name)
+        self.model = T5ForConditionalGeneration.from_pretrained(FLAGS.t5_pretrained_model)
 
         # put model on gpu or cpu.
-        self.model.to(self.config.device)
+        self.model.to(self.device)
         self.prompt_model = prompt_model
         if self.prompt_model is not None:
-            self.prompt_model.to(self.config.device)
+            self.prompt_model.to(self.device)
 
-        if self.config.mode == "train":
+        if FLAGS.mode == "train":
             # create optimizer only for training.
             self.setup_optimizer()
-        elif self.config.mode in ["test", "inference", "eval"]:
+        elif FLAGS.mode in ["test", "inference", "eval"]:
             # load from the given checkpoint.
             self.load()
         return
 
     def load(self) -> None:
-        """Loads the weights from the given checkpoint specified in config."""
-        m_path = self.config.model_path
-        ckp_name = self.config.checkpoint
+        """Loads the weights from the given checkpoint."""
+        m_path = FLAGS.model_path
+        ckp_name = FLAGS.checkpoint
         model_ckp = os.path.join(m_path, "model_") + ckp_name
         prompt_ckp = os.path.join(m_path, "prompt_model_") + ckp_name
         self.model.load_state_dict(
@@ -119,7 +94,7 @@ class PromptedT5(torch.nn.Module):
     def save(self, checkpoint_name: str) -> None:
         """Save the modules to the model_path for the specified checkpoint
         name."""
-        m_path = self.config.model_path
+        m_path = FLAGS.model_path
         if not os.path.exists(m_path):
             os.makedirs(m_path)
         torch.save(self.model.state_dict(), os.path.join(m_path, "model_") + checkpoint_name)
@@ -131,11 +106,9 @@ class PromptedT5(torch.nn.Module):
         """Based on the experiment type, setup the optimizer."""
         optimizer_args = {
             "t5_model": self.model,
-            "learning_rate": self.config.learning_rate,
             "prompt_model": self.prompt_model,
         }
-        exp_type = self.config.t5_exp_type
-        self.optimizer = optimizer_definer[exp_type](**optimizer_args)
+        self.optimizer = optimizer_definer[FLAGS.t5_exp_type](**optimizer_args)
         return
 
     def train_mode_on(self) -> None:
@@ -173,8 +146,8 @@ class PromptedT5(torch.nn.Module):
         ret = {}
         for key in keys:
             val = batch[key]
-            if self.config.gpu:
-                val = val.to(self.config.device)
+            if self.gpu_check:
+                val = val.to(self.device)
             ret[key] = val
         return ret
 
@@ -208,6 +181,11 @@ class PromptedT5(torch.nn.Module):
 
         return {"loss_value": loss_value}
 
+    def prompt_train(self, batch: torch.utils.data.Dataset) -> Dict[str, float]:
+        """The train function for prompt tuning using T5 as the underlying
+        LM."""
+        pass
+
     def no_prompt_predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
         """The main prediction loop for the following cases of the T5
         experiments:
@@ -240,20 +218,23 @@ class PromptedT5(torch.nn.Module):
             }
             yield output_row
 
-    def train(self, batch: torch.utils.data.Dataset, exp_type: str = "all_finetune") -> Dict[str, float]:
-        """Switch over exp_type and call the correct train function over batch
-        for each experiment type."""
-        if exp_type in ["all_finetune", "input_finetune" "output_finetune", "input_output_finetune"]:
-            return self.no_prompt_train(batch)
-        else:
-            # TODO: implement the prompt train.
-            return self.no_prompt_train(batch)
+    def prompt_predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
+        """The prediction function for prompt tuning methods using T5 as the
+        underlying LM."""
+        pass
 
-    def predict(self, batch: torch.utils.data.Dataset, exp_type: str = "all_finetune") -> Iterator[Dict[str, str]]:
-        """Switch over exp_type and call the correct predict function over
+    def train(self, batch: torch.utils.data.Dataset) -> Dict[str, float]:
+        """Switch over t5_exp_type and call the correct train function over
         batch for each experiment type."""
-        if exp_type in ["all_finetune", "input_finetune" "output_finetune", "input_output_finetune"]:
+        if FLAGS.t5_exp_type in ["all_finetune", "input_finetune" "output_finetune", "input_output_finetune"]:
+            return self.no_prompt_train(batch)
+        else:
+            return self.prompt_train(batch)
+
+    def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
+        """Switch over t5_exp_type and call the correct predict function over
+        batch for each experiment type."""
+        if FLAGS.t5_exp_type in ["all_finetune", "input_finetune" "output_finetune", "input_output_finetune"]:
             return self.no_prompt_predict(batch)
         else:
-            # TODO: implement the prompt predict.
-            return self.no_prompt_predict(batch)
+            return self.prompt_predict(batch)

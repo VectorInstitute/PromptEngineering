@@ -15,7 +15,8 @@ def white_space_fix(text: str) -> str:
 
 
 def preprocess_semeval_sentiment(text: str) -> str:
-    """convert '-3: very negative emotional state can be inferred' to 'negative'."""
+    """convert '-3: very negative emotional state can be inferred' to
+    'negative'."""
 
     # convert a 7-class sentiment analysis task to a 3 class sentiment analysis.
     sentiment_mapper = {

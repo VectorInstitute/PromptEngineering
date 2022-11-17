@@ -4,15 +4,17 @@ experiment type with the T5 models."""
 from typing import Dict, Optional, Union
 
 import torch
+from absl import flags
 from torch.optim.optimizer import Optimizer
 from transformers import Adafactor
 
-OPTIMIZER_ARGS_TYPE = Dict[str, Union[torch.nn.Module, float, torch.nn.Module]]
+FLAGS = flags.FLAGS
+flags.DEFINE_float("learning_rate", 0.0005, "The learning rate used in the optimizer", lower_bound=0.0)
+
+OPTIMIZER_ARGS_TYPE = Dict[str, Union[torch.nn.Module, torch.nn.Module]]
 
 
-def construct_optimizer(
-    model: torch.nn.Module, learning_rate: float, second_model: Optional[torch.nn.Module] = None
-) -> Optimizer:
+def construct_optimizer(model: torch.nn.Module, second_model: Optional[torch.nn.Module] = None) -> Optimizer:
     """Define the adafactor optimizer over the parameters."""
 
     # Configurations suggested by the T5 paper.
@@ -27,7 +29,7 @@ def construct_optimizer(
 
     optimizer = Adafactor(
         params,
-        lr=learning_rate,
+        lr=FLAGS.learning_rate,
         eps=(1e-30, 1e-3),
         clip_threshold=1.0,
         decay_rate=-0.8,
@@ -42,7 +44,7 @@ def construct_optimizer(
 
 def all_weights_opt(opt_args: OPTIMIZER_ARGS_TYPE) -> Optimizer:
     """Define the optimizer that fine-tunes all the weights in the T5 model."""
-    return construct_optimizer(model=opt_args["t5_model"], learning_rate=opt_args["learning_rate"])
+    return construct_optimizer(model=opt_args["t5_model"])
 
 
 def input_embeddings_opt(opt_args: OPTIMIZER_ARGS_TYPE) -> Optimizer:
@@ -56,7 +58,7 @@ def input_embeddings_opt(opt_args: OPTIMIZER_ARGS_TYPE) -> Optimizer:
         else:
             param.requires_grad = False
 
-    return construct_optimizer(model=t5_model, learning_rate=opt_args["learning_rate"])
+    return construct_optimizer(model=t5_model)
 
 
 def output_embeddings_opt(opt_args: OPTIMIZER_ARGS_TYPE) -> Optimizer:
@@ -70,7 +72,7 @@ def output_embeddings_opt(opt_args: OPTIMIZER_ARGS_TYPE) -> Optimizer:
         else:
             param.requires_grad = False
 
-    return construct_optimizer(model=t5_model, learning_rate=opt_args["learning_rate"])
+    return construct_optimizer(model=t5_model)
 
 
 def input_output_embeddings_opt(opt_args: OPTIMIZER_ARGS_TYPE) -> Optimizer:
@@ -84,7 +86,7 @@ def input_output_embeddings_opt(opt_args: OPTIMIZER_ARGS_TYPE) -> Optimizer:
         else:
             param.requires_grad = False
 
-    return construct_optimizer(model=t5_model, learning_rate=opt_args["learning_rate"])
+    return construct_optimizer(model=t5_model)
 
 
 def no_weights_opt(opt_args: OPTIMIZER_ARGS_TYPE) -> Optimizer:
@@ -97,7 +99,7 @@ def no_weights_opt(opt_args: OPTIMIZER_ARGS_TYPE) -> Optimizer:
     for _, param in t5_model.named_parameters():
         param.requires_grad = False
 
-    return construct_optimizer(model=t5_model, learning_rate=opt_args["learning_rate"])
+    return construct_optimizer(model=t5_model)
 
 
 def soft_prompt_opt(opt_args: OPTIMIZER_ARGS_TYPE) -> Optimizer:
@@ -109,9 +111,7 @@ def soft_prompt_opt(opt_args: OPTIMIZER_ARGS_TYPE) -> Optimizer:
     for _, param in t5_model.named_parameters():
         param.requires_grad = False
 
-    return construct_optimizer(
-        model=t5_model, learning_rate=opt_args["learning_rate"], second_model=opt_args["prompt_model"]
-    )
+    return construct_optimizer(model=t5_model, second_model=opt_args["prompt_model"])
 
 
 # store the functions that setup the optimizer for each experiment type.
