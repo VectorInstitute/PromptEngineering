@@ -18,6 +18,7 @@ FLAGS = flags.FLAGS
 flags.DEFINE_integer("max_epochs", 10, "The maximum number of epochs for training.")
 flags.DEFINE_integer("training_steps", 100, "The number of training steps for each epoch.")
 flags.DEFINE_integer("steps_per_checkpoint", 100, "keep checkpoint of the model every this number of steps")
+flags.DEFINE_string("prediction_file", "/tmp/predictions.csv", "the path/name for saving the predictions.")
 
 
 def set_random_seed(seed: int) -> None:
@@ -76,8 +77,8 @@ def run_model(
     eval_dataloader: Optional[torch.utils.data.DataLoader] = None,
 ) -> None:
     """Run the model on input data; for training or inference."""
-    writer = SummaryWriter(FLAGS.model_path)
     if FLAGS.mode == "train":
+        writer = SummaryWriter(FLAGS.model_path)
         epoch = 0
         while epoch < FLAGS.max_epochs:
             print("\nEpoch:{0}\n".format(epoch))
@@ -99,3 +100,6 @@ def run_model(
             epoch += 1
 
         writer.close()
+    if FLAGS.mode in ["test", "inference", "eval"]:
+        print("Predicting...")
+        start_predicting(model, eval_dataloader, FLAGS.prediction_file)

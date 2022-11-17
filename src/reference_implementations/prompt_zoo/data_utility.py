@@ -5,8 +5,14 @@ from typing import Dict, List
 
 import pandas as pd
 import torch
+from absl import flags
 from torch.utils.data import DataLoader, Dataset
 from transformers import T5Tokenizer
+
+FLAGS = flags.FLAGS
+flags.DEFINE_integer("batch_size", 16, "The batch size used for training or inference.")
+flags.DEFINE_integer("source_max_length", 128, "The maximum number of tokens consider in the input sequence.")
+flags.DEFINE_integer("decoder_max_length", 128, "The maximum number of tokens consider in the output sequence.")
 
 
 def white_space_fix(text: str) -> str:
@@ -71,9 +77,6 @@ class SentimentDataset(Dataset):
 
 def create_semeval_sentiment_dataset(
     tokenizer: T5Tokenizer,
-    batch_size: int,
-    source_max_length: int,
-    decoder_max_length: int,
     file_name: str,
     shuffle: bool,
 ) -> DataLoader:
@@ -85,14 +88,14 @@ def create_semeval_sentiment_dataset(
         inputs,
         truncation=True,
         padding="max_length",
-        max_length=source_max_length,
+        max_length=FLAGS.source_max_length,
         add_special_tokens=False,
     )
     output_encodings = tokenizer(
         outputs,
         truncation=True,
         padding="max_length",
-        max_length=decoder_max_length,
+        max_length=FLAGS.decoder_max_length,
         add_special_tokens=False,
     )
 
@@ -107,5 +110,5 @@ def create_semeval_sentiment_dataset(
         [-100 if token == tokenizer.pad_token_id else token for token in labels] for labels in encodings["labels"]
     ]
     encodings["labels"] = labels
-    dataloader = DataLoader(SentimentDataset(encodings), batch_size=batch_size, shuffle=shuffle)
+    dataloader = DataLoader(SentimentDataset(encodings), batch_size=FLAGS.batch_size, shuffle=shuffle)
     return dataloader
