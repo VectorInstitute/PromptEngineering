@@ -134,7 +134,7 @@ class PromptedT5(torch.nn.Module):
             "t5_model": self.model,
             "prompt_model": self.prompt_model,
         }
-        self.optimizer = optimizer_definer[FLAGS.t5_exp_type](**optimizer_args)
+        self.optimizer = optimizer_definer[FLAGS.t5_exp_type](optimizer_args)
         return
 
     def train_mode_on(self) -> None:
@@ -191,8 +191,8 @@ class PromptedT5(torch.nn.Module):
         loaded_batch = self.move_to_gpu(batch, keys=["input_ids", "attention_mask", "target_attention_mask", "labels"])
         output = self.model(
             input_ids=loaded_batch["input_ids"],
-            attention_mask=loaded_batch["input_mask"],
-            decoder_attention_mask=loaded_batch["target_mask"],
+            attention_mask=loaded_batch["attention_mask"],
+            decoder_attention_mask=loaded_batch["target_attention_mask"],
             labels=loaded_batch["labels"],
         )
 
@@ -229,7 +229,7 @@ class PromptedT5(torch.nn.Module):
         # use greedy decoding.
         predictions = self.model.generate(
             input_ids=loaded_batch["input_ids"],
-            attention_mask=loaded_batch["input_mask"],
+            attention_mask=loaded_batch["attention_mask"],
         )
 
         # all transformer special tokens will be removed
