@@ -1,12 +1,9 @@
 """Some utility functions useful during model training/inference."""
 
 import csv
-import gc
 import io
-import random
 from typing import Iterator, Optional
 
-import numpy
 import numpy as np
 import torch
 from absl import flags
@@ -19,30 +16,6 @@ flags.DEFINE_integer("max_epochs", 10, "The maximum number of epochs for trainin
 flags.DEFINE_integer("training_steps", 100, "The number of training steps for each epoch.")
 flags.DEFINE_integer("steps_per_checkpoint", 100, "keep checkpoint of the model every this number of steps")
 flags.DEFINE_string("prediction_file", "/tmp/predictions.csv", "the path/name for saving the predictions.")
-
-
-def set_random_seed(seed: int) -> None:
-    """Set the random seed, which initializes the random number generator.
-
-    Ensures that runs are reproducible and eliminates differences due to
-    randomness.
-    """
-    random.seed(seed)
-    numpy.random.seed(seed)
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    return
-
-
-def clear_cache() -> None:
-    """Clean unused GPU Cache!"""
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-    gc.collect()
-    return
 
 
 def start_training(model: PromptedT5, dataloader: torch.utils.data.DataLoader) -> Iterator[tuple[int, float]]:

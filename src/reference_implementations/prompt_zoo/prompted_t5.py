@@ -13,14 +13,16 @@ The module implements the following baselines:
     only fine-tune those prompt vectors on the downstream task.
 """
 
+import gc
 import os
+import random
 from typing import Dict, Iterator, List, Optional
 
+import numpy
 import torch
 from absl import flags
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 
-from src.reference_implementations.prompt_zoo.model_utility import clear_cache, set_random_seed
 from src.reference_implementations.prompt_zoo.prompt_optimizers import optimizer_definer
 
 FLAGS = flags.FLAGS
@@ -35,6 +37,30 @@ flags.DEFINE_string("t5_pretrained_model", "google/t5-base-lm-adapt", "initial p
 flags.DEFINE_string("mode", "train", "the mode of run? train or test")
 flags.DEFINE_string("model_path", "/tmp/", "main directory to save or load the model from")
 flags.DEFINE_string("checkpoint", None, "checkpoint name to load from.")
+
+
+def clear_cache() -> None:
+    """Clean unused GPU Cache!"""
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    gc.collect()
+    return
+
+
+def set_random_seed(seed: int) -> None:
+    """Set the random seed, which initializes the random number generator.
+
+    Ensures that runs are reproducible and eliminates differences due to
+    randomness.
+    """
+    random.seed(seed)
+    numpy.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    return
 
 
 class PromptedT5(torch.nn.Module):

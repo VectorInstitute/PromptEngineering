@@ -124,5 +124,6 @@ For example:
 ```
 source prompt_torch-env/bin/activate
 sbatch src/reference_implementations/run_singlenode_prompt.slrm \
+       src/reference_implementations/prompt_zoo/train_semeval_sentiment.sh \
        ./torch-prompt-tuning-exps-logs \
 ```

@@ -80,7 +80,7 @@ function install_reference_methods () {
 		pip install flax==0.5.1
 
 	elif [ "$ENV_NAME" = "prompt_torch" ]; then
-		pip install transformers datasets
+		pip install transformers datasets sentencepiece
 	fi
 
 }

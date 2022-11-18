@@ -6,7 +6,7 @@ PROJECT_DIR=$( dirname -- "$0"; )
 source ${PROJECT_DIR}/../setup_gpu_worker.sh
 
 
-python trainer.py \
+python -m src.reference_implementations.prompt_zoo.trainer \
     --batch_size 8 \
     --mode train \
     --task_name semeval_3_class_sentiment \
