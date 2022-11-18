@@ -11,6 +11,7 @@ def semeval_sentiment_metric(gold_file: str, prediction_file: str) -> float:
     classification."""
 
     _, gold_labels = read_semeval_sentiment_file(gold_file)
+    gold_labels = [label.strip(" </s>") for label in gold_labels]
     df = pd.read_csv(prediction_file, delimiter=",")
     prediction_labels = df["prediction"].tolist()
     corrects = 0.0
