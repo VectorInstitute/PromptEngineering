@@ -82,7 +82,7 @@ def run_model(
                     writer.add_scalar("Score/dev", score, global_step)
                     if score > best_score:
                         best_score = score
-                        model.save("_best_step")
+                        model.save("best_step")
 
                 writer.add_scalar("Mean_Loss/train", mean_loss, global_step)
                 writer.flush()
@@ -96,7 +96,7 @@ def run_model(
             writer.add_scalar("Score/dev", score, global_step)
             if score > best_score:
                 best_score = score
-                model.save("_best_step")
+                model.save("best_step")
             epoch += 1
 
         writer.close()
@@ -143,6 +143,7 @@ def main(argv) -> None:  # type: ignore
     """Main function to switch over the t5 experiment type and launch the
     correct train script."""
     if FLAGS.t5_exp_type in ["all_finetune", "input_finetune" "output_finetune", "input_output_finetune"]:
+        print(FLAGS.t5_exp_type)
         launch_no_prompt_train()
     return
 

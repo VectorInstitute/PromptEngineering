@@ -130,6 +130,7 @@ class PromptedT5(torch.nn.Module):
 
     def setup_optimizer(self) -> None:
         """Based on the experiment type, setup the optimizer."""
+        print(FLAGS.t5_exp_type)
         optimizer_args = {
             "t5_model": self.model,
             "prompt_model": self.prompt_model,
