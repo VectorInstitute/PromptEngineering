@@ -253,7 +253,7 @@ class PromptedT5(torch.nn.Module):
     def train(self, batch: torch.utils.data.Dataset) -> Dict[str, float]:
         """Switch over t5_exp_type and call the correct train function over
         batch for each experiment type."""
-        if FLAGS.t5_exp_type in ["all_finetune", "input_finetune" "output_finetune", "input_output_finetune"]:
+        if FLAGS.t5_exp_type in ["all_finetune", "input_finetune", "output_finetune", "input_output_finetune"]:
             return self.no_prompt_train(batch)
         else:
             return self.prompt_train(batch)
@@ -261,7 +261,7 @@ class PromptedT5(torch.nn.Module):
     def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
         """Switch over t5_exp_type and call the correct predict function over
         batch for each experiment type."""
-        if FLAGS.t5_exp_type in ["all_finetune", "input_finetune" "output_finetune", "input_output_finetune"]:
+        if FLAGS.t5_exp_type in ["all_finetune", "input_finetune", "output_finetune", "input_output_finetune"]:
             return self.no_prompt_predict(batch)
         else:
             return self.prompt_predict(batch)

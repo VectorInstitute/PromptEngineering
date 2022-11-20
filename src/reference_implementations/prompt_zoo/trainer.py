@@ -142,8 +142,7 @@ def launch_no_prompt_train() -> None:
 def main(argv) -> None:  # type: ignore
     """Main function to switch over the t5 experiment type and launch the
     correct train script."""
-    if FLAGS.t5_exp_type in ["all_finetune", "input_finetune" "output_finetune", "input_output_finetune"]:
-        print(FLAGS.t5_exp_type)
+    if FLAGS.t5_exp_type in ["all_finetune", "input_finetune", "output_finetune", "input_output_finetune"]:
         launch_no_prompt_train()
     return
 
