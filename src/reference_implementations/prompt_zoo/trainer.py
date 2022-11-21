@@ -125,10 +125,13 @@ def launch_no_prompt_train() -> None:
     prompted_t5_model = PromptedT5()
     if FLAGS.task_name == "semeval_3_class_sentiment":
         train_dataloader = create_semeval_sentiment_dataset(
-            tokenizer=prompted_t5_model.tokenizer, file_name=FLAGS.train_file, shuffle=True
+            tokenizer=prompted_t5_model.tokenizer, file_name=FLAGS.train_file, shuffle=True, for_inference=False
         )
         eval_dataloader = create_semeval_sentiment_dataset(
-            tokenizer=prompted_t5_model.tokenizer, file_name=FLAGS.dev_file, shuffle=False
+            tokenizer=prompted_t5_model.tokenizer,
+            file_name=FLAGS.dev_file,
+            shuffle=False,
+            for_inference=True,
         )
         run_model(
             model=prompted_t5_model,

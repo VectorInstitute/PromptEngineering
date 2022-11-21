@@ -213,42 +213,53 @@ class PromptedT5(torch.nn.Module):
         LM."""
         pass
 
-    def no_prompt_predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
-        """The main prediction loop for the following cases of the T5
-        experiments:
-
-        1 - Fully fine-tuning all the parameters of the T5 model.
-        2 - Only fine-tuning the shared input embedding layer of the T5 encoder/decoder.
-        3 - Only fine-tuning the output embedding layer of the T5 decoder.
-        4 - Fine-tuning both the shared input embedding layer +
-            the output embedding layer of the T5 decoder.
-        """
+    def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
+        """The main prediction loop for a given potential class label."""
 
         self.predict_mode_on()
-        loaded_batch = self.move_to_gpu(batch, keys=["input_ids", "attention_mask"])
 
-        # use greedy decoding.
-        predictions = self.model.generate(
+        # define loss function to compute token probabilities.
+        # pad tokens have index -100 in huggingface.
+        # don't reduce loss, compute loss per token.
+        loss_fct = torch.nn.CrossEntropyLoss(ignore_index=-100, reduction="none")
+        if self.gpu_check:
+            loss_fct = loss_fct.to(self.device)
+
+        loaded_batch = self.move_to_gpu(batch, keys=["input_ids", "attention_mask", "target_attention_mask", "labels"])
+
+        output = self.model(
             input_ids=loaded_batch["input_ids"],
-            attention_mask=loaded_batch["attention_mask"],
+            attention_mask=loaded_batch["input_mask"],
+            decoder_attention_mask=loaded_batch["target_mask"],
+            decoder_input_ids=self.model._shift_right(loaded_batch["labels"]),
+            labels=None,
         )
 
-        # all transformer special tokens will be removed
-        predictions_str = self.tokenizer.batch_decode(predictions, skip_special_tokens=True)
+        log_p = -loss_fct(
+            output.logits.view(-1, output.logits.size(-1)),
+            loaded_batch["labels"].view(-1),
+        )
 
-        # not efficient, but let's pair input along the predictions.
+        # b: batch size
+        # sz: sequence size
+        # v: vocab size
+        b, sz, v = output.logits.size()
+        log_p = log_p.view(b, sz)
+        good_log_p = log_p.masked_fill_(loaded_batch["labels"] == -100, 0.0)
+        class_log_p = torch.sum(good_log_p, dim=1).squeeze().cpu().detach().numpy()
+
+        # not efficient, but let's pair input and potential class along the prediction scores.
+        # all transformer special tokens will be removed
+        potentials_str = self.tokenizer.batch_decode(loaded_batch["labels"], skip_special_tokens=True)
         inputs_str = self.tokenizer.batch_decode(loaded_batch["input_ids"], skip_special_tokens=True)
-        for index, pred_str in enumerate(predictions_str):
+
+        for index, input_str in enumerate(inputs_str):
             output_row = {
-                "prediction": pred_str,
-                "input": inputs_str[index],
+                "potential_class": potentials_str[index],
+                "prediction_score": class_log_p[index],
+                "input": input_str,
             }
             yield output_row
-
-    def prompt_predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
-        """The prediction function for prompt tuning methods using T5 as the
-        underlying LM."""
-        pass
 
     def train(self, batch: torch.utils.data.Dataset) -> Dict[str, float]:
         """Switch over t5_exp_type and call the correct train function over
@@ -257,11 +268,3 @@ class PromptedT5(torch.nn.Module):
             return self.no_prompt_train(batch)
         else:
             return self.prompt_train(batch)
-
-    def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
-        """Switch over t5_exp_type and call the correct predict function over
-        batch for each experiment type."""
-        if FLAGS.t5_exp_type in ["all_finetune", "input_finetune", "output_finetune", "input_output_finetune"]:
-            return self.no_prompt_predict(batch)
-        else:
-            return self.prompt_predict(batch)

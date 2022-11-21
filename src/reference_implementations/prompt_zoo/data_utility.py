@@ -1,7 +1,7 @@
 """This module implements the functions for preprocessing the data files into
 pytorch datasets."""
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import pandas as pd
 import torch
@@ -38,7 +38,7 @@ def preprocess_semeval_sentiment(text: str) -> str:
     return sentiment_mapper[sentiment]
 
 
-def read_semeval_sentiment_file(file_path: str) -> tuple[List[str], List[str]]:
+def read_semeval_sentiment_file(file_path: str, for_inference: Optional[bool] = False) -> tuple[List[str], List[str]]:
     """This function reads the semeval 2018 data files for sentiment analysis.
 
     Example header: 'ID  Tweet Affect Dimension  Intensity Class'
@@ -47,10 +47,24 @@ def read_semeval_sentiment_file(file_path: str) -> tuple[List[str], List[str]]:
     tweets = [white_space_fix(tweet) for tweet in df["Tweet"].tolist()]
     sentiments = [preprocess_semeval_sentiment(sent) for sent in df["Intensity Class"].tolist()]
 
-    # add end of sequence token:
-    inputs = [tweet + " </s>" for tweet in tweets]
-    outputs = [sent + " </s>" for sent in sentiments]
-    return inputs, outputs
+    if not for_inference:
+        # add end of sequence token:
+        inputs = [tweet + " </s>" for tweet in tweets]
+        outputs = [sent + " </s>" for sent in sentiments]
+        return inputs, outputs
+
+    elif for_inference:
+        # repeat every input for every possible output class.
+        # the inference will compute the score for every possible
+        # label and then select the label with the max score given by the LM.
+        all_classes = set(sentiments)
+        inputs = []
+        outputs = []
+        for tweet in tweets:
+            for label in all_classes:
+                inputs.append(tweet + " </s>")
+                outputs.append(label + " </s>")
+        return inputs, outputs
 
 
 class SentimentDataset(Dataset):
@@ -79,10 +93,11 @@ def create_semeval_sentiment_dataset(
     tokenizer: T5Tokenizer,
     file_name: str,
     shuffle: bool,
+    for_inference: Optional[bool] = False,
 ) -> DataLoader:
     """Function to create the required huggingface dataset to train the T5
     models on the semeval sentiment analysis task."""
-    inputs, outputs = read_semeval_sentiment_file(file_name)
+    inputs, outputs = read_semeval_sentiment_file(file_name, for_inference)
 
     encodings = tokenizer(
         inputs,
