@@ -229,8 +229,8 @@ class PromptedT5(torch.nn.Module):
 
         output = self.model(
             input_ids=loaded_batch["input_ids"],
-            attention_mask=loaded_batch["input_mask"],
-            decoder_attention_mask=loaded_batch["target_mask"],
+            attention_mask=loaded_batch["attention_mask"],
+            decoder_attention_mask=loaded_batch["target_attention_mask"],
             decoder_input_ids=self.model._shift_right(loaded_batch["labels"]),
             labels=None,
         )
