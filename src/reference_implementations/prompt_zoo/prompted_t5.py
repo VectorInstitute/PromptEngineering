@@ -250,7 +250,11 @@ class PromptedT5(torch.nn.Module):
 
         # not efficient, but let's pair input and potential class along the prediction scores.
         # all transformer special tokens will be removed
-        potentials_str = self.tokenizer.batch_decode(loaded_batch["labels"], skip_special_tokens=True)
+
+        labels = loaded_batch["labels"]
+        # change -100 tokens to pad tokens.
+        labels = labels.masked_fill_(labels == -100, self.tokenizer.pad_token_id)
+        potentials_str = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
         inputs_str = self.tokenizer.batch_decode(loaded_batch["input_ids"], skip_special_tokens=True)
 
         for index, input_str in enumerate(inputs_str):

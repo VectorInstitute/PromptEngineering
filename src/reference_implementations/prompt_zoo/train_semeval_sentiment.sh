@@ -18,6 +18,6 @@ python -m src.reference_implementations.prompt_zoo.trainer \
     --learning_rate 0.0005 \
     --max_epochs 5 \
     --training_steps 10000000 \
-    --steps_per_checkpoint 50 \
+    --steps_per_checkpoint 10 \
     --source_max_length 128 \
     --decoder_max_length 16
