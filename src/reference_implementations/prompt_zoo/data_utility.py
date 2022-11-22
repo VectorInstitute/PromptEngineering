@@ -1,7 +1,7 @@
 """This module implements the functions for preprocessing the data files into
 pytorch datasets."""
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 import torch
@@ -38,7 +38,7 @@ def preprocess_semeval_sentiment(text: str) -> str:
     return sentiment_mapper[sentiment]
 
 
-def read_semeval_sentiment_file(file_path: str, for_inference: Optional[bool] = False) -> tuple[List[str], List[str]]:
+def read_semeval_sentiment_file(file_path: str, for_inference: Optional[bool] = False) -> Tuple[List[str], List[str]]:
     """This function reads the semeval 2018 data files for sentiment analysis.
 
     Example header: 'ID  Tweet Affect Dimension  Intensity Class'

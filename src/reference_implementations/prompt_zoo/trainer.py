@@ -8,7 +8,7 @@ training/inference.
 import csv
 import io
 import os
-from typing import Callable, Iterator, Optional
+from typing import Callable, Iterator, Optional, Tuple
 
 import numpy as np
 import torch
@@ -29,7 +29,7 @@ flags.DEFINE_string("task_name", "semeval_3_class_sentiment", "the name of the d
 flags.DEFINE_string("train_file", "/tmp/train.csv", "the path/name of the train file.")
 
 
-def start_training(model: PromptedT5, dataloader: torch.utils.data.DataLoader) -> Iterator[tuple[int, float]]:
+def start_training(model: PromptedT5, dataloader: torch.utils.data.DataLoader) -> Iterator[Tuple[int, float]]:
     """Pick a batch from the dataloader, and train the model for one step."""
     step = 0
     for batch in dataloader:
