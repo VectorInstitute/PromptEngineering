@@ -142,11 +142,35 @@ def launch_no_prompt_train() -> None:
     return
 
 
+def launch_no_prompt_predict() -> None:
+    """launch the predict phase for the no prompting experiments without finetuning any parameters."""
+
+    FLAGS.mode = "test"
+
+    prompted_t5_model = PromptedT5()
+    if FLAGS.task_name == "semeval_3_class_sentiment":
+        eval_dataloader = create_semeval_sentiment_dataset(
+            tokenizer=prompted_t5_model.tokenizer,
+            file_name=FLAGS.dev_file,
+            shuffle=False,
+            for_inference=True,
+        )
+        run_model(
+            model=prompted_t5_model,
+            train_dataloader=None,
+            eval_dataloader=eval_dataloader,
+            metric=None,
+        )
+    return
+
+
 def main(argv) -> None:  # type: ignore
     """Main function to switch over the t5 experiment type and launch the
     correct train script."""
     if FLAGS.t5_exp_type in ["all_finetune", "input_finetune", "output_finetune", "input_output_finetune"]:
         launch_no_prompt_train()
+    elif FLAGS.t5_exp_type == "no_finetune":
+        launch_no_prompt_predict()
     return
 
 

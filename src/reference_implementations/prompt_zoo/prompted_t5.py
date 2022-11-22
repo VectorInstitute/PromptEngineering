@@ -100,21 +100,25 @@ class PromptedT5(torch.nn.Module):
         """Loads the weights from the given checkpoint."""
         m_path = FLAGS.model_path
         ckp_name = FLAGS.checkpoint
-        model_ckp = os.path.join(m_path, "model_") + ckp_name
-        prompt_ckp = os.path.join(m_path, "prompt_model_") + ckp_name
-        self.model.load_state_dict(
-            torch.load(
-                model_ckp,
-                map_location=lambda storage, loc: storage,
-            )
-        )
-        if self.prompt_model is not None:
-            self.prompt_model.load_state_dict(
+        try:
+            model_ckp = os.path.join(m_path, "model_") + ckp_name
+            prompt_ckp = os.path.join(m_path, "prompt_model_") + ckp_name
+            self.model.load_state_dict(
                 torch.load(
-                    prompt_ckp,
+                    model_ckp,
                     map_location=lambda storage, loc: storage,
                 )
             )
+            if self.prompt_model is not None:
+                self.prompt_model.load_state_dict(
+                    torch.load(
+                        prompt_ckp,
+                        map_location=lambda storage, loc: storage,
+                    )
+                )
+        except Exception as e:
+            print("Could not load the checkpoint due to error: {}".format(e))
+            print("Using the initial checkpoint for T5.")
         return
 
     def save(self, checkpoint_name: str) -> None:

@@ -39,6 +39,7 @@ def construct_optimizer(model: torch.nn.Module, second_model: Optional[torch.nn.
         scale_parameter=False,
         warmup_init=False,
     )
+
     return optimizer
 
 
