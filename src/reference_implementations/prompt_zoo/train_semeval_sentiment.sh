@@ -17,7 +17,7 @@ WITH_INSTRUCTIONS=${WITH_INST}
 # We source to keep the internal env variables defined.
 source ${PROJECT_DIR}/../setup_gpu_worker.sh
 
-model_path=/scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/${EXPERIMENT_TYPE}_${LEARN_RATE}
+model_path=/scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/${EXPERIMENT_TYPE}_${LEARN_RATE}_${WITH_INSTRUCTIONS}
 mkdir -p ${model_path}
 
 python -m src.reference_implementations.prompt_zoo.trainer \

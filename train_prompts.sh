@@ -13,6 +13,7 @@ do
             src/reference_implementations/prompt_zoo/train_semeval_sentiment.sh \
             ./torch-prompt-tuning-exps-logs \
             ${exp} \
-            ${rate}
+            ${rate} \
+            True
     done
 done

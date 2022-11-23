@@ -27,7 +27,7 @@ flags.DEFINE_string("prediction_file", "/tmp/predictions.csv", "the path/name fo
 flags.DEFINE_string("dev_file", "/tmp/dev.csv", "the path/name of the dev file.")
 flags.DEFINE_string("task_name", "semeval_3_class_sentiment", "the name of the downstream nlp task.")
 flags.DEFINE_string("train_file", "/tmp/train.csv", "the path/name of the train file.")
-flags.DEFINE_string("with_instructions", False, "Whether to augment the input to have instructions or not.")
+flags.DEFINE_bool("with_instructions", False, "Whether to augment the input to have instructions or not.")
 
 
 def start_training(model: PromptedT5, dataloader: torch.utils.data.DataLoader) -> Iterator[Tuple[int, float]]:
