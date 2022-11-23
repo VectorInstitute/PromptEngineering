@@ -38,7 +38,9 @@ def preprocess_semeval_sentiment(text: str) -> str:
     return sentiment_mapper[sentiment]
 
 
-def read_semeval_sentiment_file(file_path: str, for_inference: Optional[bool] = False) -> Tuple[List[str], List[str]]:
+def read_semeval_sentiment_file(
+    file_path: str, for_inference: Optional[bool] = False, with_instructions: Optional[bool] = False
+) -> Tuple[List[str], List[str]]:
     """This function reads the semeval 2018 data files for sentiment analysis.
 
     Example header: 'ID  Tweet Affect Dimension  Intensity Class'
@@ -62,7 +64,11 @@ def read_semeval_sentiment_file(file_path: str, for_inference: Optional[bool] = 
         outputs = []
         for tweet in tweets:
             for label in all_classes:
-                inputs.append(tweet + " </s>")
+                if not with_instructions:
+                    inputs.append(tweet + " </s>")
+                if with_instructions:
+                    instruction = "Generate the sentiment of the next sentence from {}.".format(" ".join(all_classes))
+                    inputs.append("instruction: {} sentence: {} sentiment: </s>".format(instruction, tweet))
                 outputs.append(label + " </s>")
         return inputs, outputs
 
@@ -94,10 +100,11 @@ def create_semeval_sentiment_dataset(
     file_name: str,
     shuffle: bool,
     for_inference: Optional[bool] = False,
+    with_instructions: Optional[bool] = False,
 ) -> DataLoader:
     """Function to create the required huggingface dataset to train the T5
     models on the semeval sentiment analysis task."""
-    inputs, outputs = read_semeval_sentiment_file(file_name, for_inference)
+    inputs, outputs = read_semeval_sentiment_file(file_name, for_inference, with_instructions)
 
     encodings = tokenizer(
         inputs,

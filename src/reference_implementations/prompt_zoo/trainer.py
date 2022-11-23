@@ -147,6 +147,10 @@ def launch_no_prompt_predict() -> None:
 
     FLAGS.mode = "test"
 
+    if FLAGS.t5_exp_type == "no_finetune_with_instruction":
+        with_instructions = True
+    else:
+        with_instructions = False
     prompted_t5_model = PromptedT5()
     if FLAGS.task_name == "semeval_3_class_sentiment":
         eval_dataloader = create_semeval_sentiment_dataset(
@@ -154,6 +158,7 @@ def launch_no_prompt_predict() -> None:
             file_name=FLAGS.dev_file,
             shuffle=False,
             for_inference=True,
+            with_instructions=with_instructions,
         )
         run_model(
             model=prompted_t5_model,
@@ -169,7 +174,7 @@ def main(argv) -> None:  # type: ignore
     correct train script."""
     if FLAGS.t5_exp_type in ["all_finetune", "input_finetune", "output_finetune", "input_output_finetune"]:
         launch_no_prompt_train()
-    elif FLAGS.t5_exp_type == "no_finetune":
+    elif FLAGS.t5_exp_type == ["no_finetune", "no_finetune_with_instruction"]:
         launch_no_prompt_predict()
     return
 
