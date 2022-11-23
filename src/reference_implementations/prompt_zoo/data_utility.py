@@ -49,6 +49,11 @@ def read_semeval_sentiment_file(
     tweets = [white_space_fix(tweet) for tweet in df["Tweet"].tolist()]
     sentiments = [preprocess_semeval_sentiment(sent) for sent in df["Intensity Class"].tolist()]
 
+    all_classes = set(sentiments)
+    if with_instructions:
+        instruction = "Generate the sentiment of the next sentence from the labels {}.".format(" ".join(all_classes))
+        tweets = ["instruction: {} sentence: {} sentiment:".format(instruction, tweet) for tweet in tweets]
+
     if not for_inference:
         # add end of sequence token:
         inputs = [tweet + " </s>" for tweet in tweets]
@@ -59,16 +64,11 @@ def read_semeval_sentiment_file(
         # repeat every input for every possible output class.
         # the inference will compute the score for every possible
         # label and then select the label with the max score given by the LM.
-        all_classes = set(sentiments)
         inputs = []
         outputs = []
         for tweet in tweets:
             for label in all_classes:
-                if not with_instructions:
-                    inputs.append(tweet + " </s>")
-                if with_instructions:
-                    instruction = "Generate the sentiment of the next sentence from {}.".format(" ".join(all_classes))
-                    inputs.append("instruction: {} sentence: {} sentiment: </s>".format(instruction, tweet))
+                inputs.append(tweet + " </s>")
                 outputs.append(label + " </s>")
         return inputs, outputs
 

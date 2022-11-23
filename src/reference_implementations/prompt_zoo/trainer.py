@@ -27,6 +27,7 @@ flags.DEFINE_string("prediction_file", "/tmp/predictions.csv", "the path/name fo
 flags.DEFINE_string("dev_file", "/tmp/dev.csv", "the path/name of the dev file.")
 flags.DEFINE_string("task_name", "semeval_3_class_sentiment", "the name of the downstream nlp task.")
 flags.DEFINE_string("train_file", "/tmp/train.csv", "the path/name of the train file.")
+flags.DEFINE_string("with_instructions", False, "Whether to augment the input to have instructions or not.")
 
 
 def start_training(model: PromptedT5, dataloader: torch.utils.data.DataLoader) -> Iterator[Tuple[int, float]]:
@@ -125,13 +126,18 @@ def launch_no_prompt_train() -> None:
     prompted_t5_model = PromptedT5()
     if FLAGS.task_name == "semeval_3_class_sentiment":
         train_dataloader = create_semeval_sentiment_dataset(
-            tokenizer=prompted_t5_model.tokenizer, file_name=FLAGS.train_file, shuffle=True, for_inference=False
+            tokenizer=prompted_t5_model.tokenizer,
+            file_name=FLAGS.train_file,
+            shuffle=True,
+            for_inference=False,
+            with_instructions=FLAGS.with_instructions,
         )
         eval_dataloader = create_semeval_sentiment_dataset(
             tokenizer=prompted_t5_model.tokenizer,
             file_name=FLAGS.dev_file,
             shuffle=False,
             for_inference=True,
+            with_instructions=FLAGS.with_instructions,
         )
         run_model(
             model=prompted_t5_model,
@@ -146,11 +152,6 @@ def launch_no_prompt_predict() -> None:
     """launch the predict phase for the no prompting experiments without finetuning any parameters."""
 
     FLAGS.mode = "test"
-
-    if FLAGS.t5_exp_type == "no_finetune_with_instruction":
-        with_instructions = True
-    else:
-        with_instructions = False
     prompted_t5_model = PromptedT5()
     if FLAGS.task_name == "semeval_3_class_sentiment":
         eval_dataloader = create_semeval_sentiment_dataset(
@@ -158,7 +159,7 @@ def launch_no_prompt_predict() -> None:
             file_name=FLAGS.dev_file,
             shuffle=False,
             for_inference=True,
-            with_instructions=with_instructions,
+            with_instructions=FLAGS.with_instructions,
         )
         run_model(
             model=prompted_t5_model,
@@ -174,7 +175,7 @@ def main(argv) -> None:  # type: ignore
     correct train script."""
     if FLAGS.t5_exp_type in ["all_finetune", "input_finetune", "output_finetune", "input_output_finetune"]:
         launch_no_prompt_train()
-    elif FLAGS.t5_exp_type == ["no_finetune", "no_finetune_with_instruction"]:
+    elif FLAGS.t5_exp_type == "no_finetune":
         launch_no_prompt_predict()
     return
 
