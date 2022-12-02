@@ -39,7 +39,7 @@ flags.DEFINE_string("mode", "train", "the mode of run? train or test")
 flags.DEFINE_string("model_path", "/tmp/", "main directory to save or load the model from")
 flags.DEFINE_string("checkpoint", None, "checkpoint name to load from.")
 flags.DEFINE_integer("num_classes", 3, "Number of classes for sentiment analysis. Only used in linear classifier.")
-flags.DEFINE_integer("model_d", 512, "The model dimension of T5: 512 in T5 base!")
+flags.DEFINE_integer("model_d", 768, "The model dimension of T5: 512 in T5 base!")
 flags.DEFINE_float("dropout_rate", 0.1, "dropout_rate used in T5 base.")
 
 
@@ -74,17 +74,20 @@ class FFClassifier(torch.nn.Module):
 
         # we wish to compare to a case where we have a prompt matrix with 100 * model_d
         # we therefore define a classifier such that we have approximately the same number of extra parameters.
-        self.layer = torch.nn.Linear(FLAGS.model_d, 99, bias=True)
+        self.layer = torch.nn.Linear(FLAGS.model_d, 66, bias=True)
         self.dropout = torch.nn.Dropout(FLAGS.dropout_rate)
         self.relu = torch.nn.ReLU()
-        self.classifier = torch.nn.Linear(99, FLAGS.num_classes, bias=True)
+        self.classifier = torch.nn.Linear(66, FLAGS.num_classes, bias=True)
         self.log_softmax = torch.nn.LogSoftmax(dim=1)
         self.loss_fun = torch.nn.NLLLoss()
 
     def forward(self, hidden_states: torch.Tensor, input_mask: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Pass the hidden_vector into the classifier."""
         # mask the correct hidden_states from non-masked tokens.
-        good_hidden_states = hidden_states.masked_fill(input_mask == 1, 0.0)
+        # masked tokens are zero!
+        b_sz, seq_len, h_dim = hidden_states.size()
+        extended_mask = input_mask.view(b_sz, seq_len, 1).expand_as(hidden_states)
+        good_hidden_states = hidden_states * extended_mask
 
         # average pooling as the input feature vector.
         hidden_vector = torch.mean(good_hidden_states, dim=1)
@@ -338,6 +341,7 @@ class ClassifierT5(MyBaseT5):
         )
 
         encoder_hidden_states = output.last_hidden_state
+
         _, logits = classifier_model(encoder_hidden_states, loaded_batch["attention_mask"])
         predictions = torch.argmax(logits, dim=1).squeeze().cpu().detach().numpy()
 
