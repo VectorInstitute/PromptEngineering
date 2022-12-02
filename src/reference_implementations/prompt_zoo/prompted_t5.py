@@ -22,7 +22,7 @@ from typing import Dict, Iterator, List, Tuple
 import numpy
 import torch
 from absl import flags
-from transformers import T5ForConditionalGeneration, T5Tokenizer
+from transformers import T5EncoderModel, T5ForConditionalGeneration, T5Tokenizer
 
 from src.reference_implementations.prompt_zoo.prompt_optimizers import optimizer_definer
 
@@ -84,7 +84,7 @@ class FFClassifier(torch.nn.Module):
     def forward(self, hidden_states: torch.Tensor, input_mask: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Pass the hidden_vector into the classifier."""
         # mask the correct hidden_states from non-masked tokens.
-        good_hidden_states = hidden_states.masked_fill_(input_mask == 1, 0.0)
+        good_hidden_states = hidden_states.masked_fill(input_mask == 1, 0.0)
 
         # average pooling as the input feature vector.
         hidden_vector = torch.mean(good_hidden_states, dim=1)
@@ -232,7 +232,7 @@ class FineTuneT5(MyBaseT5):
         # we have to make sure that the PAD token is ignored.
         # huggingface ignores a pad token if the token is -100!
         labels = loaded_batch["labels"]
-        labels = labels.masked_fill_(labels == self.tokenizer.pad_token_id, -100)
+        labels.masked_fill_(labels == self.tokenizer.pad_token_id, -100)
 
         t5_model = self.model_pool["t5_model"]
         output = t5_model(
@@ -268,7 +268,7 @@ class FineTuneT5(MyBaseT5):
         # we have to make sure that the PAD token is ignored.
         # huggingface ignores a pad token if the token is -100!
         orig_labels = loaded_batch["labels"]
-        labels = orig_labels.masked_fill_(orig_labels == self.tokenizer.pad_token_id, -100)
+        labels = orig_labels.masked_fill(orig_labels == self.tokenizer.pad_token_id, -100)
 
         t5_model = self.model_pool["t5_model"]
         output = t5_model(
@@ -281,7 +281,7 @@ class FineTuneT5(MyBaseT5):
 
         log_p = -loss_fct(
             output.logits.view(-1, output.logits.size(-1)),
-            loaded_batch["labels"].view(-1),
+            labels.view(-1),
         )
 
         # b: batch size
@@ -317,7 +317,7 @@ class ClassifierT5(MyBaseT5):
         self.tokenizer = T5Tokenizer.from_pretrained(FLAGS.t5_pretrained_model)
 
         # construct the underlying t5 model
-        self.model_pool["t5_encoder"] = T5ForConditionalGeneration.from_pretrained(FLAGS.t5_pretrained_model).encoder
+        self.model_pool["t5_encoder"] = T5EncoderModel.from_pretrained(FLAGS.t5_pretrained_model)
         self.model_pool["classifier_model"] = FFClassifier()
 
         self.setup_models()
@@ -337,7 +337,7 @@ class ClassifierT5(MyBaseT5):
             attention_mask=loaded_batch["attention_mask"],
         )
 
-        encoder_hidden_states = output.hidden_states
+        encoder_hidden_states = output.last_hidden_state
         _, logits = classifier_model(encoder_hidden_states, loaded_batch["attention_mask"])
         predictions = torch.argmax(logits, dim=1).squeeze().cpu().detach().numpy()
 
@@ -362,7 +362,7 @@ class ClassifierT5(MyBaseT5):
             input_ids=loaded_batch["input_ids"],
             attention_mask=loaded_batch["attention_mask"],
         )
-        encoder_hidden_states = output.hidden_states
+        encoder_hidden_states = output.last_hidden_state
         loss = classifier_model.compute_loss(
             encoder_hidden_states, loaded_batch["attention_mask"], loaded_batch["class_indices"]
         )
