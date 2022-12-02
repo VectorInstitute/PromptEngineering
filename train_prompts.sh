@@ -14,6 +14,6 @@ do
             ./torch-prompt-tuning-exps-logs \
             ${exp} \
             ${rate} \
-            True
+            False
     done
 done
