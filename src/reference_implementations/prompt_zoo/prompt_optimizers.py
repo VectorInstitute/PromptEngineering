@@ -1,7 +1,7 @@
 """This module defines the required functions to setup the optimizers for each
 experiment type with the T5 models."""
 
-from typing import Dict, Optional, Union
+from typing import Dict, Optional
 
 import torch
 from absl import flags
@@ -11,7 +11,7 @@ from transformers import Adafactor
 FLAGS = flags.FLAGS
 flags.DEFINE_float("learning_rate", 0.0005, "The learning rate used in the optimizer", lower_bound=0.0)
 
-OPTIMIZER_ARGS_TYPE = Dict[str, Union[torch.nn.Module, torch.nn.Module]]
+OPTIMIZER_ARGS_TYPE = Dict[str, torch.nn.Module]
 
 
 def construct_optimizer(model: torch.nn.Module, second_model: Optional[torch.nn.Module] = None) -> Optimizer:
@@ -103,7 +103,7 @@ def no_weights_opt(opt_args: OPTIMIZER_ARGS_TYPE) -> Optimizer:
     return construct_optimizer(model=t5_model)
 
 
-def soft_prompt_opt(opt_args: OPTIMIZER_ARGS_TYPE) -> Optimizer:
+def prompt_model_opt(opt_args: OPTIMIZER_ARGS_TYPE) -> Optimizer:
     """Define the optimizer that only fine-tunes the prompt vectors on the
     downstream task."""
 
@@ -115,6 +115,18 @@ def soft_prompt_opt(opt_args: OPTIMIZER_ARGS_TYPE) -> Optimizer:
     return construct_optimizer(model=t5_model, second_model=opt_args["prompt_model"])
 
 
+def classifier_model_opt(opt_args: OPTIMIZER_ARGS_TYPE) -> Optimizer:
+    """Define the optimizer that only fine-tunes the classifier on top of the
+    T5 encoder for the downstream task."""
+
+    t5_encoder: torch.nn.Module = opt_args["t5_encoder"]
+    # don't waste time storing grad data.
+    for _, param in t5_encoder.named_parameters():
+        param.requires_grad = False
+
+    return construct_optimizer(model=t5_encoder, second_model=opt_args["classifier_model"])
+
+
 # store the functions that setup the optimizer for each experiment type.
 optimizer_definer = {
     "all_finetune": all_weights_opt,
@@ -122,5 +134,6 @@ optimizer_definer = {
     "output_finetune": output_embeddings_opt,
     "input_output_finetune": input_output_embeddings_opt,
     "no_finetune": no_weights_opt,
-    "soft_prompt_tune": soft_prompt_opt,
+    "soft_prompt_tune": prompt_model_opt,
+    "classifier_finetune": classifier_model_opt,
 }

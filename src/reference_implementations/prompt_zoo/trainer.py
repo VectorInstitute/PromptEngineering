@@ -8,7 +8,7 @@ training/inference.
 import csv
 import io
 import os
-from typing import Callable, Iterator, Optional, Tuple
+from typing import Any, Callable, Iterator, Optional, Tuple
 
 import numpy as np
 import torch
@@ -16,8 +16,11 @@ from absl import app, flags
 from torch.utils.tensorboard import SummaryWriter
 
 from src.reference_implementations.prompt_zoo.data_utility import create_semeval_sentiment_dataset
-from src.reference_implementations.prompt_zoo.metrics import semeval_sentiment_metric
-from src.reference_implementations.prompt_zoo.prompted_t5 import PromptedT5
+from src.reference_implementations.prompt_zoo.metrics import (
+    semeval_classifier_sentiment_metric,
+    semeval_sentiment_metric,
+)
+from src.reference_implementations.prompt_zoo.prompted_t5 import ClassifierT5, FineTuneT5, MyBaseT5
 
 FLAGS = flags.FLAGS
 flags.DEFINE_integer("max_epochs", 10, "The maximum number of epochs for training.")
@@ -30,7 +33,7 @@ flags.DEFINE_string("train_file", "/tmp/train.csv", "the path/name of the train 
 flags.DEFINE_bool("with_instructions", False, "Whether to augment the input to have instructions or not.")
 
 
-def start_training(model: PromptedT5, dataloader: torch.utils.data.DataLoader) -> Iterator[Tuple[int, float]]:
+def start_training(model: MyBaseT5, dataloader: torch.utils.data.DataLoader) -> Iterator[Tuple[int, float]]:
     """Pick a batch from the dataloader, and train the model for one step."""
     step = 0
     for batch in dataloader:
@@ -39,7 +42,7 @@ def start_training(model: PromptedT5, dataloader: torch.utils.data.DataLoader) -
         yield step, loss_values["loss_value"]
 
 
-def start_predicting(model: PromptedT5, dataloader: torch.utils.data.DataLoader, prediction_file: str) -> None:
+def start_predicting(model: MyBaseT5, dataloader: torch.utils.data.DataLoader, prediction_file: str) -> None:
     """Read batches from the dataloader and predict the outputs from the model
     for the correct experiment and save the results in the prediction_file as
     csv format row by row."""
@@ -57,7 +60,7 @@ def start_predicting(model: PromptedT5, dataloader: torch.utils.data.DataLoader,
 
 
 def run_model(
-    model: PromptedT5,
+    model: MyBaseT5,
     train_dataloader: Optional[torch.utils.data.DataLoader] = None,
     eval_dataloader: Optional[torch.utils.data.DataLoader] = None,
     metric: Optional[Callable[[str, str], float]] = None,
@@ -123,61 +126,90 @@ def launch_no_prompt_train() -> None:
 
     FLAGS.mode = "train"
 
-    prompted_t5_model = PromptedT5()
+    model = FineTuneT5()
     if FLAGS.task_name == "semeval_3_class_sentiment":
         train_dataloader = create_semeval_sentiment_dataset(
-            tokenizer=prompted_t5_model.tokenizer,
+            tokenizer=model.tokenizer,
             file_name=FLAGS.train_file,
             shuffle=True,
-            for_inference=False,
+            repeat_input=False,
             with_instructions=FLAGS.with_instructions,
         )
         eval_dataloader = create_semeval_sentiment_dataset(
-            tokenizer=prompted_t5_model.tokenizer,
+            tokenizer=model.tokenizer,
             file_name=FLAGS.dev_file,
             shuffle=False,
-            for_inference=True,
+            repeat_input=True,
             with_instructions=FLAGS.with_instructions,
         )
         run_model(
-            model=prompted_t5_model,
+            model=model,
             train_dataloader=train_dataloader,
             eval_dataloader=eval_dataloader,
             metric=semeval_sentiment_metric,
+        )
+
+
+def launch_classifier_train() -> None:
+    """launch the training phase for the classifier over the T5 encoder."""
+
+    FLAGS.mode = "train"
+    model = ClassifierT5()
+    if FLAGS.task_name == "semeval_3_class_sentiment":
+        train_dataloader = create_semeval_sentiment_dataset(
+            tokenizer=model.tokenizer,
+            file_name=FLAGS.train_file,
+            shuffle=True,
+            repeat_input=False,
+            with_instructions=FLAGS.with_instructions,
+        )
+        eval_dataloader = create_semeval_sentiment_dataset(
+            tokenizer=model.tokenizer,
+            file_name=FLAGS.dev_file,
+            shuffle=False,
+            repeat_input=False,
+            with_instructions=FLAGS.with_instructions,
+        )
+        run_model(
+            model=model,
+            train_dataloader=train_dataloader,
+            eval_dataloader=eval_dataloader,
+            metric=semeval_classifier_sentiment_metric,
         )
     return
 
 
 def launch_no_prompt_predict() -> None:
-    """launch the predict phase for the no prompting experiments without finetuning any parameters."""
+    """launch the predict phase for the no prompting experiments without
+    finetuning any parameters."""
 
     FLAGS.mode = "test"
-    prompted_t5_model = PromptedT5()
+    model = FineTuneT5()
     if FLAGS.task_name == "semeval_3_class_sentiment":
         eval_dataloader = create_semeval_sentiment_dataset(
-            tokenizer=prompted_t5_model.tokenizer,
+            tokenizer=model.tokenizer,
             file_name=FLAGS.dev_file,
             shuffle=False,
-            for_inference=True,
+            repeat_input=True,
             with_instructions=FLAGS.with_instructions,
         )
         run_model(
-            model=prompted_t5_model,
+            model=model,
             train_dataloader=None,
             eval_dataloader=eval_dataloader,
             metric=None,
         )
-    return
 
 
-def main(argv) -> None:  # type: ignore
+def main(argv: Any) -> None:
     """Main function to switch over the t5 experiment type and launch the
     correct train script."""
     if FLAGS.t5_exp_type in ["all_finetune", "input_finetune", "output_finetune", "input_output_finetune"]:
         launch_no_prompt_train()
     elif FLAGS.t5_exp_type == "no_finetune":
         launch_no_prompt_predict()
-    return
+    elif FLAGS.t5_exp_type == "classifier_finetune":
+        launch_classifier_train()
 
 
 if __name__ == "__main__":

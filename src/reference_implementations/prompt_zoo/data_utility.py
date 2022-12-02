@@ -39,8 +39,8 @@ def preprocess_semeval_sentiment(text: str) -> str:
 
 
 def read_semeval_sentiment_file(
-    file_path: str, for_inference: Optional[bool] = False, with_instructions: Optional[bool] = False
-) -> Tuple[List[str], List[str]]:
+    file_path: str, repeat_input: Optional[bool] = False, with_instructions: Optional[bool] = False
+) -> Tuple[List[str], List[str], List[int]]:
     """This function reads the semeval 2018 data files for sentiment analysis.
 
     Example header: 'ID  Tweet Affect Dimension  Intensity Class'
@@ -49,18 +49,21 @@ def read_semeval_sentiment_file(
     tweets = [white_space_fix(tweet) for tweet in df["Tweet"].tolist()]
     sentiments = [preprocess_semeval_sentiment(sent) for sent in df["Intensity Class"].tolist()]
 
-    all_classes = set(sentiments)
+    # store class information for classification modules.
+    all_classes = sorted(list(set(sentiments)))
+    class_to_id = {label: index for index, label in enumerate(all_classes)}
+    class_indices = [class_to_id[sentiment] for sentiment in sentiments]
     if with_instructions:
         instruction = "Generate the sentiment of the next sentence from the labels {}.".format(" ".join(all_classes))
         tweets = ["instruction: {} sentence: {} sentiment:".format(instruction, tweet) for tweet in tweets]
 
-    if not for_inference:
+    if not repeat_input:
         # add end of sequence token:
         inputs = [tweet + " </s>" for tweet in tweets]
         outputs = [sent + " </s>" for sent in sentiments]
-        return inputs, outputs
+        return inputs, outputs, class_indices
 
-    elif for_inference:
+    elif repeat_input:
         # repeat every input for every possible output class.
         # the inference will compute the score for every possible
         # label and then select the label with the max score given by the LM.
@@ -70,43 +73,39 @@ def read_semeval_sentiment_file(
             for label in all_classes:
                 inputs.append(tweet + " </s>")
                 outputs.append(label + " </s>")
-        return inputs, outputs
+        return inputs, outputs, class_indices
 
 
 class SentimentDataset(Dataset):
     """Subclass the pytorch's Dataset to build my own dataset for the sentiment
     analysis task."""
 
-    def __init__(self, encodings: Dict[str, List[int]]) -> None:
-        """store the reference to the tokenized encodings."""
-        self.encodings = encodings
-        return
+    def __init__(self, data: Dict[str, List[int]]) -> None:
+        """store the reference to the tokenized data."""
+        self.data = data
 
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
         """Return the elements for example index 'idx' as a dictionary with
         tensor values."""
-        row = {}
-        for key, val in self.encodings.items():
-            row[key] = torch.tensor(val[idx])
-        return row
+        return {key: torch.tensor(val[idx]) for key, val in self.data.items()}
 
     def __len__(self) -> int:
-        """Return the length of the dataset."""
-        return len(self.encodings["input_ids"])
+        """Return the length of the data."""
+        return len(self.data["input_ids"])
 
 
 def create_semeval_sentiment_dataset(
     tokenizer: T5Tokenizer,
     file_name: str,
     shuffle: bool,
-    for_inference: Optional[bool] = False,
+    repeat_input: Optional[bool] = False,
     with_instructions: Optional[bool] = False,
 ) -> DataLoader:
     """Function to create the required huggingface dataset to train the T5
     models on the semeval sentiment analysis task."""
-    inputs, outputs = read_semeval_sentiment_file(file_name, for_inference, with_instructions)
+    inputs, outputs, class_indices = read_semeval_sentiment_file(file_name, repeat_input, with_instructions)
 
-    encodings = tokenizer(
+    input_encodings = tokenizer(
         inputs,
         truncation=True,
         padding="max_length",
@@ -121,16 +120,13 @@ def create_semeval_sentiment_dataset(
         add_special_tokens=False,
     )
 
-    encodings["labels"] = output_encodings.input_ids
-    encodings["target_attention_mask"] = output_encodings.attention_mask
+    data = {
+        "input_ids": input_encodings.input_ids,
+        "attention_mask": input_encodings.attention_mask,
+        "labels": output_encodings.input_ids,
+        "target_attention_mask": output_encodings.attention_mask,
+        "class_indices": class_indices,
+    }
 
-    # because HuggingFace automatically shifts the labels, the labels correspond exactly to `target_ids`.
-    # we have to make sure that the PAD token is ignored.
-    # it ignores if label is -100!
-
-    labels = [
-        [-100 if token == tokenizer.pad_token_id else token for token in labels] for labels in encodings["labels"]
-    ]
-    encodings["labels"] = labels
-    dataloader = DataLoader(SentimentDataset(encodings), batch_size=FLAGS.batch_size, shuffle=shuffle)
+    dataloader = DataLoader(SentimentDataset(data), batch_size=FLAGS.batch_size, shuffle=shuffle)
     return dataloader
