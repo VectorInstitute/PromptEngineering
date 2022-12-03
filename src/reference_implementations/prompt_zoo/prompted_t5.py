@@ -76,7 +76,7 @@ class FFClassifier(torch.nn.Module):
         # we therefore define a classifier such that we have approximately the same number of extra parameters.
         self.layer = torch.nn.Linear(FLAGS.model_d, 66, bias=True)
         self.dropout = torch.nn.Dropout(FLAGS.dropout_rate)
-        self.relu = torch.nn.ReLU()
+        self.act = torch.nn.ReLU()
         self.classifier = torch.nn.Linear(66, FLAGS.num_classes, bias=True)
         self.log_softmax = torch.nn.LogSoftmax(dim=1)
         self.loss_fun = torch.nn.NLLLoss()
@@ -92,7 +92,7 @@ class FFClassifier(torch.nn.Module):
         # average pooling as the input feature vector.
         hidden_vector = torch.mean(good_hidden_states, dim=1)
 
-        feature_vector = self.relu(self.layer(hidden_vector))
+        feature_vector = self.act(self.layer(hidden_vector))
         scores = self.classifier(self.dropout(feature_vector))
         logits = self.log_softmax(scores)
         return scores, logits
@@ -343,7 +343,8 @@ class ClassifierT5(MyBaseT5):
         encoder_hidden_states = output.last_hidden_state
 
         _, logits = classifier_model(encoder_hidden_states, loaded_batch["attention_mask"])
-        predictions = torch.argmax(logits, dim=1).squeeze().cpu().detach().numpy()
+
+        predictions = torch.argmax(logits, dim=1).cpu().detach().numpy()
 
         # not efficient, but let's pair input along the prediction class.
         inputs_str = self.tokenizer.batch_decode(loaded_batch["input_ids"], skip_special_tokens=True)
