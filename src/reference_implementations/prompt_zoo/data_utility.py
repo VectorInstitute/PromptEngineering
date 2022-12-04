@@ -51,19 +51,14 @@ def read_semeval_sentiment_file(
 
     # store class information for classification modules.
     all_classes = sorted(list(set(sentiments)))
+    assert all_classes == sorted(["positive", "negative", "neutral"])
+
     class_to_id = {label: index for index, label in enumerate(all_classes)}
     if with_instructions:
         instruction = "Generate the sentiment of the next sentence from the labels {}.".format(" ".join(all_classes))
         tweets = ["instruction: {} sentence: {} sentiment:".format(instruction, tweet) for tweet in tweets]
 
-    if not repeat_input:
-        # add end of sequence token:
-        inputs = [tweet + " </s>" for tweet in tweets]
-        outputs = [sent + " </s>" for sent in sentiments]
-        class_indices = [class_to_id[sent] for sent in sentiments]
-        return inputs, outputs, class_indices
-
-    elif repeat_input:
+    if repeat_input:
         # repeat every input for every possible output class.
         # the inference will compute the score for every possible
         # label and then select the label with the max score given by the LM.
@@ -76,6 +71,12 @@ def read_semeval_sentiment_file(
                 outputs.append(label + " </s>")
                 class_indices.append(class_to_id[label])
         return inputs, outputs, class_indices
+
+    # add end of sequence token:
+    inputs = [tweet + " </s>" for tweet in tweets]
+    outputs = [sent + " </s>" for sent in sentiments]
+    class_indices = [class_to_id[sent] for sent in sentiments]
+    return inputs, outputs, class_indices
 
 
 class SentimentDataset(Dataset):
