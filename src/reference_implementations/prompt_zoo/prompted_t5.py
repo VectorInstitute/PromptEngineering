@@ -41,6 +41,7 @@ flags.DEFINE_string("checkpoint", None, "checkpoint name to load from.")
 flags.DEFINE_integer("num_classes", 3, "Number of classes for sentiment analysis. Only used in linear classifier.")
 flags.DEFINE_integer("model_d", 768, "The model dimension of T5: 512 in T5 base!")
 flags.DEFINE_float("dropout_rate", 0.1, "dropout_rate used in T5 base.")
+flags.DEFINE_float("classifier_hidden_d", 66, "The number of hidden units used in the classifier.")
 
 
 def clear_cache() -> None:
@@ -72,12 +73,14 @@ class FFClassifier(torch.nn.Module):
     def __init__(self) -> None:
         super(FFClassifier, self).__init__()
 
-        # we wish to compare to a case where we have a prompt matrix with 100 * model_d
+        # we wish to compare to a case where we have a prompt matrix with 100 * 512 parameters.
         # we therefore define a classifier such that we have approximately the same number of extra parameters.
-        self.layer = torch.nn.Linear(FLAGS.model_d, 66, bias=True)
-        self.dropout = torch.nn.Dropout(FLAGS.dropout_rate)
-        self.act = torch.nn.ReLU()
-        self.classifier = torch.nn.Linear(66, FLAGS.num_classes, bias=True)
+        self.layer = torch.nn.Linear(FLAGS.model_d, FLAGS.classifier_hidden_d, bias=True)
+
+        # using gelu activation over relu
+        # https://arxiv.org/abs/1606.08415v4
+        self.act = torch.nn.GELU()
+        self.classifier = torch.nn.Linear(FLAGS.classifier_hidden_d, FLAGS.num_classes, bias=True)
         self.log_softmax = torch.nn.LogSoftmax(dim=1)
         self.loss_fun = torch.nn.NLLLoss()
 
@@ -93,7 +96,7 @@ class FFClassifier(torch.nn.Module):
         hidden_vector = torch.mean(good_hidden_states, dim=1)
 
         feature_vector = self.act(self.layer(hidden_vector))
-        scores = self.classifier(self.dropout(feature_vector))
+        scores = self.classifier(feature_vector)
         logits = self.log_softmax(scores)
         return scores, logits
 
