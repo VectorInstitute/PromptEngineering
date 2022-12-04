@@ -179,11 +179,11 @@ def launch_classifier_train() -> None:
     return
 
 
-def launch_no_prompt_predict() -> None:
+def launch_no_finetune_predict() -> None:
     """launch the predict phase for the no prompting experiments without
-    finetuning any parameters."""
+    finetuning any parameters and only relying on the T5-base."""
 
-    FLAGS.mode = "test"
+    FLAGS.mode = "no_finetune_test"
     model = FineTuneT5()
     if FLAGS.task_name == "semeval_3_class_sentiment":
         eval_dataloader = create_semeval_sentiment_dataset(
@@ -207,7 +207,7 @@ def main(argv: Any) -> None:
     if FLAGS.t5_exp_type in ["all_finetune", "input_finetune", "output_finetune", "input_output_finetune"]:
         launch_no_prompt_train()
     elif FLAGS.t5_exp_type == "no_finetune":
-        launch_no_prompt_predict()
+        launch_no_finetune_predict()
     elif FLAGS.t5_exp_type == "classifier_finetune":
         launch_classifier_train()
 

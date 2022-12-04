@@ -142,6 +142,9 @@ class MyBaseT5(torch.nn.Module):
         elif FLAGS.mode in ["test", "inference", "eval"]:
             # load from the given checkpoint.
             self.load_from_checkpoint()
+        elif FLAGS.mode in ["no_finetune_test"]:
+            # just rely on the pre-trained T5 for prediction and no loading from the checkpoint.
+            pass
         else:
             raise Exception("Wrong mode {}!".format(FLAGS.mode))
 
@@ -159,8 +162,7 @@ class MyBaseT5(torch.nn.Module):
                     )
                 )
         except Exception as e:
-            print("Could not load the checkpoint due to error: {}".format(e))
-            print("Using the initialized weights in models.")
+            raise Exception("Could not load the checkpoint due to error:{}".format(e))
 
     def save(self, checkpoint_name: str) -> None:
         """Save the modules to the model_path for the specified checkpoint
