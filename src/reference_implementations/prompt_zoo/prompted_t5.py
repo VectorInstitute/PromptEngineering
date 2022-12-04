@@ -27,7 +27,10 @@ from transformers import T5EncoderModel, T5ForConditionalGeneration, T5Tokenizer
 from src.reference_implementations.prompt_zoo.prompt_optimizers import optimizer_definer
 
 FLAGS = flags.FLAGS
+
+# for all possible t5_exp_type, see 'optimizer_definer'
 flags.DEFINE_string("t5_exp_type", "all_finetune", "The type of experiment with the T5 model.")
+
 flags.DEFINE_integer("seed", 42, "the seed number")
 flags.DEFINE_bool("gpu", False, "Whether to put the model on gpu or not?")
 
@@ -170,7 +173,7 @@ class MyBaseT5(torch.nn.Module):
 
     def train_mode_on(self) -> None:
         """Before every forward-backward iteration over batch, clear gpu cache,
-        turn on tain mode, and zero the optimizer gradient state."""
+        turn on train mode, and zero the optimizer gradient state."""
 
         clear_cache()
 
@@ -285,6 +288,7 @@ class FineTuneT5(MyBaseT5):
             labels=None,
         )
 
+        # compute per-token log probablity in a sequence.
         log_p = -loss_fct(
             output.logits.view(-1, output.logits.size(-1)),
             labels.view(-1),

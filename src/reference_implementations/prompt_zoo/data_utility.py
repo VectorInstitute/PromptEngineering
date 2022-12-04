@@ -1,7 +1,7 @@
 """This module implements the functions for preprocessing the data files into
 pytorch datasets."""
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple, Union
 
 import pandas as pd
 import torch
@@ -39,7 +39,7 @@ def preprocess_semeval_sentiment(text: str) -> str:
 
 
 def read_semeval_sentiment_file(
-    file_path: str, repeat_input: Optional[bool] = False, with_instructions: Optional[bool] = False
+    file_path: str, repeat_input: bool = False, with_instructions: bool = False
 ) -> Tuple[List[str], List[str], List[int]]:
     """This function reads the semeval 2018 data files for sentiment analysis.
 
@@ -82,7 +82,7 @@ class SentimentDataset(Dataset):
     """Subclass the pytorch's Dataset to build my own dataset for the sentiment
     analysis task."""
 
-    def __init__(self, data: Dict[str, List[int]]) -> None:
+    def __init__(self, data: Dict[str, Union[List[int], List[List[int]]]]) -> None:
         """store the reference to the tokenized data."""
         self.data = data
 
@@ -100,8 +100,8 @@ def create_semeval_sentiment_dataset(
     tokenizer: T5Tokenizer,
     file_name: str,
     shuffle: bool,
-    repeat_input: Optional[bool] = False,
-    with_instructions: Optional[bool] = False,
+    repeat_input: bool = False,
+    with_instructions: bool = False,
 ) -> DataLoader:
     """Function to create the required huggingface dataset to train the T5
     models on the semeval sentiment analysis task."""

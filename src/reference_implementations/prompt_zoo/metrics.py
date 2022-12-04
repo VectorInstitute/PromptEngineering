@@ -17,8 +17,12 @@ def semeval_sentiment_metric(gold_file: str, prediction_file: str) -> float:
     # pick the class with the highest score among the possible class labels!
     num_labels = len(set(gold_labels))
     df = pd.read_csv(prediction_file, delimiter=",")
+
+    # This relies on the assumption that there is a prediction score for every label. (i.e. n label scores per input)
     predictions = [label.strip(" </s>") for label in df["potential_class"].tolist()]
     scores = df["prediction_score"].tolist()
+
+    assert len(predictions) % num_labels == 0
     prediction_labels = np.array(predictions).reshape((len(predictions) // num_labels, num_labels))
     prediction_scores = np.array(scores).reshape((len(predictions) // num_labels, num_labels))
     max_predictions = np.argmax(prediction_scores, axis=1)

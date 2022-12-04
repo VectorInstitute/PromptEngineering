@@ -70,7 +70,7 @@ def run_model(
         writer = SummaryWriter(FLAGS.model_path)
         epoch = 0
         global_step = 0
-        total_loss = [0.0]
+        total_loss = []
         best_score = float("-inf")
         eval_file = os.path.join(FLAGS.model_path, "temp_eval.csv")
         while epoch < FLAGS.max_epochs:
