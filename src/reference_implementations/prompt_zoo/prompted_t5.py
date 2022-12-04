@@ -271,7 +271,7 @@ class FineTuneT5(MyBaseT5):
 
         # define loss function to compute token probabilities.
         # pad tokens have index -100 in huggingface.
-        # don't reduce loss, compute loss per token.
+        # don't reduce loss (log likelihood), compute loss per token.
         loss_fct = torch.nn.CrossEntropyLoss(ignore_index=-100, reduction="none")
         loss_fct = loss_fct.to(self.device)
 
@@ -282,6 +282,12 @@ class FineTuneT5(MyBaseT5):
         labels = orig_labels.masked_fill(orig_labels == self.tokenizer.pad_token_id, -100)
 
         t5_model = self.model_pool["t5_model"]
+
+        # shift the gold labels one step to the right and do teacher-forcing by giving the gold previous token
+        # and then compute the probablity for the next token at each step.
+        # labels = [pos, it, ive]
+        # decoder_input = [<BOS>, pos, it]
+        # we want to see what is log probability for the target sequence "positive".
         output = t5_model(
             input_ids=loaded_batch["input_ids"],
             attention_mask=loaded_batch["attention_mask"],
@@ -290,7 +296,8 @@ class FineTuneT5(MyBaseT5):
             labels=None,
         )
 
-        # compute per-token log probablity in a sequence.
+        # compute per-token log probability in a sequence.
+        # log_p has log probabilities for the following target output: [pos, it, ive]
         log_p = -loss_fct(
             output.logits.view(-1, output.logits.size(-1)),
             labels.view(-1),
@@ -302,6 +309,8 @@ class FineTuneT5(MyBaseT5):
         b, sz, v = output.logits.size()
         log_p = log_p.view(b, sz)
         good_log_p = log_p.masked_fill_(labels == -100, 0.0)
+
+        # class_log_p now has the log probability of the full sequence for the example output: "positive"
         class_log_p = torch.sum(good_log_p, dim=1).squeeze().cpu().detach().numpy()
 
         # not efficient, but let's pair input and potential class along the prediction scores.
