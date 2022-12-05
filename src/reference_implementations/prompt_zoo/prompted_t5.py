@@ -455,11 +455,11 @@ class PromptEmbedding(torch.nn.Module):
 
 
 class SoftPromptT5EncoderModel(torch.nn.Module):
-    """This class implements the modifications to the T5 module of the
+    """This class implements the modifications to the T5 Encoder module of the
     huggingface to include the soft prompt vectors in the input.
 
     see the original huggingface implementation:
-    https://github.com/huggingface/transformers/blob/main/src/transformers/models/t5/modeling_t5.py
+    https://github.com/huggingface/transformers/blob/main/src/transformers/models/t5/modeling_t5.py#L1765
 
     Wrapping the T5EncoderModel to introduce our new PromptEmbedding
     module.
@@ -470,15 +470,45 @@ class SoftPromptT5EncoderModel(torch.nn.Module):
 
         # let the T5EncoderModel load the initial checkpoint of the T5 encoder
         # with the normal embedding table.
-        t5_encoder = T5EncoderModel.from_pretrained(FLAGS.t5_pretrained_model)
+        self.t5_encoder = T5EncoderModel.from_pretrained(FLAGS.t5_pretrained_model)
 
         # t5_encoder.config.d_model is from the class T5EncoderModel
         # which is the embedding dimension of the embedding table of the T5.
-        prompt_embedding = PromptEmbedding(FLAGS.prompt_length, t5_encoder.config.d_model)
+        prompt_embedding = PromptEmbedding(FLAGS.prompt_length, self.t5_encoder.config.d_model)
 
         # populate the normal_embedder of our new embedding module with the matrix defined by T5.
-        prompt_embedding.normal_embedder = t5_encoder.shared
+        prompt_embedding.normal_embedder = self.t5_encoder.shared
 
-        # update the general shared embedding module of huggigface T5.
-        # now every call by t5_encoder.shared() will use our forward method of the PromptEmbedding
-        t5_encoder.shared = prompt_embedding
+        # update the general shared embedding module of huggingface T5.
+        # now every call by t5_encoder.shared(input_ids) will use our forward method of the PromptEmbedding
+        self.t5_encoder.shared = prompt_embedding
+
+
+class SoftPromptT5ForConditionalGeneration(torch.nn.Module):
+    """This class implements the modifications to the T5 module of the
+    huggingface to include the soft prompt vectors in the input.
+
+    see the original huggingface implementation:
+    https://github.com/huggingface/transformers/blob/main/src/transformers/models/t5/modeling_t5.py#L1480
+
+    Wrapping the T5ForConditionalGeneration to introduce our new PromptEmbedding
+    module.
+    """
+
+    def __init__(self) -> None:
+        super(SoftPromptT5ForConditionalGeneration, self).__init__()
+
+        # let the T5ForConditionalGeneration load the initial checkpoint of the T5
+        # with the normal embedding table.
+        self.t5_model = T5ForConditionalGeneration.from_pretrained(FLAGS.t5_pretrained_model)
+
+        # t5_model.config.d_model is from the class T5ForConditionalGeneration
+        # which is the embedding dimension of the embedding table of the T5.
+        prompt_embedding = PromptEmbedding(FLAGS.prompt_length, self.t5_model.config.d_model)
+
+        # populate the normal_embedder of our new embedding module with the matrix defined by T5.
+        prompt_embedding.normal_embedder = self.t5_model.shared
+
+        # update the general shared embedding module of huggingface T5.
+        # now every call by t5_model.shared(input_ids) will use our forward method of the PromptEmbedding
+        self.t5_model.shared = prompt_embedding
