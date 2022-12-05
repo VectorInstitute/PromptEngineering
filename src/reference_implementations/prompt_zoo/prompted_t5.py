@@ -42,9 +42,8 @@ flags.DEFINE_string("mode", "train", "the mode of run? train or test")
 flags.DEFINE_string("model_path", "/tmp/", "main directory to save or load the model from")
 flags.DEFINE_string("checkpoint", None, "checkpoint name to load from.")
 flags.DEFINE_integer("num_classes", 3, "Number of classes for sentiment analysis. Only used in linear classifier.")
-flags.DEFINE_integer("model_d", 768, "The model dimension of T5: 512 in T5 base!")
 flags.DEFINE_float("dropout_rate", 0.1, "dropout_rate used in T5 base.")
-flags.DEFINE_float("classifier_hidden_d", 66, "The number of hidden units used in the classifier.")
+flags.DEFINE_float("classifier_hidden_d", 99, "The number of hidden units used in the classifier.")
 flags.DEFINE_integer("prompt_length", 100, "length of the prompts in the input sequence.")
 
 
@@ -74,12 +73,15 @@ class FFClassifier(torch.nn.Module):
     """A feedforward multinomial logistic regression over the T5 encoder hidden
     states."""
 
-    def __init__(self) -> None:
+    def __init__(self, model_d: int) -> None:
+        """Arguments:
+        model_d (int): The hidden dimension of T5; 768 in T5 base.
+        """
         super(FFClassifier, self).__init__()
 
         # we wish to compare to a case where we have a prompt matrix with 100 * 512 parameters.
         # we therefore define a classifier such that we have approximately the same number of extra parameters.
-        self.layer = torch.nn.Linear(FLAGS.model_d, FLAGS.classifier_hidden_d, bias=True)
+        self.layer = torch.nn.Linear(model_d, FLAGS.classifier_hidden_d, bias=True)
 
         # using gelu activation over relu
         # https://arxiv.org/abs/1606.08415v4
@@ -212,195 +214,6 @@ class MyBaseT5(torch.nn.Module):
         pass
 
 
-class FineTuneT5(MyBaseT5):
-    """Wrapper class around the MyBaseT5 Model to experiment with different
-    finetuning ideas without having classifier or prompt parameters."""
-
-    def __init__(self) -> None:
-        super(FineTuneT5, self).__init__()
-
-        # construct tokenizer
-        self.tokenizer = T5Tokenizer.from_pretrained(FLAGS.t5_pretrained_model)
-
-        # construct the underlying t5 model
-        self.model_pool["t5_model"] = T5ForConditionalGeneration.from_pretrained(FLAGS.t5_pretrained_model)
-
-        self.setup_models()
-        return
-
-    def train(self, batch: torch.utils.data.Dataset) -> Dict[str, float]:
-        """The main train loop for the following cases of the T5 experiments:
-
-        1 - Fully fine-tuning all the parameters of the T5 model.
-        2 - Only fine-tuning the shared input embedding layer of the T5 encoder/decoder.
-        3 - Only fine-tuning the output embedding layer of the T5 decoder.
-        4 - Fine-tuning both the shared input embedding layer +
-            the output embedding layer of the T5 decoder.
-        """
-
-        self.train_mode_on()
-        loaded_batch = self.move_to_gpu(batch, keys=["input_ids", "attention_mask", "target_attention_mask", "labels"])
-
-        # we have to make sure that the PAD token is ignored.
-        # huggingface ignores a pad token if the token is -100!
-        labels = loaded_batch["labels"]
-        labels.masked_fill_(labels == self.tokenizer.pad_token_id, -100)
-
-        t5_model = self.model_pool["t5_model"]
-        output = t5_model(
-            input_ids=loaded_batch["input_ids"],
-            attention_mask=loaded_batch["attention_mask"],
-            decoder_attention_mask=loaded_batch["target_attention_mask"],
-            labels=labels,
-        )
-
-        loss = output.loss
-        loss_value = loss.item()
-
-        # backProp
-        loss.backward()
-
-        # optimize
-        self.optimizer.step()
-
-        return {"loss_value": loss_value}
-
-    def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
-        """The main prediction loop for a given potential class label."""
-
-        self.predict_mode_on()
-
-        # define loss function to compute token probabilities.
-        # pad tokens have index -100 in huggingface.
-        # don't reduce loss (log likelihood), compute loss per token.
-        loss_fct = torch.nn.CrossEntropyLoss(ignore_index=-100, reduction="none")
-        loss_fct = loss_fct.to(self.device)
-
-        loaded_batch = self.move_to_gpu(batch, keys=["input_ids", "attention_mask", "target_attention_mask", "labels"])
-        # we have to make sure that the PAD token is ignored.
-        # huggingface ignores a pad token if the token is -100!
-        orig_labels = loaded_batch["labels"]
-        labels = orig_labels.masked_fill(orig_labels == self.tokenizer.pad_token_id, -100)
-
-        t5_model = self.model_pool["t5_model"]
-
-        # shift the gold labels one step to the right and do teacher-forcing by giving the gold previous token
-        # and then compute the probablity for the next token at each step.
-        # labels = [pos, it, ive]
-        # decoder_input = [<BOS>, pos, it]
-        # we want to see what is log probability for the target sequence "positive".
-        output = t5_model(
-            input_ids=loaded_batch["input_ids"],
-            attention_mask=loaded_batch["attention_mask"],
-            decoder_attention_mask=loaded_batch["target_attention_mask"],
-            decoder_input_ids=t5_model._shift_right(labels),
-            labels=None,
-        )
-
-        # compute per-token log probability in a sequence.
-        # log_p has log probabilities for the following target output: [pos, it, ive]
-        log_p = -loss_fct(
-            output.logits.view(-1, output.logits.size(-1)),
-            labels.view(-1),
-        )
-
-        # b: batch size
-        # sz: sequence size
-        # v: vocab size
-        b, sz, v = output.logits.size()
-        log_p = log_p.view(b, sz)
-        good_log_p = log_p.masked_fill_(labels == -100, 0.0)
-
-        # class_log_p now has the log probability of the full sequence for the example output: "positive"
-        class_log_p = torch.sum(good_log_p, dim=1).squeeze().cpu().detach().numpy()
-
-        # not efficient, but let's pair input and potential class along the prediction scores.
-        # all transformer special tokens will be removed
-        potentials_str = self.tokenizer.batch_decode(orig_labels, skip_special_tokens=True)
-        inputs_str = self.tokenizer.batch_decode(loaded_batch["input_ids"], skip_special_tokens=True)
-
-        for index, input_str in enumerate(inputs_str):
-            output_row = {
-                "potential_class": potentials_str[index],
-                "prediction_score": class_log_p[index],
-                "input": input_str,
-            }
-            yield output_row
-
-
-class ClassifierT5(MyBaseT5):
-    """Wrapper class around the T5 Model with a classifier on top of the T5
-    encoder."""
-
-    def __init__(self) -> None:
-        super(ClassifierT5, self).__init__()
-
-        # construct tokenizer
-        self.tokenizer = T5Tokenizer.from_pretrained(FLAGS.t5_pretrained_model)
-
-        # construct the underlying t5 model
-        self.model_pool["t5_encoder"] = T5EncoderModel.from_pretrained(FLAGS.t5_pretrained_model)
-        self.model_pool["classifier_model"] = FFClassifier()
-
-        self.setup_models()
-        return
-
-    def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
-        """The main prediction loop using a separate classifier."""
-
-        self.predict_mode_on()
-        loaded_batch = self.move_to_gpu(batch, keys=["input_ids", "attention_mask"])
-
-        t5_encoder = self.model_pool["t5_encoder"]
-        classifier_model = self.model_pool["classifier_model"]
-
-        output = t5_encoder(
-            input_ids=loaded_batch["input_ids"],
-            attention_mask=loaded_batch["attention_mask"],
-        )
-
-        encoder_hidden_states = output.last_hidden_state
-
-        _, logits = classifier_model(encoder_hidden_states, loaded_batch["attention_mask"])
-
-        predictions = torch.argmax(logits, dim=1).cpu().detach().numpy()
-
-        # not efficient, but let's pair input along the prediction class.
-        inputs_str = self.tokenizer.batch_decode(loaded_batch["input_ids"], skip_special_tokens=True)
-
-        for index, input_str in enumerate(inputs_str):
-            output_row = {
-                "predicted_class": predictions[index],
-                "input": input_str,
-            }
-            yield output_row
-
-    def train(self, batch: torch.utils.data.Dataset) -> Dict[str, float]:
-        """The classifier training step."""
-        self.train_mode_on()
-        loaded_batch = self.move_to_gpu(batch, keys=["input_ids", "attention_mask", "class_indices"])
-        t5_encoder = self.model_pool["t5_encoder"]
-        classifier_model = self.model_pool["classifier_model"]
-
-        output = t5_encoder(
-            input_ids=loaded_batch["input_ids"],
-            attention_mask=loaded_batch["attention_mask"],
-        )
-        encoder_hidden_states = output.last_hidden_state
-        loss = classifier_model.compute_loss(
-            encoder_hidden_states, loaded_batch["attention_mask"], loaded_batch["class_indices"]
-        )
-        loss_value = loss.item()
-
-        # backProp
-        loss.backward()
-
-        # optimize
-        self.optimizer.step()
-
-        return {"loss_value": loss_value}
-
-
 class PromptEmbedding(torch.nn.Module):
     """We implement a new Embedding module for the prompt parameters. We only
     update the prompt vectors during training.
@@ -512,3 +325,214 @@ class SoftPromptT5ForConditionalGeneration(torch.nn.Module):
         # update the general shared embedding module of huggingface T5.
         # now every call by t5_model.shared(input_ids) will use our forward method of the PromptEmbedding
         self.t5_model.shared = prompt_embedding
+
+
+class FineTuneT5(MyBaseT5):
+    """Wrapper class around the MyBaseT5 Model to experiment with different
+    finetuning ideas without having classifier."""
+
+    def __init__(self) -> None:
+        super(FineTuneT5, self).__init__()
+
+        # construct tokenizer
+        self.tokenizer = T5Tokenizer.from_pretrained(FLAGS.t5_pretrained_model)
+
+        # construct the underlying t5 model
+        if FLAGS.t5_exp_type in [
+            "all_finetune",
+            "input_finetune",
+            "output_finetune",
+            "input_output_finetune",
+            "no_finetune",
+        ]:
+            self.model_pool["t5_model"] = T5ForConditionalGeneration.from_pretrained(FLAGS.t5_pretrained_model)
+        elif FLAGS.t5_exp_type in ["soft_prompt_finetune"]:
+            self.model_pool["t5_model"] = SoftPromptT5ForConditionalGeneration().t5_model
+        self.setup_models()
+        return
+
+    def train(self, batch: torch.utils.data.Dataset) -> Dict[str, float]:
+        """The main train loop for the following cases of the T5 experiments:
+
+        1 - Fully fine-tuning all the parameters of the T5 model.
+        2 - Only fine-tuning the shared input embedding layer of the T5 encoder/decoder.
+        3 - Only fine-tuning the output embedding layer of the T5 decoder.
+        4 - Fine-tuning both the shared input embedding layer +
+            the output embedding layer of the T5 decoder.
+        """
+
+        self.train_mode_on()
+        loaded_batch = self.move_to_gpu(batch, keys=["input_ids", "attention_mask", "target_attention_mask", "labels"])
+
+        # TODO: change input_ids + attention_mask for prompting.
+
+        # we have to make sure that the PAD token is ignored.
+        # huggingface ignores a pad token if the token is -100!
+        labels = loaded_batch["labels"]
+        labels.masked_fill_(labels == self.tokenizer.pad_token_id, -100)
+
+        t5_model = self.model_pool["t5_model"]
+        output = t5_model(
+            input_ids=loaded_batch["input_ids"],
+            attention_mask=loaded_batch["attention_mask"],
+            decoder_attention_mask=loaded_batch["target_attention_mask"],
+            labels=labels,
+        )
+
+        loss = output.loss
+        loss_value = loss.item()
+
+        # backProp
+        loss.backward()
+
+        # optimize
+        self.optimizer.step()
+
+        return {"loss_value": loss_value}
+
+    def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
+        """The main prediction loop for a given potential class label."""
+
+        self.predict_mode_on()
+
+        # define loss function to compute token probabilities.
+        # pad tokens have index -100 in huggingface.
+        # don't reduce loss (log likelihood), compute loss per token.
+        loss_fct = torch.nn.CrossEntropyLoss(ignore_index=-100, reduction="none")
+        loss_fct = loss_fct.to(self.device)
+
+        loaded_batch = self.move_to_gpu(batch, keys=["input_ids", "attention_mask", "target_attention_mask", "labels"])
+
+        # TODO: change the input to include prompting
+
+        # we have to make sure that the PAD token is ignored.
+        # huggingface ignores a pad token if the token is -100!
+        orig_labels = loaded_batch["labels"]
+        labels = orig_labels.masked_fill(orig_labels == self.tokenizer.pad_token_id, -100)
+
+        t5_model = self.model_pool["t5_model"]
+
+        # shift the gold labels one step to the right and do teacher-forcing by giving the gold previous token
+        # and then compute the probablity for the next token at each step.
+        # labels = [pos, it, ive]
+        # decoder_input = [<BOS>, pos, it]
+        # we want to see what is log probability for the target sequence "positive".
+        output = t5_model(
+            input_ids=loaded_batch["input_ids"],
+            attention_mask=loaded_batch["attention_mask"],
+            decoder_attention_mask=loaded_batch["target_attention_mask"],
+            decoder_input_ids=t5_model._shift_right(labels),
+            labels=None,
+        )
+
+        # compute per-token log probability in a sequence.
+        # log_p has log probabilities for the following target output: [pos, it, ive]
+        log_p = -loss_fct(
+            output.logits.view(-1, output.logits.size(-1)),
+            labels.view(-1),
+        )
+
+        # b: batch size
+        # sz: sequence size
+        # v: vocab size
+        b, sz, v = output.logits.size()
+        log_p = log_p.view(b, sz)
+        good_log_p = log_p.masked_fill_(labels == -100, 0.0)
+
+        # class_log_p now has the log probability of the full sequence for the example output: "positive"
+        class_log_p = torch.sum(good_log_p, dim=1).squeeze().cpu().detach().numpy()
+
+        # not efficient, but let's pair input and potential class along the prediction scores.
+        # all transformer special tokens will be removed
+        potentials_str = self.tokenizer.batch_decode(orig_labels, skip_special_tokens=True)
+        inputs_str = self.tokenizer.batch_decode(loaded_batch["input_ids"], skip_special_tokens=True)
+
+        for index, input_str in enumerate(inputs_str):
+            output_row = {
+                "potential_class": potentials_str[index],
+                "prediction_score": class_log_p[index],
+                "input": input_str,
+            }
+            yield output_row
+
+
+class ClassifierT5(MyBaseT5):
+    """Wrapper class around the T5 Model with a classifier on top of the T5
+    encoder."""
+
+    def __init__(self) -> None:
+        super(ClassifierT5, self).__init__()
+
+        # construct tokenizer
+        self.tokenizer = T5Tokenizer.from_pretrained(FLAGS.t5_pretrained_model)
+
+        # construct the underlying t5 model
+        if FLAGS.t5_exp_type == "classifier_finetune":
+            self.model_pool["t5_encoder"] = T5EncoderModel.from_pretrained(FLAGS.t5_pretrained_model)
+        elif FLAGS.t5_exp_type == "soft_prompt_classifier_finetune":
+            self.model_pool["t5_encoder"] = SoftPromptT5EncoderModel().t5_encoder
+
+        # use the d_model from the t5 config defined internally from huggingface.
+        self.model_pool["classifier_model"] = FFClassifier(self.model_pool["t5_encoder"].config.d_model)
+
+        self.setup_models()
+        return
+
+    def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
+        """The main prediction loop using a separate classifier."""
+
+        self.predict_mode_on()
+        loaded_batch = self.move_to_gpu(batch, keys=["input_ids", "attention_mask"])
+
+        # TODO: add the prompt vectors for prompt tuning.
+
+        t5_encoder = self.model_pool["t5_encoder"]
+        classifier_model = self.model_pool["classifier_model"]
+
+        output = t5_encoder(
+            input_ids=loaded_batch["input_ids"],
+            attention_mask=loaded_batch["attention_mask"],
+        )
+
+        encoder_hidden_states = output.last_hidden_state
+
+        _, logits = classifier_model(encoder_hidden_states, loaded_batch["attention_mask"])
+
+        predictions = torch.argmax(logits, dim=1).cpu().detach().numpy()
+
+        # not efficient, but let's pair input along the prediction class.
+        inputs_str = self.tokenizer.batch_decode(loaded_batch["input_ids"], skip_special_tokens=True)
+
+        for index, input_str in enumerate(inputs_str):
+            output_row = {
+                "predicted_class": predictions[index],
+                "input": input_str,
+            }
+            yield output_row
+
+    def train(self, batch: torch.utils.data.Dataset) -> Dict[str, float]:
+        """The classifier training step."""
+        self.train_mode_on()
+        loaded_batch = self.move_to_gpu(batch, keys=["input_ids", "attention_mask", "class_indices"])
+        # TODO: add the prompt vectors for prompt tuning.
+
+        t5_encoder = self.model_pool["t5_encoder"]
+        classifier_model = self.model_pool["classifier_model"]
+
+        output = t5_encoder(
+            input_ids=loaded_batch["input_ids"],
+            attention_mask=loaded_batch["attention_mask"],
+        )
+        encoder_hidden_states = output.last_hidden_state
+        loss = classifier_model.compute_loss(
+            encoder_hidden_states, loaded_batch["attention_mask"], loaded_batch["class_indices"]
+        )
+        loss_value = loss.item()
+
+        # backProp
+        loss.backward()
+
+        # optimize
+        self.optimizer.step()
+
+        return {"loss_value": loss_value}

@@ -108,11 +108,13 @@ def prompt_model_opt(opt_args: OPTIMIZER_ARGS_TYPE) -> Optimizer:
     downstream task."""
 
     t5_model: torch.nn.Module = opt_args["t5_model"]
-    # don't waste time storing grad data.
-    for _, param in t5_model.named_parameters():
-        param.requires_grad = False
+    for name, param in t5_model.named_parameters():
+        if name == "shared.prompt_embedder.weight":
+            param.requires_grad = True
+        else:
+            param.requires_grad = False
 
-    return construct_optimizer(model=t5_model, second_model=opt_args["prompt_model"])
+    return construct_optimizer(model=t5_model)
 
 
 def classifier_model_opt(opt_args: OPTIMIZER_ARGS_TYPE) -> Optimizer:
@@ -127,6 +129,20 @@ def classifier_model_opt(opt_args: OPTIMIZER_ARGS_TYPE) -> Optimizer:
     return construct_optimizer(model=t5_encoder, second_model=opt_args["classifier_model"])
 
 
+def prompt_classifier_model_opt(opt_args: OPTIMIZER_ARGS_TYPE) -> Optimizer:
+    """Define the optimizer that only fine-tunes the prompt vectors + the
+    classifier on top of the T5 encodern for the downstream task."""
+
+    t5_encoder: torch.nn.Module = opt_args["t5_encoder"]
+    for name, param in t5_encoder.named_parameters():
+        if name == "shared.prompt_embedder.weight":
+            param.requires_grad = True
+        else:
+            param.requires_grad = False
+
+    return construct_optimizer(model=t5_encoder, second_model=opt_args["classifier_model"])
+
+
 # store the functions that setup the optimizer for each experiment type.
 optimizer_definer = {
     "all_finetune": all_weights_opt,
@@ -134,6 +150,7 @@ optimizer_definer = {
     "output_finetune": output_embeddings_opt,
     "input_output_finetune": input_output_embeddings_opt,
     "no_finetune": no_weights_opt,
-    "soft_prompt_tune": prompt_model_opt,
+    "soft_prompt_finetune": prompt_model_opt,
     "classifier_finetune": classifier_model_opt,
+    "soft_prompt_classifier_finetune": prompt_classifier_model_opt,
 }
