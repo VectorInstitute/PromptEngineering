@@ -45,6 +45,7 @@ flags.DEFINE_integer("num_classes", 3, "Number of classes for sentiment analysis
 flags.DEFINE_integer("model_d", 768, "The model dimension of T5: 512 in T5 base!")
 flags.DEFINE_float("dropout_rate", 0.1, "dropout_rate used in T5 base.")
 flags.DEFINE_float("classifier_hidden_d", 66, "The number of hidden units used in the classifier.")
+flags.DEFINE_integer("prompt_length", 100, "length of the prompts in the input sequence.")
 
 
 def clear_cache() -> None:
@@ -398,3 +399,86 @@ class ClassifierT5(MyBaseT5):
         self.optimizer.step()
 
         return {"loss_value": loss_value}
+
+
+class PromptEmbedding(torch.nn.Module):
+    """We implement a new Embedding module for the prompt parameters. We only
+    update the prompt vectors during training.
+
+    This PromptEmbedding will have a reference to the normal embedding matrix of the T5
+    which will be populated when we load the T5 encoders from the huggingface.
+
+    prompt tokens are always at the first prompt_length steps of the
+    input.
+    """
+
+    def __init__(self, prompt_length: int, embedding_dim: int) -> None:
+        """
+        Args:
+            prompt_length (int): length of the prompt tokens which are prepended to the input.
+            embedding_dim (int): the size of each embedding vector
+        """
+        super(PromptEmbedding, self).__init__()
+        self.prompt_length = prompt_length
+
+        # this is the shared embedding table for the normal tokens of the input/output sequence
+        # used by T5 encoder/decoder.
+        self.normal_embedder: torch.nn.Embedding = None
+
+        self.prompt_embedder = torch.nn.Embedding(prompt_length, embedding_dim)
+
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        """prompt tokens are always at the first prompt_length steps of the
+        input.
+
+        split the input sequences into two parts:
+            1 - the first prompt_length steps should be mapped to prompt vectors.
+            2 - the second part should be embedded by the normal embedding table of T5 defined for english tokens.
+
+        concatinate the embedded splits into a single split along the sequence dimension.
+        """
+
+        # b_sz: batch_size
+        # seq_len: sequence length
+        b_sz, seq_len = input.size()
+
+        prompt_input, normal_input = torch.split(input, [self.prompt_length, seq_len - self.prompt_length], dim=1)
+
+        # prompt_embedded has shape: (b_sz,  self.prompt_length, embedding_dim)
+        prompt_embedded = self.prompt_embedder(prompt_input)
+
+        # normal_input_embedded has shape: (b_sz,  seq_len - self.prompt_length, embedding_dim)
+        normal_input_embedded = self.normal_embedder(normal_input)
+
+        # concat along the dimension 1
+        return torch.cat((prompt_embedded, normal_input_embedded), dim=1)
+
+
+class SoftPromptT5EncoderModel(torch.nn.Module):
+    """This class implements the modifications to the T5 module of the
+    huggingface to include the soft prompt vectors in the input.
+
+    see the original huggingface implementation:
+    https://github.com/huggingface/transformers/blob/main/src/transformers/models/t5/modeling_t5.py
+
+    Wrapping the T5EncoderModel to introduce our new PromptEmbedding
+    module.
+    """
+
+    def __init__(self) -> None:
+        super(SoftPromptT5EncoderModel, self).__init__()
+
+        # let the T5EncoderModel load the initial checkpoint of the T5 encoder
+        # with the normal embedding table.
+        t5_encoder = T5EncoderModel.from_pretrained(FLAGS.t5_pretrained_model)
+
+        # t5_encoder.config.d_model is from the class T5EncoderModel
+        # which is the embedding dimension of the embedding table of the T5.
+        prompt_embedding = PromptEmbedding(FLAGS.prompt_length, t5_encoder.config.d_model)
+
+        # populate the normal_embedder of our new embedding module with the matrix defined by T5.
+        prompt_embedding.normal_embedder = t5_encoder.shared
+
+        # update the general shared embedding module of huggigface T5.
+        # now every call by t5_encoder.shared() will use our forward method of the PromptEmbedding
+        t5_encoder.shared = prompt_embedding
