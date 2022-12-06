@@ -13,7 +13,7 @@ The module implements the following baselines:
     only fine-tune those prompt vectors on the downstream task.
 8 - Just train a classifier on top of the encoder of T5.
 9 - Consider (7) and (8) together; augment the input with prompt vectors and
-    train a classifier on top it.
+    train a classifier on top.
 """
 
 import gc
@@ -104,7 +104,7 @@ class FFClassifier(torch.nn.Module):
         """
         super(FFClassifier, self).__init__()
 
-        # we wish to compare to a case where we have a prompt matrix with 100 * 512 parameters.
+        # we wish to compare to a case where we have a prompt matrix with FLAGS.prompt_length * model_d parameters.
         # we therefore define a classifier such that we have approximately the same number of extra parameters.
         self.layer = torch.nn.Linear(model_d, FLAGS.classifier_hidden_d, bias=True)
 
@@ -314,10 +314,10 @@ class SoftPromptT5EncoderModel(torch.nn.Module):
         self.t5_encoder = T5EncoderModel.from_pretrained(FLAGS.t5_pretrained_model)
 
         # t5_encoder.config.d_model is from the class T5EncoderModel
+        # which is the embedding dimension of the embedding table of the T5.
         d_model = self.t5_encoder.config.d_model
         vocab_size = self.t5_encoder.config.vocab_size
 
-        # which is the embedding dimension of the embedding table of the T5.
         prompt_embedding = PromptEmbedding(p_len, d_model)
 
         # populate the normal_embedder of our new embedding module with the matrix defined by T5.
@@ -353,12 +353,11 @@ class SoftPromptT5ForConditionalGeneration(torch.nn.Module):
         # with the normal embedding table.
         self.t5_model = T5ForConditionalGeneration.from_pretrained(FLAGS.t5_pretrained_model)
 
-        # t5_encoder.config.d_model is from the class T5ForConditionalGeneration
+        # t5_model.config.d_model is from the class T5ForConditionalGeneration
+        # which is the embedding dimension of the embedding table of the T5.
         d_model = self.t5_model.config.d_model
         vocab_size = self.t5_model.config.vocab_size
 
-        # t5_model.config.d_model is from the class T5ForConditionalGeneration
-        # which is the embedding dimension of the embedding table of the T5.
         prompt_embedding = PromptEmbedding(p_len, d_model)
 
         # populate the normal_embedder of our new embedding module with the matrix defined by T5.
@@ -398,14 +397,8 @@ class FineTuneT5(MyBaseT5):
         return
 
     def train(self, batch: torch.utils.data.Dataset) -> Dict[str, float]:
-        """The main train loop for the following cases of the T5 experiments:
-
-        1 - Fully fine-tuning all the parameters of the T5 model.
-        2 - Only fine-tuning the shared input embedding layer of the T5 encoder/decoder.
-        3 - Only fine-tuning the output embedding layer of the T5 decoder.
-        4 - Fine-tuning both the shared input embedding layer +
-            the output embedding layer of the T5 decoder.
-        """
+        """The main train loop for generating the class sequence in the decoder
+        T5."""
 
         self.train_mode_on()
         loaded_batch = self.move_to_gpu(batch, keys=["input_ids", "attention_mask", "target_attention_mask", "labels"])
