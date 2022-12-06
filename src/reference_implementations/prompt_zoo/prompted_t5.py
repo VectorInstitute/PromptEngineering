@@ -11,6 +11,9 @@ The module implements the following baselines:
 6 - Search for the discrete prompts to augment the input using the gradient of the T5.
 7 - Initialize some soft-prompt vectors and augment to the input embedding matrix and
     only fine-tune those prompt vectors on the downstream task.
+8 - Just train a classifier on top of the encoder of T5.
+9 - Consider (7) and (8) together; augment the input with prompt vectors and
+    train a classifier on top it.
 """
 
 import gc
@@ -58,8 +61,7 @@ def prepend_prompt(input_ids: torch.LongTensor, mask: torch.LongTensor) -> Tuple
     b_sz, seq_len = input_ids.size()
 
     # prompt length
-    # p_len = FLAGS.prompt_length
-    p_len = 5
+    p_len = FLAGS.prompt_length
 
     prompt_tokens = torch.LongTensor(list(range(p_len)), device=input_ids.device)
     prompt_tokens = prompt_tokens.view(1, p_len).expand(b_sz, p_len)
