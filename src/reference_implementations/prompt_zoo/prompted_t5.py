@@ -306,16 +306,26 @@ class SoftPromptT5EncoderModel(torch.nn.Module):
     def __init__(self) -> None:
         super(SoftPromptT5EncoderModel, self).__init__()
 
+        # prompt length
+        p_len = FLAGS.prompt_length
+
         # let the T5EncoderModel load the initial checkpoint of the T5 encoder
         # with the normal embedding table.
         self.t5_encoder = T5EncoderModel.from_pretrained(FLAGS.t5_pretrained_model)
 
         # t5_encoder.config.d_model is from the class T5EncoderModel
+        d_model = self.t5_encoder.config.d_model
+        vocab_size = self.t5_encoder.config.vocab_size
+
         # which is the embedding dimension of the embedding table of the T5.
-        prompt_embedding = PromptEmbedding(FLAGS.prompt_length, self.t5_encoder.config.d_model)
+        prompt_embedding = PromptEmbedding(p_len, d_model)
 
         # populate the normal_embedder of our new embedding module with the matrix defined by T5.
         prompt_embedding.normal_embedder = self.t5_encoder.shared
+
+        # sample prompt_length vectors from the normal embedding table to initialize the prompt vectors.
+        sampled_indices = random.choices(list(range(vocab_size)), k=p_len)
+        prompt_embedding.prompt_embedder.weight.data = prompt_embedding.normal_embedder.weight.data[sampled_indices, :]
 
         # update the general shared embedding module of huggingface T5.
         # now every call by t5_encoder.shared(input_ids) will use our forward method of the PromptEmbedding
@@ -336,16 +346,27 @@ class SoftPromptT5ForConditionalGeneration(torch.nn.Module):
     def __init__(self) -> None:
         super(SoftPromptT5ForConditionalGeneration, self).__init__()
 
+        # prompt length
+        p_len = FLAGS.prompt_length
+
         # let the T5ForConditionalGeneration load the initial checkpoint of the T5
         # with the normal embedding table.
         self.t5_model = T5ForConditionalGeneration.from_pretrained(FLAGS.t5_pretrained_model)
 
+        # t5_encoder.config.d_model is from the class T5ForConditionalGeneration
+        d_model = self.t5_model.config.d_model
+        vocab_size = self.t5_model.config.vocab_size
+
         # t5_model.config.d_model is from the class T5ForConditionalGeneration
         # which is the embedding dimension of the embedding table of the T5.
-        prompt_embedding = PromptEmbedding(FLAGS.prompt_length, self.t5_model.config.d_model)
+        prompt_embedding = PromptEmbedding(p_len, d_model)
 
         # populate the normal_embedder of our new embedding module with the matrix defined by T5.
         prompt_embedding.normal_embedder = self.t5_model.shared
+
+        # sample prompt_length vectors from the normal embedding table to initialize the prompt vectors.
+        sampled_indices = random.choices(list(range(vocab_size)), k=p_len)
+        prompt_embedding.prompt_embedder.weight.data = prompt_embedding.normal_embedder.weight.data[sampled_indices, :]
 
         # update the general shared embedding module of huggingface T5.
         # now every call by t5_model.shared(input_ids) will use our forward method of the PromptEmbedding
