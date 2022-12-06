@@ -47,6 +47,29 @@ flags.DEFINE_float("classifier_hidden_d", 99, "The number of hidden units used i
 flags.DEFINE_integer("prompt_length", 100, "length of the prompts in the input sequence.")
 
 
+def prepend_prompt(input_ids: torch.LongTensor, mask: torch.LongTensor) -> Tuple[torch.LongTensor, torch.LongTensor]:
+    """Prepend the input_ids with the prompt token ids.
+
+    For a prompt with length |P|, we add dummy prompt token ids from [0,
+    |P|-1] to map those into |P| vectors in the prompt embedder.
+    """
+    # b_sz: batch size
+    # seq_len: sequence length
+    b_sz, seq_len = input_ids.size()
+
+    # prompt length
+    # p_len = FLAGS.prompt_length
+    p_len = 5
+
+    prompt_tokens = torch.LongTensor(list(range(p_len)), device=input_ids.device)
+    prompt_tokens = prompt_tokens.view(1, p_len).expand(b_sz, p_len)
+
+    # prompt tokens are always valid.
+    prompt_mask = torch.ones((b_sz, p_len), device=mask.device)
+
+    return torch.cat((prompt_tokens, input_ids), dim=1), torch.cat((prompt_mask, mask), dim=1)
+
+
 def clear_cache() -> None:
     """Clean unused GPU Cache!"""
     if torch.cuda.is_available():
@@ -346,7 +369,7 @@ class FineTuneT5(MyBaseT5):
             "no_finetune",
         ]:
             self.model_pool["t5_model"] = T5ForConditionalGeneration.from_pretrained(FLAGS.t5_pretrained_model)
-        elif FLAGS.t5_exp_type in ["soft_prompt_finetune"]:
+        elif FLAGS.t5_exp_type == "soft_prompt_finetune":
             self.model_pool["t5_model"] = SoftPromptT5ForConditionalGeneration().t5_model
         self.setup_models()
         return
@@ -364,7 +387,10 @@ class FineTuneT5(MyBaseT5):
         self.train_mode_on()
         loaded_batch = self.move_to_gpu(batch, keys=["input_ids", "attention_mask", "target_attention_mask", "labels"])
 
-        # TODO: change input_ids + attention_mask for prompting.
+        if FLAGS.t5_exp_type == "soft_prompt_finetune":
+            loaded_batch["input_ids"], loaded_batch["attention_mask"] = prepend_prompt(
+                loaded_batch["input_ids"], loaded_batch["attention_mask"]
+            )
 
         # we have to make sure that the PAD token is ignored.
         # huggingface ignores a pad token if the token is -100!
@@ -403,7 +429,10 @@ class FineTuneT5(MyBaseT5):
 
         loaded_batch = self.move_to_gpu(batch, keys=["input_ids", "attention_mask", "target_attention_mask", "labels"])
 
-        # TODO: change the input to include prompting
+        if FLAGS.t5_exp_type == "soft_prompt_finetune":
+            loaded_batch["input_ids"], loaded_batch["attention_mask"] = prepend_prompt(
+                loaded_batch["input_ids"], loaded_batch["attention_mask"]
+            )
 
         # we have to make sure that the PAD token is ignored.
         # huggingface ignores a pad token if the token is -100!
@@ -484,7 +513,10 @@ class ClassifierT5(MyBaseT5):
         self.predict_mode_on()
         loaded_batch = self.move_to_gpu(batch, keys=["input_ids", "attention_mask"])
 
-        # TODO: add the prompt vectors for prompt tuning.
+        if FLAGS.t5_exp_type == "soft_prompt_classifier_finetune":
+            loaded_batch["input_ids"], loaded_batch["attention_mask"] = prepend_prompt(
+                loaded_batch["input_ids"], loaded_batch["attention_mask"]
+            )
 
         t5_encoder = self.model_pool["t5_encoder"]
         classifier_model = self.model_pool["classifier_model"]
@@ -514,7 +546,11 @@ class ClassifierT5(MyBaseT5):
         """The classifier training step."""
         self.train_mode_on()
         loaded_batch = self.move_to_gpu(batch, keys=["input_ids", "attention_mask", "class_indices"])
-        # TODO: add the prompt vectors for prompt tuning.
+
+        if FLAGS.t5_exp_type == "soft_prompt_classifier_finetune":
+            loaded_batch["input_ids"], loaded_batch["attention_mask"] = prepend_prompt(
+                loaded_batch["input_ids"], loaded_batch["attention_mask"]
+            )
 
         t5_encoder = self.model_pool["t5_encoder"]
         classifier_model = self.model_pool["classifier_model"]
