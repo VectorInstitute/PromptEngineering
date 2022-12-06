@@ -46,7 +46,7 @@ flags.DEFINE_string("model_path", "/tmp/", "main directory to save or load the m
 flags.DEFINE_string("checkpoint", None, "checkpoint name to load from.")
 flags.DEFINE_integer("num_classes", 3, "Number of classes for sentiment analysis. Only used in linear classifier.")
 flags.DEFINE_float("dropout_rate", 0.1, "dropout_rate used in T5 base.")
-flags.DEFINE_float("classifier_hidden_d", 99, "The number of hidden units used in the classifier.")
+flags.DEFINE_integer("classifier_hidden_d", 99, "The number of hidden units used in the classifier.")
 flags.DEFINE_integer("prompt_length", 100, "length of the prompts in the input sequence.")
 
 
@@ -330,6 +330,7 @@ class SoftPromptT5EncoderModel(torch.nn.Module):
         # update the general shared embedding module of huggingface T5.
         # now every call by t5_encoder.shared(input_ids) will use our forward method of the PromptEmbedding
         self.t5_encoder.shared = prompt_embedding
+        self.t5_encoder.encoder.embed_tokens = prompt_embedding
 
 
 class SoftPromptT5ForConditionalGeneration(torch.nn.Module):
@@ -370,6 +371,7 @@ class SoftPromptT5ForConditionalGeneration(torch.nn.Module):
         # update the general shared embedding module of huggingface T5.
         # now every call by t5_model.shared(input_ids) will use our forward method of the PromptEmbedding
         self.t5_model.shared = prompt_embedding
+        self.t5_model.encoder.embed_tokens = prompt_embedding
 
 
 class FineTuneT5(MyBaseT5):
@@ -414,6 +416,7 @@ class FineTuneT5(MyBaseT5):
         labels.masked_fill_(labels == self.tokenizer.pad_token_id, -100)
 
         t5_model = self.model_pool["t5_model"]
+
         output = t5_model(
             input_ids=loaded_batch["input_ids"],
             attention_mask=loaded_batch["attention_mask"],
@@ -421,6 +424,7 @@ class FineTuneT5(MyBaseT5):
             labels=labels,
         )
 
+        # print(output)
         loss = output.loss
         loss_value = loss.item()
 
