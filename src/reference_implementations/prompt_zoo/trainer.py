@@ -113,16 +113,9 @@ def run_model(
         start_predicting(model, eval_dataloader, FLAGS.prediction_file)
 
 
-def launch_no_prompt_train() -> None:
-    """launch the training phase for the no prompting experiments for the
-    following cases with the T5 model.
-
-    1 - Fully fine-tuning all the parameters of the T5 model.
-    2 - Only fine-tuning the shared input embedding layer of the T5 encoder/decoder.
-    3 - Only fine-tuning the output embedding layer of the T5 decoder.
-    4 - Fine-tuning both the shared input embedding layer +
-        the output embedding layer of the T5 decoder.
-    """
+def launch_train() -> None:
+    """launch the training phase for the prompting experiments without having
+    the classifier on top."""
 
     FLAGS.mode = "train"
 
@@ -204,11 +197,17 @@ def launch_no_finetune_predict() -> None:
 def main(argv: Any) -> None:
     """Main function to switch over the t5 experiment type and launch the
     correct train script."""
-    if FLAGS.t5_exp_type in ["all_finetune", "input_finetune", "output_finetune", "input_output_finetune"]:
-        launch_no_prompt_train()
+    if FLAGS.t5_exp_type in [
+        "soft_prompt_finetune",
+        "all_finetune",
+        "input_finetune",
+        "output_finetune",
+        "input_output_finetune",
+    ]:
+        launch_train()
     elif FLAGS.t5_exp_type == "no_finetune":
         launch_no_finetune_predict()
-    elif FLAGS.t5_exp_type == "classifier_finetune":
+    elif FLAGS.t5_exp_type in ["classifier_finetune", "soft_prompt_classifier_finetune"]:
         launch_classifier_train()
 
 
