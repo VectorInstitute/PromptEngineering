@@ -461,6 +461,7 @@ class FineTuneT5(MyBaseT5):
 
         t5_model = self.model_pool["t5_model"]
 
+        # TODO: Can we make this per-token logit faster? I am doing multiple encoder runs per output label.
         # shift the gold labels one step to the right and do teacher-forcing by giving the gold previous token
         # and then compute the probablity for the next token at each step.
         # labels = [pos, it, ive]
