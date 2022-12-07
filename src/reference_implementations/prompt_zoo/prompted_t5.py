@@ -69,7 +69,10 @@ def prepend_prompt(input_ids: torch.LongTensor, mask: torch.LongTensor) -> Tuple
     # prompt tokens are always valid.
     prompt_mask = torch.ones((b_sz, p_len), device=mask.device)
 
-    return torch.cat((prompt_tokens, input_ids), dim=1), torch.cat((prompt_mask, mask), dim=1)
+    # put prompt dummy tokens after the first BOS token.
+    prompted_input_ids = torch.cat((input_ids[:, 0], prompt_tokens, input_ids[:, 1:]), dim=1)
+    prompted_mask = torch.cat((prompt_mask, mask), dim=1)
+    return prompted_input_ids, prompted_mask
 
 
 def clear_cache() -> None:
@@ -280,16 +283,19 @@ class PromptEmbedding(torch.nn.Module):
         # seq_len: sequence length
         b_sz, seq_len = input.size()
 
-        prompt_input, normal_input = torch.split(input, [self.prompt_length, seq_len - self.prompt_length], dim=1)
+        bos_input, prompt_input, normal_input = torch.split(
+            input, [1, self.prompt_length, seq_len - self.prompt_length - 1], dim=1
+        )
 
         # prompt_embedded has shape: (b_sz,  self.prompt_length, embedding_dim)
         prompt_embedded = self.prompt_embedder(prompt_input)
 
         # normal_input_embedded has shape: (b_sz,  seq_len - self.prompt_length, embedding_dim)
         normal_input_embedded = self.normal_embedder(normal_input)
+        bos_input_embedded = self.normal_embedder(bos_input)
 
         # concat along the dimension 1
-        return torch.cat((prompt_embedded, normal_input_embedded), dim=1)
+        return torch.cat((bos_input_embedded, prompt_embedded, normal_input_embedded), dim=1)
 
 
 class SoftPromptT5EncoderModel(torch.nn.Module):
@@ -424,7 +430,6 @@ class FineTuneT5(MyBaseT5):
             labels=labels,
         )
 
-        # print(output)
         loss = output.loss
         loss_value = loss.item()
 

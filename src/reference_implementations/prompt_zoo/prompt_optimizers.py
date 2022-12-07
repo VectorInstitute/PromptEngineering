@@ -27,6 +27,8 @@ def construct_optimizer(model: torch.nn.Module, second_model: Optional[torch.nn.
         # concatinate the second module parameters and register in the optimizer.
         params += list(second_model.parameters())
 
+    # optimizer = torch.optim.Adam(params, lr=FLAGS.learning_rate)
+
     optimizer = Adafactor(
         params,
         lr=FLAGS.learning_rate,
