@@ -63,7 +63,7 @@ def prepend_prompt(input_ids: torch.LongTensor, mask: torch.LongTensor) -> Tuple
     # prompt length
     p_len = FLAGS.prompt_length
 
-    prompt_tokens = torch.LongTensor(list(range(p_len)), device=input_ids.device)
+    prompt_tokens = torch.tensor(list(range(p_len)), device=input_ids.device)
     prompt_tokens = prompt_tokens.view(1, p_len).expand(b_sz, p_len)
 
     # prompt tokens are always valid.
