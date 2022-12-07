@@ -51,10 +51,11 @@ flags.DEFINE_integer("prompt_length", 100, "length of the prompts in the input s
 
 
 def prepend_prompt(input_ids: torch.LongTensor, mask: torch.LongTensor) -> Tuple[torch.LongTensor, torch.LongTensor]:
-    """Prepend the input_ids with the prompt token ids.
+    """Prepend the input_ids with the prompt token ids after the first BOS
+    token.
 
     For a prompt with length |P|, we add dummy prompt token ids from [0,
-    |P|-1] to map those into |P| vectors in the prompt embedder.
+    |P|-1] to map those into |P| vectors from the prompt embedder.
     """
     # b_sz: batch size
     # seq_len: sequence length
@@ -70,7 +71,7 @@ def prepend_prompt(input_ids: torch.LongTensor, mask: torch.LongTensor) -> Tuple
     prompt_mask = torch.ones((b_sz, p_len), device=mask.device)
 
     # put prompt dummy tokens after the first BOS token.
-    prompted_input_ids = torch.cat((input_ids[:, 0], prompt_tokens, input_ids[:, 1:]), dim=1)
+    prompted_input_ids = torch.cat((input_ids[:, 0].view(b_sz, 1), prompt_tokens, input_ids[:, 1:]), dim=1)
     prompted_mask = torch.cat((prompt_mask, mask), dim=1)
     return prompted_input_ids, prompted_mask
 
@@ -270,11 +271,12 @@ class PromptEmbedding(torch.nn.Module):
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         """prompt tokens are always at the first prompt_length steps of the
-        input.
+        input after the BOS token.
 
-        split the input sequences into two parts:
-            1 - the first prompt_length steps should be mapped to prompt vectors.
-            2 - the second part should be embedded by the normal embedding table of T5 defined for english tokens.
+        split the input sequences into three parts:
+            1 - the first BOS token to be embedded by the normal embedding.
+            2 - the next prompt_length tokens should be mapped to prompt vectors.
+            3 - the rest should be embedded by the normal embedding table of T5 defined for english tokens.
 
         concatinate the embedded splits into a single split along the sequence dimension.
         """
@@ -292,7 +294,7 @@ class PromptEmbedding(torch.nn.Module):
 
         # normal_input_embedded has shape: (b_sz,  seq_len - self.prompt_length, embedding_dim)
         normal_input_embedded = self.normal_embedder(normal_input)
-        bos_input_embedded = self.normal_embedder(bos_input)
+        bos_input_embedded = self.normal_embedder(bos_input.view(b_sz, 1))
 
         # concat along the dimension 1
         return torch.cat((bos_input_embedded, prompt_embedded, normal_input_embedded), dim=1)
