@@ -8,7 +8,7 @@ README = open(os.path.join(HERE, "README.md")).read()
 VERSION = "0.1"
 
 # Publicly Available Packages (PyPi)
-INSTALL_REQUIRES = ["ipython", "jupyterlab", "datasets"]
+INSTALL_REQUIRES = ["ipython", "jupyterlab", "matplotlib"]
 
 DEV_REQUIRES = [
     "nbqa[toolchain]",
@@ -22,6 +22,7 @@ DEV_REQUIRES = [
     "toml",
     "types-requests",
     "types-setuptools",
+    "docformatter",
 ]
 
 setup(
