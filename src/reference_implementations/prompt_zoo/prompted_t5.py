@@ -186,7 +186,7 @@ class MyBaseT5(torch.nn.Module):
         ckp_name = FLAGS.checkpoint
         try:
             for m_name, model in self.model_pool.items():
-                model_ckp = os.path.join(m_path, m_name + "_") + ckp_name
+                model_ckp = os.path.join(m_path, f"{m_name}_{ckp_name}")
                 model.load_state_dict(
                     torch.load(
                         model_ckp,
@@ -203,7 +203,7 @@ class MyBaseT5(torch.nn.Module):
         if not os.path.exists(m_path):
             os.makedirs(m_path)
         for m_name, model in self.model_pool.items():
-            torch.save(model.state_dict(), os.path.join(m_path, m_name + "_") + checkpoint_name)
+            torch.save(model.state_dict(), os.path.join(m_path, f"{m_name}_{checkpoint_name}"))
 
     def train_mode_on(self) -> None:
         """Before every forward-backward iteration over batch, clear gpu cache,
@@ -404,7 +404,6 @@ class FineTuneT5(MyBaseT5):
         elif FLAGS.t5_exp_type == "soft_prompt_finetune":
             self.model_pool["t5_model"] = SoftPromptT5ForConditionalGeneration().t5_model
         self.setup_models()
-        return
 
     def train(self, batch: torch.utils.data.Dataset) -> Dict[str, float]:
         """The main train loop for generating the class sequence in the decoder
@@ -533,7 +532,6 @@ class ClassifierT5(MyBaseT5):
         self.model_pool["classifier_model"] = FFClassifier(self.model_pool["t5_encoder"].config.d_model)
 
         self.setup_models()
-        return
 
     def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
         """The main prediction loop using a separate classifier."""
