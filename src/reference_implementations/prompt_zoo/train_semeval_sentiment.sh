@@ -21,7 +21,7 @@ model_path=/scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/${EXPERIMENT_T
 mkdir -p ${model_path}
 
 python -m src.reference_implementations.prompt_zoo.trainer \
-    --batch_size 8 \
+    --batch_size 16 \
     --mode train \
     --task_name semeval_3_class_sentiment \
     --train_file ${PROJECT_DIR}/../../../resources/datasets/2018-Valence-oc-En-train.txt \
@@ -30,10 +30,11 @@ python -m src.reference_implementations.prompt_zoo.trainer \
     --gpu True \
     --model_path ${model_path} \
     --learning_rate ${LEARN_RATE} \
-    --max_epochs 5 \
+    --max_epochs 20 \
     --training_steps 10000000 \
     --steps_per_checkpoint 50 \
     --source_max_length 128 \
     --decoder_max_length 16 \
     --prediction_file ${model_path}/dev_sentiment.csv \
-    --with_instructions ${WITH_INSTRUCTIONS}
+    --with_instructions ${WITH_INSTRUCTIONS} \
+    --prompt_length 50

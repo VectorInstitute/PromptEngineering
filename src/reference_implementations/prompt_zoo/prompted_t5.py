@@ -38,16 +38,16 @@ flags.DEFINE_integer("seed", 42, "the seed number")
 flags.DEFINE_bool("gpu", False, "Whether to put the model on gpu or not?")
 
 # the t5-base model with the extra LM adaptation steps.
-# https://huggingface.co/google/t5-base-lm-adapt
-flags.DEFINE_string("t5_pretrained_model", "google/t5-base-lm-adapt", "initial pre-trained model to use as T5.")
+# https://huggingface.co/google/t5-large-lm-adapt
+flags.DEFINE_string("t5_pretrained_model", "google/t5-large-lm-adapt", "initial pre-trained model to use as T5.")
 
 flags.DEFINE_string("mode", "train", "the mode of run? train or test")
 flags.DEFINE_string("model_path", "/tmp/", "main directory to save or load the model from")
 flags.DEFINE_string("checkpoint", None, "checkpoint name to load from.")
 flags.DEFINE_integer("num_classes", 3, "Number of classes for sentiment analysis. Only used in linear classifier.")
 flags.DEFINE_float("dropout_rate", 0.1, "dropout_rate used in T5 base.")
-flags.DEFINE_integer("classifier_hidden_d", 99, "The number of hidden units used in the classifier.")
-flags.DEFINE_integer("prompt_length", 100, "length of the prompts in the input sequence.")
+flags.DEFINE_integer("classifier_hidden_d", 128, "The number of hidden units used in the classifier.")
+flags.DEFINE_integer("prompt_length", 20, "length of the prompts in the input sequence.")
 
 
 def prepend_prompt(input_ids: torch.LongTensor, mask: torch.LongTensor) -> Tuple[torch.LongTensor, torch.LongTensor]:

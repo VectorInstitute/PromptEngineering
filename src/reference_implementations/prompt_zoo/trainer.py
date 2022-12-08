@@ -23,9 +23,9 @@ from src.reference_implementations.prompt_zoo.metrics import (
 from src.reference_implementations.prompt_zoo.prompted_t5 import ClassifierT5, FineTuneT5, MyBaseT5
 
 FLAGS = flags.FLAGS
-flags.DEFINE_integer("max_epochs", 10, "The maximum number of epochs for training.")
+flags.DEFINE_integer("max_epochs", 20, "The maximum number of epochs for training.")
 flags.DEFINE_integer("training_steps", 100, "The number of training steps for each epoch.")
-flags.DEFINE_integer("steps_per_checkpoint", 100, "keep checkpoint of the model every this number of steps")
+flags.DEFINE_integer("steps_per_checkpoint", 50, "keep checkpoint of the model every this number of steps")
 flags.DEFINE_string("prediction_file", "/tmp/predictions.csv", "the path/name for saving the predictions.")
 flags.DEFINE_string("dev_file", "/tmp/dev.csv", "the path/name of the dev file.")
 flags.DEFINE_string("task_name", "semeval_3_class_sentiment", "the name of the downstream nlp task.")
