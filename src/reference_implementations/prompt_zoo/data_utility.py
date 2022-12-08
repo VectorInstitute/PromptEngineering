@@ -50,6 +50,8 @@ def read_semeval_sentiment_file(
     sentiments = [preprocess_semeval_sentiment(sent) for sent in df["Intensity Class"].tolist()]
 
     # store class information for classification modules.
+    # for converting the class label to its index, we string sort the set to block
+    # different permutations of the class labels. required if we call function multiple times.
     all_classes = sorted(list(set(sentiments)))
     assert all_classes == sorted(["positive", "negative", "neutral"])
 
@@ -67,14 +69,14 @@ def read_semeval_sentiment_file(
         class_indices = []
         for tweet in tweets:
             for label in all_classes:
-                inputs.append(tweet + " </s>")
-                outputs.append(label + " </s>")
+                inputs.append(f"{tweet} </s>")
+                outputs.append(f"{label} </s>")
                 class_indices.append(class_to_id[label])
         return inputs, outputs, class_indices
 
     # add end of sequence token:
-    inputs = [tweet + " </s>" for tweet in tweets]
-    outputs = [sent + " </s>" for sent in sentiments]
+    inputs = [f"{tweet} </s>" for tweet in tweets]
+    outputs = [f"{sent} </s>" for sent in sentiments]
     class_indices = [class_to_id[sent] for sent in sentiments]
     return inputs, outputs, class_indices
 
