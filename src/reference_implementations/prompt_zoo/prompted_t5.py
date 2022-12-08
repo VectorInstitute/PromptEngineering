@@ -251,7 +251,7 @@ class PromptEmbedding(torch.nn.Module):
     which will be populated when we load the T5 encoders from the huggingface.
 
     prompt tokens are always at the first prompt_length steps of the
-    input.
+    input after the BOS token (first token).
     """
 
     def __init__(self, prompt_length: int, embedding_dim: int) -> None:
