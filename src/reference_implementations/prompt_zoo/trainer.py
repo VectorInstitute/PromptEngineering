@@ -116,7 +116,7 @@ def run_model(
         # delete the eval_file
         os.remove(eval_file)
 
-    if FLAGS.mode in ["test", "inference", "eval"]:
+    if FLAGS.mode in ["test", "inference", "eval", "no_finetune_test"]:
         print("Predicting...")
         start_predicting(model, eval_dataloader, FLAGS.prediction_file)
 
