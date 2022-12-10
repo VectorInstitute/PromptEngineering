@@ -4,14 +4,18 @@ for the downstream tasks."""
 import numpy as np
 import pandas as pd
 
-from src.reference_implementations.prompt_zoo.data_utility import read_semeval_sentiment_file
+from src.reference_implementations.prompt_zoo.data_utility import read_semeval_sentiment_file, read_sst2_sentiment_file
 
 
-def semeval_sentiment_metric(gold_file: str, prediction_file: str) -> float:
-    """Compute the classification accuracy for semeval sentiment
+def sentiment_metric(gold_file: str, prediction_file: str, task_name: str) -> float:
+    """Compute the classification accuracy for sentiment
     classification."""
 
-    _, gold_labels, _ = read_semeval_sentiment_file(gold_file, repeat_input=False, with_instructions=False)
+    if task_name == "semeval":
+        _, gold_labels, _ = read_semeval_sentiment_file(gold_file, repeat_input=False, with_instructions=False)
+    elif task_name == "sst2":
+        _, gold_labels, _ = read_sst2_sentiment_file(gold_file, repeat_input=False, with_instructions=False)
+
     gold_labels = [label.strip(" </s>") for label in gold_labels]
 
     # pick the class with the highest score among the possible class labels!
@@ -37,12 +41,16 @@ def semeval_sentiment_metric(gold_file: str, prediction_file: str) -> float:
     return corrects / total
 
 
-def semeval_classifier_sentiment_metric(gold_file: str, prediction_file: str) -> float:
-    """Compute the classification accuracy for semeval sentiment classification
+def classifier_sentiment_metric(gold_file: str, prediction_file: str, task_name: str) -> float:
+    """Compute the classification accuracy for sentiment classification
     where we have classifier on top of the T5 encoder compared to generation of
     the classes in the decoder."""
 
-    _, _, class_indices = read_semeval_sentiment_file(gold_file, repeat_input=False, with_instructions=False)
+    if task_name == "semeval":
+        _, _, class_indices = read_semeval_sentiment_file(gold_file, repeat_input=False, with_instructions=False)
+    elif task_name == "sst2":
+        _, _, class_indices = read_sst2_sentiment_file(gold_file, repeat_input=False, with_instructions=False)
+
     df = pd.read_csv(prediction_file, delimiter=",")
     prediction_indices = df["predicted_class"].tolist()
 

@@ -6,6 +6,7 @@ from typing import Dict, List, Tuple, Union
 import pandas as pd
 import torch
 from absl import flags
+from datasets import load_dataset
 from torch.utils.data import DataLoader, Dataset
 from transformers import T5Tokenizer
 
@@ -18,6 +19,32 @@ flags.DEFINE_integer("decoder_max_length", 128, "The maximum number of tokens co
 def white_space_fix(text: str) -> str:
     """Remove extra spaces in text."""
     return " ".join(text.split())
+
+
+def read_sst2_sentiment_file(
+    split_name: str, repeat_input: bool = False, with_instructions: bool = False
+) -> Tuple[List[str], List[str], List[int]]:
+    """Load the sst2 sentiment analysis split for train, validation or test."""
+    dataset = load_dataset("sst2", split=split_name)
+
+    def process_row(row: Dict[str, str]) -> Dict[str, str]:
+        """Helper function to process each row of the dataset."""
+        label = "negative" if row["label"] == 0 else "positive"
+        return {"sentence": white_space_fix(row["sentence"]), "sentiment": label}
+
+    new_dataset = dataset.map(
+        process_row,
+        remove_columns=["idx", "label"],
+    )
+
+    sentences = []
+    labels = []
+    for row in new_dataset:
+        sentences.append(row["sentence"])
+        labels.append(row["sentiment"])
+
+    all_classes = sorted(list(set(labels)))
+    return template_data(all_classes, sentences, labels, with_instructions, repeat_input)
 
 
 def preprocess_semeval_sentiment(text: str) -> str:
@@ -38,6 +65,36 @@ def preprocess_semeval_sentiment(text: str) -> str:
     return sentiment_mapper[sentiment]
 
 
+def template_data(
+    all_classes: List[str], sentences: List[str], labels: List[str], with_instructions: bool, repeat_input: bool
+) -> Tuple[List[str], List[str], List[int]]:
+    """Helper function to add end of sentence tokens."""
+    class_to_id = {label: index for index, label in enumerate(all_classes)}
+    if with_instructions:
+        instruction = "Generate the sentiment of the next sentence from the labels {}.".format(" ".join(all_classes))
+        sentences = ["instruction: {} sentence: {} sentiment:".format(instruction, sent) for sent in sentences]
+
+    if repeat_input:
+        # repeat every input for every possible output class.
+        # the inference will compute the score for every possible
+        # label and then select the label with the max score given by the LM.
+        inputs = []
+        outputs = []
+        class_indices = []
+        for sent in sentences:
+            for label in all_classes:
+                inputs.append(f"{sent} </s>")
+                outputs.append(f"{label} </s>")
+                class_indices.append(class_to_id[label])
+        return inputs, outputs, class_indices
+
+    # add end of sequence token:
+    inputs = [f"{sent} </s>" for sent in sentences]
+    outputs = [f"{label} </s>" for label in labels]
+    class_indices = [class_to_id[label] for label in labels]
+    return inputs, outputs, class_indices
+
+
 def read_semeval_sentiment_file(
     file_path: str, repeat_input: bool = False, with_instructions: bool = False
 ) -> Tuple[List[str], List[str], List[int]]:
@@ -54,31 +111,7 @@ def read_semeval_sentiment_file(
     # different permutations of the class labels. required if we call function multiple times.
     all_classes = sorted(list(set(sentiments)))
     assert all_classes == sorted(["positive", "negative", "neutral"])
-
-    class_to_id = {label: index for index, label in enumerate(all_classes)}
-    if with_instructions:
-        instruction = "Generate the sentiment of the next sentence from the labels {}.".format(" ".join(all_classes))
-        tweets = ["instruction: {} sentence: {} sentiment:".format(instruction, tweet) for tweet in tweets]
-
-    if repeat_input:
-        # repeat every input for every possible output class.
-        # the inference will compute the score for every possible
-        # label and then select the label with the max score given by the LM.
-        inputs = []
-        outputs = []
-        class_indices = []
-        for tweet in tweets:
-            for label in all_classes:
-                inputs.append(f"{tweet} </s>")
-                outputs.append(f"{label} </s>")
-                class_indices.append(class_to_id[label])
-        return inputs, outputs, class_indices
-
-    # add end of sequence token:
-    inputs = [f"{tweet} </s>" for tweet in tweets]
-    outputs = [f"{sent} </s>" for sent in sentiments]
-    class_indices = [class_to_id[sent] for sent in sentiments]
-    return inputs, outputs, class_indices
+    return template_data(all_classes, tweets, sentiments, with_instructions, repeat_input)
 
 
 class SentimentDataset(Dataset):
@@ -99,16 +132,21 @@ class SentimentDataset(Dataset):
         return len(self.data["input_ids"])
 
 
-def create_semeval_sentiment_dataset(
+def create_sentiment_dataset(
     tokenizer: T5Tokenizer,
     file_name: str,
+    task_name: str,
     shuffle: bool,
     repeat_input: bool = False,
     with_instructions: bool = False,
 ) -> DataLoader:
     """Function to create the required huggingface dataset to train the T5
-    models on the semeval sentiment analysis task."""
-    inputs, outputs, class_indices = read_semeval_sentiment_file(file_name, repeat_input, with_instructions)
+    models on the sentiment analysis task."""
+
+    if task_name == "semeval":
+        inputs, outputs, class_indices = read_semeval_sentiment_file(file_name, repeat_input, with_instructions)
+    elif task_name == "sst2":
+        inputs, outputs, class_indices = read_sst2_sentiment_file(file_name, repeat_input, with_instructions)
 
     input_encodings = tokenizer(
         inputs,

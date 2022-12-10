@@ -15,11 +15,8 @@ import torch
 from absl import app, flags
 from torch.utils.tensorboard import SummaryWriter
 
-from src.reference_implementations.prompt_zoo.data_utility import create_semeval_sentiment_dataset
-from src.reference_implementations.prompt_zoo.metrics import (
-    semeval_classifier_sentiment_metric,
-    semeval_sentiment_metric,
-)
+from src.reference_implementations.prompt_zoo.data_utility import create_sentiment_dataset
+from src.reference_implementations.prompt_zoo.metrics import classifier_sentiment_metric, sentiment_metric
 from src.reference_implementations.prompt_zoo.prompted_t5 import ClassifierT5, FineTuneT5, MyBaseT5
 
 FLAGS = flags.FLAGS
@@ -63,7 +60,7 @@ def run_model(
     model: MyBaseT5,
     train_dataloader: Optional[torch.utils.data.DataLoader] = None,
     eval_dataloader: Optional[torch.utils.data.DataLoader] = None,
-    metric: Optional[Callable[[str, str], float]] = None,
+    metric: Optional[Callable[[str, str, str], float]] = None,
 ) -> None:
     """Run the model on input data; for training or inference."""
     if FLAGS.mode == "train":
@@ -89,7 +86,7 @@ def run_model(
                 )
                 if global_step % FLAGS.steps_per_checkpoint == 0:
                     start_predicting(model, eval_dataloader, eval_file)
-                    score = metric(FLAGS.dev_file, eval_file)  # type: ignore
+                    score = metric(FLAGS.dev_file, eval_file, FLAGS.task_name)  # type: ignore
                     writer.add_scalar("Score/dev", score, global_step)
                     if score > best_score:
                         best_score = score
@@ -104,7 +101,7 @@ def run_model(
 
             # do final evaluation on the dev data at the end of epoch.
             start_predicting(model, eval_dataloader, eval_file)
-            score = metric(FLAGS.dev_file, eval_file)  # type: ignore
+            score = metric(FLAGS.dev_file, eval_file, FLAGS.task_name)  # type: ignore
             writer.add_scalar("Score/dev", score, global_step)
             if score > best_score:
                 best_score = score
@@ -128,27 +125,28 @@ def launch_train() -> None:
     FLAGS.mode = "train"
 
     model = FineTuneT5()
-    if FLAGS.task_name == "semeval_3_class_sentiment":
-        train_dataloader = create_semeval_sentiment_dataset(
-            tokenizer=model.tokenizer,
-            file_name=FLAGS.train_file,
-            shuffle=True,
-            repeat_input=False,
-            with_instructions=FLAGS.with_instructions,
-        )
-        eval_dataloader = create_semeval_sentiment_dataset(
-            tokenizer=model.tokenizer,
-            file_name=FLAGS.dev_file,
-            shuffle=False,
-            repeat_input=True,
-            with_instructions=FLAGS.with_instructions,
-        )
-        run_model(
-            model=model,
-            train_dataloader=train_dataloader,
-            eval_dataloader=eval_dataloader,
-            metric=semeval_sentiment_metric,
-        )
+    train_dataloader = create_sentiment_dataset(
+        tokenizer=model.tokenizer,
+        file_name=FLAGS.train_file,
+        task_name=FLAGS.task_name,
+        shuffle=True,
+        repeat_input=False,
+        with_instructions=FLAGS.with_instructions,
+    )
+    eval_dataloader = create_sentiment_dataset(
+        tokenizer=model.tokenizer,
+        file_name=FLAGS.dev_file,
+        task_name=FLAGS.task_name,
+        shuffle=False,
+        repeat_input=True,
+        with_instructions=FLAGS.with_instructions,
+    )
+    run_model(
+        model=model,
+        train_dataloader=train_dataloader,
+        eval_dataloader=eval_dataloader,
+        metric=sentiment_metric,
+    )
 
 
 def launch_classifier_train() -> None:
@@ -156,27 +154,28 @@ def launch_classifier_train() -> None:
 
     FLAGS.mode = "train"
     model = ClassifierT5()
-    if FLAGS.task_name == "semeval_3_class_sentiment":
-        train_dataloader = create_semeval_sentiment_dataset(
-            tokenizer=model.tokenizer,
-            file_name=FLAGS.train_file,
-            shuffle=True,
-            repeat_input=False,
-            with_instructions=FLAGS.with_instructions,
-        )
-        eval_dataloader = create_semeval_sentiment_dataset(
-            tokenizer=model.tokenizer,
-            file_name=FLAGS.dev_file,
-            shuffle=False,
-            repeat_input=False,
-            with_instructions=FLAGS.with_instructions,
-        )
-        run_model(
-            model=model,
-            train_dataloader=train_dataloader,
-            eval_dataloader=eval_dataloader,
-            metric=semeval_classifier_sentiment_metric,
-        )
+    train_dataloader = create_sentiment_dataset(
+        tokenizer=model.tokenizer,
+        file_name=FLAGS.train_file,
+        task_name=FLAGS.task_name,
+        shuffle=True,
+        repeat_input=False,
+        with_instructions=FLAGS.with_instructions,
+    )
+    eval_dataloader = create_sentiment_dataset(
+        tokenizer=model.tokenizer,
+        file_name=FLAGS.dev_file,
+        task_name=FLAGS.task_name,
+        shuffle=False,
+        repeat_input=False,
+        with_instructions=FLAGS.with_instructions,
+    )
+    run_model(
+        model=model,
+        train_dataloader=train_dataloader,
+        eval_dataloader=eval_dataloader,
+        metric=classifier_sentiment_metric,
+    )
     return
 
 
@@ -186,20 +185,20 @@ def launch_no_finetune_predict() -> None:
 
     FLAGS.mode = "no_finetune_test"
     model = FineTuneT5()
-    if FLAGS.task_name == "semeval_3_class_sentiment":
-        eval_dataloader = create_semeval_sentiment_dataset(
-            tokenizer=model.tokenizer,
-            file_name=FLAGS.dev_file,
-            shuffle=False,
-            repeat_input=True,
-            with_instructions=FLAGS.with_instructions,
-        )
-        run_model(
-            model=model,
-            train_dataloader=None,
-            eval_dataloader=eval_dataloader,
-            metric=None,
-        )
+    eval_dataloader = create_sentiment_dataset(
+        tokenizer=model.tokenizer,
+        file_name=FLAGS.dev_file,
+        task_name=FLAGS.task_name,
+        shuffle=False,
+        repeat_input=True,
+        with_instructions=FLAGS.with_instructions,
+    )
+    run_model(
+        model=model,
+        train_dataloader=None,
+        eval_dataloader=eval_dataloader,
+        metric=None,
+    )
 
 
 def main(argv: Any) -> None:
