@@ -1,8 +1,8 @@
 #!/bin/bash
 
-rates=(0.005)
+rates=(0.0005 0.00005 0.01 0.0001 0.005)
 
-exps=(all_finetune input_finetune output_finetune soft_prompt_finetune)
+exps=(all_finetune input_finetune output_finetune soft_prompt_finetune classifier_finetune soft_prompt_classifier_finetune)
 
 for i in ${!rates[@]};
 do
@@ -15,6 +15,6 @@ do
             ./torch-prompt-tuning-exps-logs \
             ${exp} \
             ${rate} \
-            False
+            True
     done
 done

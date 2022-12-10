@@ -33,7 +33,7 @@ python -m src.reference_implementations.prompt_zoo.trainer \
     --max_epochs 20 \
     --training_steps 10000000 \
     --steps_per_checkpoint 50 \
-    --source_max_length 128 \
+    --source_max_length 180 \
     --decoder_max_length 16 \
     --prediction_file ${model_path}/dev_sentiment.csv \
     --with_instructions ${WITH_INSTRUCTIONS} \
