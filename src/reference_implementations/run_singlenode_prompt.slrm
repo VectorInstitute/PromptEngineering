@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --gres=gpu:1
 #SBATCH --mem=16G
-#SBATCH --partition=rtx6000
+#SBATCH --partition=a40
 #SBATCH --qos=normal
 #SBATCH --output=job_%x_%j.out
 #SBATCH --error=job_%x_%j.err

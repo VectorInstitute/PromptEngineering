@@ -17,7 +17,7 @@ WITH_INSTRUCTIONS=${WITH_INST}
 # We source to keep the internal env variables defined.
 source ${PROJECT_DIR}/../setup_gpu_worker.sh
 
-model_path=/scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/${EXPERIMENT_TYPE}_${LEARN_RATE}_${WITH_INSTRUCTIONS}
+model_path=/scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2-v2/${EXPERIMENT_TYPE}_${LEARN_RATE}_${WITH_INSTRUCTIONS}
 mkdir -p ${model_path}
 
 python -m src.reference_implementations.prompt_zoo.trainer \
@@ -37,4 +37,5 @@ python -m src.reference_implementations.prompt_zoo.trainer \
     --decoder_max_length 16 \
     --prediction_file ${model_path}/dev_sentiment.csv \
     --with_instructions ${WITH_INSTRUCTIONS} \
-    --prompt_length 50
+    --prompt_length 50 \
+    --weight_decay_rate 0.00001

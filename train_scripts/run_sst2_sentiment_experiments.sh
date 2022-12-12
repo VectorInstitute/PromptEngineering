@@ -1,8 +1,7 @@
 #!/bin/bash
 
-rates=(0.0005 0.01 0.005)
-
-exps=(all_finetune input_finetune output_finetune soft_prompt_finetune classifier_finetune soft_prompt_classifier_finetune)
+rates=(0.3 0.001 0.01 0.0005 0.005)
+exps=(soft_prompt_finetune all_finetune classifier_finetune input_finetune output_finetune)
 
 for i in ${!rates[@]};
 do

@@ -10,6 +10,7 @@ from transformers import Adafactor
 
 FLAGS = flags.FLAGS
 flags.DEFINE_float("learning_rate", 0.005, "The learning rate used in the optimizer", lower_bound=0.0)
+flags.DEFINE_float("weight_decay_rate", 0.0, "The weight decay rate used in the adafactor optimizer.", lower_bound=0.0)
 
 OPTIMIZER_ARGS_TYPE = Dict[str, torch.nn.Module]
 
