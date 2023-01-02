@@ -35,7 +35,7 @@ def construct_optimizer(model: torch.nn.Module, second_model: Optional[torch.nn.
         clip_threshold=1.0,
         decay_rate=-0.8,
         beta1=None,
-        weight_decay=0.0,
+        weight_decay=FLAGS.weight_decay_rate,
         relative_step=False,
         scale_parameter=False,
         warmup_init=False,

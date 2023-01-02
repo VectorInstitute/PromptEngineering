@@ -38,8 +38,8 @@ flags.DEFINE_integer("seed", 42, "the seed number")
 flags.DEFINE_bool("gpu", False, "Whether to put the model on gpu or not?")
 
 # the t5-base model with the extra LM adaptation steps.
-# https://huggingface.co/google/t5-large-lm-adapt
-flags.DEFINE_string("t5_pretrained_model", "google/t5-large-lm-adapt", "initial pre-trained model to use as T5.")
+# https://huggingface.co/google/t5-base-lm-adapt
+flags.DEFINE_string("t5_pretrained_model", "google/t5-base-lm-adapt", "initial pre-trained model to use as T5.")
 
 flags.DEFINE_string("mode", "train", "the mode of run? train or test")
 flags.DEFINE_string("model_path", "/tmp/", "main directory to save or load the model from")
