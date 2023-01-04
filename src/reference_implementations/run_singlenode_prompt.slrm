@@ -44,6 +44,8 @@ LOG_PATH="${LOG_DIR}/log_${SLURM_JOB_ID}_rank_\${SLURM_PROCID}.log"
 EXP_TYPE=$3
 LR=$4
 WITH_INST=$5
+
+# prompt length.
 LEN=$6
 
 echo "Placing logs in: ${LOG_DIR}"
