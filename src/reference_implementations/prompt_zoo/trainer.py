@@ -8,7 +8,7 @@ training/inference.
 import csv
 import io
 import os
-from typing import Any, Callable, Iterator, Optional, Tuple
+from typing import Any, Callable, Iterator, Tuple
 
 import numpy as np
 import torch
@@ -56,11 +56,11 @@ def start_predicting(model: MyBaseT5, dataloader: torch.utils.data.DataLoader, p
     return
 
 
-def run_model(
+def train_model(
     model: MyBaseT5,
-    train_dataloader: Optional[torch.utils.data.DataLoader] = None,
-    eval_dataloader: Optional[torch.utils.data.DataLoader] = None,
-    metric: Optional[Callable[[str, str, str], float]] = None,
+    metric: Callable[[str, str, str], float],
+    train_dataloader: torch.utils.data.DataLoader,
+    eval_dataloader: torch.utils.data.DataLoader,
 ) -> None:
     """Run the model on input data; for training or inference."""
     if FLAGS.mode == "train":
@@ -80,9 +80,8 @@ def run_model(
                 mean_total_loss = np.mean(total_loss)
                 mean_epoch_loss = np.mean(epoch_loss)
                 print(
-                    "\rEpoch:{0} | Batch:{1} | Mean Loss:{2} | Epoch Loss:{3} | Loss:{4}\n".format(
-                        epoch, step, mean_total_loss, mean_epoch_loss, loss
-                    )
+                    f"\rEpoch: {epoch} | Batch: {step} | Mean Loss: {mean_total_loss} | "
+                    f"Epoch Loss: {mean_epoch_loss} | Loss: {loss}\n"
                 )
                 if global_step % FLAGS.steps_per_checkpoint == 0:
                     start_predicting(model, eval_dataloader, eval_file)
@@ -112,10 +111,19 @@ def run_model(
 
         # delete the eval_file
         os.remove(eval_file)
+    else:
+        raise Exception(f"the mode {FLAGS.mode} is not for training.")
 
+
+def test_model(
+    model: MyBaseT5,
+    test_dataloader: torch.utils.data.DataLoader,
+) -> None:
     if FLAGS.mode in ["test", "inference", "eval", "no_finetune_test"]:
         print("Predicting...")
-        start_predicting(model, eval_dataloader, FLAGS.prediction_file)
+        start_predicting(model, test_dataloader, FLAGS.prediction_file)
+    else:
+        raise Exception(f"the mode {FLAGS.mode} is not for testing.")
 
 
 def launch_train() -> None:
@@ -141,11 +149,8 @@ def launch_train() -> None:
         repeat_input=True,
         with_instructions=FLAGS.with_instructions,
     )
-    run_model(
-        model=model,
-        train_dataloader=train_dataloader,
-        eval_dataloader=eval_dataloader,
-        metric=sentiment_metric,
+    train_model(
+        model=model, metric=sentiment_metric, train_dataloader=train_dataloader, eval_dataloader=eval_dataloader
     )
 
 
@@ -170,13 +175,12 @@ def launch_classifier_train() -> None:
         repeat_input=False,
         with_instructions=FLAGS.with_instructions,
     )
-    run_model(
+    train_model(
         model=model,
+        metric=classifier_sentiment_metric,
         train_dataloader=train_dataloader,
         eval_dataloader=eval_dataloader,
-        metric=classifier_sentiment_metric,
     )
-    return
 
 
 def launch_no_finetune_predict() -> None:
@@ -193,11 +197,9 @@ def launch_no_finetune_predict() -> None:
         repeat_input=True,
         with_instructions=FLAGS.with_instructions,
     )
-    run_model(
+    test_model(
         model=model,
-        train_dataloader=None,
-        eval_dataloader=eval_dataloader,
-        metric=None,
+        test_dataloader=eval_dataloader,
     )
 
 

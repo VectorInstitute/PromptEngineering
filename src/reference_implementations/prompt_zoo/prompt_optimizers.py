@@ -132,7 +132,7 @@ def classifier_model_opt(opt_args: OPTIMIZER_ARGS_TYPE) -> Optimizer:
 
 def prompt_classifier_model_opt(opt_args: OPTIMIZER_ARGS_TYPE) -> Optimizer:
     """Define the optimizer that only fine-tunes the prompt vectors + the
-    classifier on top of the T5 encodern for the downstream task."""
+    classifier on top of the T5 encoder for the downstream task."""
 
     t5_encoder: torch.nn.Module = opt_args["t5_encoder"]
     for name, param in t5_encoder.named_parameters():
