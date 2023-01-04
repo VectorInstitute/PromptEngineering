@@ -12,10 +12,13 @@ def sentiment_metric(gold_file: str, prediction_file: str, task_name: str) -> fl
     classification."""
 
     if task_name == "semeval":
-        _, gold_labels, _ = read_semeval_sentiment_file(gold_file, repeat_input=False, with_instructions=False)
+        rawdata = read_semeval_sentiment_file(gold_file, repeat_input=False, with_instructions=False)
     elif task_name == "sst2":
-        _, gold_labels, _ = read_sst2_sentiment_file(gold_file, repeat_input=False, with_instructions=False)
+        rawdata = read_sst2_sentiment_file(gold_file, repeat_input=False, with_instructions=False)
+    else:
+        raise Exception(f"this {task_name} is not supported!")
 
+    gold_labels = rawdata.outputs
     gold_labels = [label.strip(" </s>") for label in gold_labels]
 
     # pick the class with the highest score among the possible class labels!
@@ -47,16 +50,18 @@ def classifier_sentiment_metric(gold_file: str, prediction_file: str, task_name:
     the classes in the decoder."""
 
     if task_name == "semeval":
-        _, _, class_indices = read_semeval_sentiment_file(gold_file, repeat_input=False, with_instructions=False)
+        rawdata = read_semeval_sentiment_file(gold_file, repeat_input=False, with_instructions=False)
     elif task_name == "sst2":
-        _, _, class_indices = read_sst2_sentiment_file(gold_file, repeat_input=False, with_instructions=False)
+        rawdata = read_sst2_sentiment_file(gold_file, repeat_input=False, with_instructions=False)
+    else:
+        raise Exception(f"this {task_name} is not supported!")
 
     df = pd.read_csv(prediction_file, delimiter=",")
     prediction_indices = df["predicted_class"].tolist()
 
     corrects = 0.0
     total = 0.0
-    for index, gold in enumerate(class_indices):
+    for index, gold in enumerate(rawdata.class_indices):
         total += 1.0
         if gold == prediction_indices[index]:
             corrects += 1.0

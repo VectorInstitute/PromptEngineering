@@ -1,7 +1,8 @@
 """This module implements the functions for preprocessing the data files into
 pytorch datasets."""
 
-from typing import Dict, List, Tuple, Union
+from dataclasses import dataclass
+from typing import Dict, List, Union
 
 import pandas as pd
 import torch
@@ -16,35 +17,18 @@ flags.DEFINE_integer("source_max_length", 128, "The maximum number of tokens con
 flags.DEFINE_integer("decoder_max_length", 128, "The maximum number of tokens consider in the output sequence.")
 
 
+@dataclass
+class SentimentRawData:
+    """Input/Output/Classes for sentiment classification raw data."""
+
+    inputs: List[str]
+    outputs: List[str]
+    class_indices: List[int]
+
+
 def white_space_fix(text: str) -> str:
     """Remove extra spaces in text."""
     return " ".join(text.split())
-
-
-def read_sst2_sentiment_file(
-    split_name: str, repeat_input: bool = False, with_instructions: bool = False
-) -> Tuple[List[str], List[str], List[int]]:
-    """Load the sst2 sentiment analysis split for train, validation or test."""
-    dataset = load_dataset("sst2", split=split_name)
-
-    def process_row(row: Dict[str, str]) -> Dict[str, str]:
-        """Helper function to process each row of the dataset."""
-        label = "negative" if row["label"] == 0 else "positive"
-        return {"sentence": white_space_fix(row["sentence"]), "sentiment": label}
-
-    new_dataset = dataset.map(
-        process_row,
-        remove_columns=["idx", "label"],
-    )
-
-    sentences = []
-    labels = []
-    for row in new_dataset:
-        sentences.append(row["sentence"])
-        labels.append(row["sentiment"])
-
-    all_classes = sorted(list(set(labels)))
-    return template_data(all_classes, sentences, labels, with_instructions, repeat_input)
 
 
 def preprocess_semeval_sentiment(text: str) -> str:
@@ -67,12 +51,19 @@ def preprocess_semeval_sentiment(text: str) -> str:
 
 def template_data(
     all_classes: List[str], sentences: List[str], labels: List[str], with_instructions: bool, repeat_input: bool
-) -> Tuple[List[str], List[str], List[int]]:
-    """Helper function to add end of sentence tokens."""
+) -> SentimentRawData:
+    """Helper function to format the data for the models.
+
+    if with_instructions is True, we will add an instruction to the input sentence
+    and make the input a template with special keywords "instructions:", "sentence:", and "sentiment:".
+
+    if the repeat_input is True, we will repeat the input multiple times for every possible output class.
+
+    Finally, the end of sentence token </s> used with T5 models are added to both input and output."""
     class_to_id = {label: index for index, label in enumerate(all_classes)}
     if with_instructions:
-        instruction = "Generate the sentiment of the next sentence from the labels {}.".format(" ".join(all_classes))
-        sentences = ["instruction: {} sentence: {} sentiment:".format(instruction, sent) for sent in sentences]
+        instruction = f"Generate the sentiment of the next sentence from the labels {' '.join(all_classes)}."
+        sentences = [f"instruction: {instruction} sentence: {sent} sentiment:" for sent in sentences]
 
     if repeat_input:
         # repeat every input for every possible output class.
@@ -86,18 +77,18 @@ def template_data(
                 inputs.append(f"{sent} </s>")
                 outputs.append(f"{label} </s>")
                 class_indices.append(class_to_id[label])
-        return inputs, outputs, class_indices
+        return SentimentRawData(inputs=inputs, outputs=outputs, class_indices=class_indices)
 
     # add end of sequence token:
     inputs = [f"{sent} </s>" for sent in sentences]
     outputs = [f"{label} </s>" for label in labels]
     class_indices = [class_to_id[label] for label in labels]
-    return inputs, outputs, class_indices
+    return SentimentRawData(inputs=inputs, outputs=outputs, class_indices=class_indices)
 
 
 def read_semeval_sentiment_file(
     file_path: str, repeat_input: bool = False, with_instructions: bool = False
-) -> Tuple[List[str], List[str], List[int]]:
+) -> SentimentRawData:
     """This function reads the semeval 2018 data files for sentiment analysis.
 
     Example header: 'ID  Tweet Affect Dimension  Intensity Class'
@@ -112,6 +103,33 @@ def read_semeval_sentiment_file(
     all_classes = sorted(list(set(sentiments)))
     assert all_classes == sorted(["positive", "negative", "neutral"])
     return template_data(all_classes, tweets, sentiments, with_instructions, repeat_input)
+
+
+def read_sst2_sentiment_file(
+    split_name: str, repeat_input: bool = False, with_instructions: bool = False
+) -> SentimentRawData:
+    """Load the sst2 sentiment analysis split for train, validation or test."""
+    assert split_name in {"train", "validation", "test"}
+    dataset = load_dataset("sst2", split=split_name)
+
+    def process_row(row: Dict[str, str]) -> Dict[str, str]:
+        """Helper function to process each row of the dataset."""
+        label = "negative" if str(row["label"]) == "0" else "positive"
+        return {"sentence": white_space_fix(row["sentence"]), "sentiment": label}
+
+    new_dataset = dataset.map(
+        process_row,
+        remove_columns=["idx", "label"],
+    )
+
+    sentences = []
+    labels = []
+    for row in new_dataset:
+        sentences.append(row["sentence"])
+        labels.append(row["sentiment"])
+
+    all_classes = sorted(list(set(labels)))
+    return template_data(all_classes, sentences, labels, with_instructions, repeat_input)
 
 
 class SentimentDataset(Dataset):
@@ -144,19 +162,21 @@ def create_sentiment_dataset(
     models on the sentiment analysis task."""
 
     if task_name == "semeval":
-        inputs, outputs, class_indices = read_semeval_sentiment_file(file_name, repeat_input, with_instructions)
+        rawdata = read_semeval_sentiment_file(file_name, repeat_input, with_instructions)
     elif task_name == "sst2":
-        inputs, outputs, class_indices = read_sst2_sentiment_file(file_name, repeat_input, with_instructions)
+        rawdata = read_sst2_sentiment_file(file_name, repeat_input, with_instructions)
+    else:
+        raise Exception(f"this {task_name} is not supported!")
 
     input_encodings = tokenizer(
-        inputs,
+        rawdata.inputs,
         truncation=True,
         padding="max_length",
         max_length=FLAGS.source_max_length,
         add_special_tokens=False,
     )
     output_encodings = tokenizer(
-        outputs,
+        rawdata.outputs,
         truncation=True,
         padding="max_length",
         max_length=FLAGS.decoder_max_length,
@@ -168,7 +188,7 @@ def create_sentiment_dataset(
         "attention_mask": input_encodings.attention_mask,
         "labels": output_encodings.input_ids,
         "target_attention_mask": output_encodings.attention_mask,
-        "class_indices": class_indices,
+        "class_indices": rawdata.class_indices,
     }
 
     dataloader = DataLoader(SentimentDataset(data), batch_size=FLAGS.batch_size, shuffle=shuffle)
