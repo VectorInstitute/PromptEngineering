@@ -50,28 +50,30 @@ flags.DEFINE_integer("classifier_hidden_d", 128, "The number of hidden units use
 flags.DEFINE_integer("prompt_length", 20, "length of the prompts in the input sequence.")
 
 
+NO_SOFT_PROMPT_EXPS = {"all_finetune", "input_finetune", "output_finetune", "input_output_finetune", "no_finetune"}
+
+
 def prepend_prompt(input_ids: torch.LongTensor, mask: torch.LongTensor) -> Tuple[torch.LongTensor, torch.LongTensor]:
     """Prepend the input_ids with the prompt token ids after the first BOS
     token.
 
-    For a prompt with length |P|, we add dummy prompt token ids from [0,
+    - input_ids and mask are the raw inputs to t5 to be modified.
+
+    - For a prompt with length |P|, we add dummy prompt token ids from [0,
     |P|-1] to map those into |P| vectors from the prompt embedder.
     """
-    # b_sz: batch size
-    # seq_len: sequence length
-    b_sz, seq_len = input_ids.size()
+    batch_size, sequence_length = input_ids.size()
 
-    # prompt length
-    p_len = FLAGS.prompt_length
+    prompt_tokens = torch.tensor(list(range(FLAGS.prompt_length)), device=input_ids.device)
+    prompt_tokens = prompt_tokens.view(1, FLAGS.prompt_length).expand(batch_size, FLAGS.prompt_length)
 
-    prompt_tokens = torch.tensor(list(range(p_len)), device=input_ids.device)
-    prompt_tokens = prompt_tokens.view(1, p_len).expand(b_sz, p_len)
-
-    # prompt tokens are always valid.
-    prompt_mask = torch.ones((b_sz, p_len), device=mask.device)
+    # prompt tokens are always valid so mask is always 1.
+    prompt_mask = torch.ones((batch_size, FLAGS.prompt_length), device=mask.device)
 
     # put prompt dummy tokens after the first BOS token.
-    prompted_input_ids = torch.cat((input_ids[:, 0].view(b_sz, 1), prompt_tokens, input_ids[:, 1:]), dim=1)
+    prompted_input_ids = torch.cat((input_ids[:, 0].view(batch_size, 1), prompt_tokens, input_ids[:, 1:]), dim=1)
+
+    # the mask on the BOS token is always 1.
     prompted_mask = torch.cat((prompt_mask, mask), dim=1)
     return prompted_input_ids, prompted_mask
 
@@ -106,7 +108,7 @@ class FFClassifier(torch.nn.Module):
         """Arguments:
         model_d (int): The hidden dimension of T5; 768 in T5 base.
         """
-        super(FFClassifier, self).__init__()
+        super().__init__()
 
         # we wish to compare to a case where we have a prompt matrix with FLAGS.prompt_length * model_d parameters.
         # we therefore define a classifier such that we have approximately the same number of extra parameters.
@@ -148,7 +150,7 @@ class MyBaseT5(torch.nn.Module):
     """Base class for different finetuning + prompt-tuning experiments."""
 
     def __init__(self) -> None:
-        super(MyBaseT5, self).__init__()
+        super().__init__()
 
         set_random_seed(FLAGS.seed)
 
@@ -254,20 +256,26 @@ class PromptEmbedding(torch.nn.Module):
     input after the BOS token (first token).
     """
 
-    def __init__(self, prompt_length: int, embedding_dim: int) -> None:
+    def __init__(
+        self, prompt_length: int, embedding_dim: int, normal_embedder: torch.nn.Embedding, normal_vocab_size: int
+    ) -> None:
         """
         Args:
             prompt_length (int): length of the prompt tokens which are prepended to the input.
             embedding_dim (int): the size of each embedding vector
+            normal_embedder (torch.nn.Embedding): this is the shared embedding table for the normal tokens
+            of the input/output sequence used by T5 encoder/decoder.
         """
-        super(PromptEmbedding, self).__init__()
+        super().__init__()
         self.prompt_length = prompt_length
 
-        # this is the shared embedding table for the normal tokens of the input/output sequence
-        # used by T5 encoder/decoder.
-        self.normal_embedder: torch.nn.Embedding = None
+        self.normal_embedder = normal_embedder
 
         self.prompt_embedder = torch.nn.Embedding(prompt_length, embedding_dim)
+
+        # sample prompt_length vectors from the normal embedding table to initialize the prompt vectors.
+        sampled_indices = random.choices(list(range(normal_vocab_size)), k=prompt_length)
+        self.prompt_embedder.weight.data = self.normal_embedder.weight.data[sampled_indices, :]
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         """prompt tokens are always at the first prompt_length steps of the
@@ -280,28 +288,25 @@ class PromptEmbedding(torch.nn.Module):
 
         concatinate the embedded splits into a single split along the sequence dimension.
         """
-
-        # b_sz: batch_size
-        # seq_len: sequence length
-        b_sz, seq_len = input.size()
+        batch_size, sequence_length = input.size()
 
         bos_input, prompt_input, normal_input = torch.split(
-            input, [1, self.prompt_length, seq_len - self.prompt_length - 1], dim=1
+            input, [1, self.prompt_length, sequence_length - self.prompt_length - 1], dim=1
         )
 
-        # prompt_embedded has shape: (b_sz,  self.prompt_length, embedding_dim)
+        # prompt_embedded has shape: (batch_size,  self.prompt_length, embedding_dim)
         prompt_embedded = self.prompt_embedder(prompt_input)
 
-        # normal_input_embedded has shape: (b_sz,  seq_len - self.prompt_length, embedding_dim)
+        # normal_input_embedded has shape: (batch_size,  sequence_length - self.prompt_length, embedding_dim)
         normal_input_embedded = self.normal_embedder(normal_input)
-        bos_input_embedded = self.normal_embedder(bos_input.view(b_sz, 1))
+        bos_input_embedded = self.normal_embedder(bos_input.view(batch_size, 1))
 
         # concat along the dimension 1
         return torch.cat((bos_input_embedded, prompt_embedded, normal_input_embedded), dim=1)
 
 
-class SoftPromptT5EncoderModel(torch.nn.Module):
-    """This class implements the modifications to the T5 Encoder module of the
+def create_softprompt_T5_encoder() -> torch.nn.Module:
+    """This function implements the modifications to the T5 Encoder module of the
     huggingface to include the soft prompt vectors in the input.
 
     see the original huggingface implementation:
@@ -310,39 +315,33 @@ class SoftPromptT5EncoderModel(torch.nn.Module):
     Wrapping the T5EncoderModel to introduce our new PromptEmbedding
     module.
     """
+    # prompt length
+    p_len = FLAGS.prompt_length
 
-    def __init__(self) -> None:
-        super(SoftPromptT5EncoderModel, self).__init__()
+    # let the T5EncoderModel load the initial checkpoint of the T5 encoder
+    # with the normal embedding table.
+    t5_encoder = T5EncoderModel.from_pretrained(FLAGS.t5_pretrained_model)
 
-        # prompt length
-        p_len = FLAGS.prompt_length
+    # t5_encoder.config.d_model is from the class T5EncoderModel
+    # which is the embedding dimension of the embedding table of the T5.
+    d_model = t5_encoder.config.d_model
+    vocab_size = t5_encoder.config.vocab_size
 
-        # let the T5EncoderModel load the initial checkpoint of the T5 encoder
-        # with the normal embedding table.
-        self.t5_encoder = T5EncoderModel.from_pretrained(FLAGS.t5_pretrained_model)
+    prompt_embedding = PromptEmbedding(p_len, d_model, t5_encoder.shared, vocab_size)
 
-        # t5_encoder.config.d_model is from the class T5EncoderModel
-        # which is the embedding dimension of the embedding table of the T5.
-        d_model = self.t5_encoder.config.d_model
-        vocab_size = self.t5_encoder.config.vocab_size
-
-        prompt_embedding = PromptEmbedding(p_len, d_model)
-
-        # populate the normal_embedder of our new embedding module with the matrix defined by T5.
-        prompt_embedding.normal_embedder = self.t5_encoder.shared
-
-        # sample prompt_length vectors from the normal embedding table to initialize the prompt vectors.
-        sampled_indices = random.choices(list(range(vocab_size)), k=p_len)
-        prompt_embedding.prompt_embedder.weight.data = prompt_embedding.normal_embedder.weight.data[sampled_indices, :]
-
-        # update the general shared embedding module of huggingface T5.
-        # now every call by t5_encoder.shared(input_ids) will use our forward method of the PromptEmbedding
-        self.t5_encoder.shared = prompt_embedding
-        self.t5_encoder.encoder.embed_tokens = prompt_embedding
+    # update the general shared embedding module of huggingface T5.
+    # now every call by t5_encoder.shared(input_ids) will use our forward method of the PromptEmbedding
+    # hugging face also keeps an internal reference to the shared encoder in the encoder stack module, so we
+    # have to modify that as well.
+    # we don't want to update the decoder embedding to add the prompt tokens for the output tokens.
+    # see https://github.com/huggingface/transformers/blob/main/src/transformers/models/t5/modeling_t5.py#L1344
+    t5_encoder.shared = prompt_embedding
+    t5_encoder.encoder.embed_tokens = prompt_embedding
+    return t5_encoder
 
 
-class SoftPromptT5ForConditionalGeneration(torch.nn.Module):
-    """This class implements the modifications to the T5 module of the
+def create_softprompt_T5_forconditional_generation() -> torch.nn.Module:
+    """This function implements the modifications to the T5 module of the
     huggingface to include the soft prompt vectors in the input.
 
     see the original huggingface implementation:
@@ -351,35 +350,27 @@ class SoftPromptT5ForConditionalGeneration(torch.nn.Module):
     Wrapping the T5ForConditionalGeneration to introduce our new PromptEmbedding
     module.
     """
+    # prompt length
+    p_len = FLAGS.prompt_length
 
-    def __init__(self) -> None:
-        super(SoftPromptT5ForConditionalGeneration, self).__init__()
+    # let the T5ForConditionalGeneration load the initial checkpoint of the T5
+    # with the normal embedding table.
+    t5_model = T5ForConditionalGeneration.from_pretrained(FLAGS.t5_pretrained_model)
 
-        # prompt length
-        p_len = FLAGS.prompt_length
+    # t5_model.config.d_model is from the class T5ForConditionalGeneration
+    # which is the embedding dimension of the embedding table of the T5.
+    d_model = t5_model.config.d_model
+    vocab_size = t5_model.config.vocab_size
 
-        # let the T5ForConditionalGeneration load the initial checkpoint of the T5
-        # with the normal embedding table.
-        self.t5_model = T5ForConditionalGeneration.from_pretrained(FLAGS.t5_pretrained_model)
+    prompt_embedding = PromptEmbedding(p_len, d_model, t5_model.shared, vocab_size)
 
-        # t5_model.config.d_model is from the class T5ForConditionalGeneration
-        # which is the embedding dimension of the embedding table of the T5.
-        d_model = self.t5_model.config.d_model
-        vocab_size = self.t5_model.config.vocab_size
-
-        prompt_embedding = PromptEmbedding(p_len, d_model)
-
-        # populate the normal_embedder of our new embedding module with the matrix defined by T5.
-        prompt_embedding.normal_embedder = self.t5_model.shared
-
-        # sample prompt_length vectors from the normal embedding table to initialize the prompt vectors.
-        sampled_indices = random.choices(list(range(vocab_size)), k=p_len)
-        prompt_embedding.prompt_embedder.weight.data = prompt_embedding.normal_embedder.weight.data[sampled_indices, :]
-
-        # update the general shared embedding module of huggingface T5.
-        # now every call by t5_model.shared(input_ids) will use our forward method of the PromptEmbedding
-        self.t5_model.shared = prompt_embedding
-        self.t5_model.encoder.embed_tokens = prompt_embedding
+    # update the general shared embedding module of huggingface T5.
+    # now every call by t5_model.shared(input_ids) will use our forward method of the PromptEmbedding
+    # we don't want to update the decoder embedding to add the prompt tokens for the output tokens.
+    # see https://github.com/huggingface/transformers/blob/main/src/transformers/models/t5/modeling_t5.py#L1344
+    t5_model.shared = prompt_embedding
+    t5_model.encoder.embed_tokens = prompt_embedding
+    return t5_model
 
 
 class FineTuneT5(MyBaseT5):
@@ -387,22 +378,16 @@ class FineTuneT5(MyBaseT5):
     finetuning ideas without having classifier."""
 
     def __init__(self) -> None:
-        super(FineTuneT5, self).__init__()
+        super().__init__()
 
         # construct tokenizer
         self.tokenizer = T5Tokenizer.from_pretrained(FLAGS.t5_pretrained_model)
 
         # construct the underlying t5 model
-        if FLAGS.t5_exp_type in [
-            "all_finetune",
-            "input_finetune",
-            "output_finetune",
-            "input_output_finetune",
-            "no_finetune",
-        ]:
+        if FLAGS.t5_exp_type in NO_SOFT_PROMPT_EXPS:
             self.model_pool["t5_model"] = T5ForConditionalGeneration.from_pretrained(FLAGS.t5_pretrained_model)
         elif FLAGS.t5_exp_type == "soft_prompt_finetune":
-            self.model_pool["t5_model"] = SoftPromptT5ForConditionalGeneration().t5_model
+            self.model_pool["t5_model"] = create_softprompt_T5_forconditional_generation()
         self.setup_models()
 
     def train(self, batch: torch.utils.data.Dataset) -> Dict[str, float]:
@@ -488,11 +473,8 @@ class FineTuneT5(MyBaseT5):
             labels.view(-1),
         )
 
-        # b: batch size
-        # sz: sequence size
-        # v: vocab size
-        b, sz, v = output.logits.size()
-        log_p = log_p.view(b, sz)
+        batch_size, sequence_length, vocab_size = output.logits.size()
+        log_p = log_p.view(batch_size, sequence_length)
         good_log_p = log_p.masked_fill_(labels == -100, 0.0)
 
         # class_log_p now has the log probability of the full sequence for the example output: "positive"
@@ -517,7 +499,7 @@ class ClassifierT5(MyBaseT5):
     encoder."""
 
     def __init__(self) -> None:
-        super(ClassifierT5, self).__init__()
+        super().__init__()
 
         # construct tokenizer
         self.tokenizer = T5Tokenizer.from_pretrained(FLAGS.t5_pretrained_model)
@@ -526,7 +508,7 @@ class ClassifierT5(MyBaseT5):
         if FLAGS.t5_exp_type == "classifier_finetune":
             self.model_pool["t5_encoder"] = T5EncoderModel.from_pretrained(FLAGS.t5_pretrained_model)
         elif FLAGS.t5_exp_type == "soft_prompt_classifier_finetune":
-            self.model_pool["t5_encoder"] = SoftPromptT5EncoderModel().t5_encoder
+            self.model_pool["t5_encoder"] = create_softprompt_T5_encoder()
 
         # use the d_model from the t5 config defined internally from huggingface.
         self.model_pool["classifier_model"] = FFClassifier(self.model_pool["t5_encoder"].config.d_model)
