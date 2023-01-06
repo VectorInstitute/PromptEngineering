@@ -4,11 +4,11 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=4
 #SBATCH --gres=gpu:1
 #SBATCH --mem=16G
-#SBATCH --partition=t4v2
-#SBATCH --qos=high
+#SBATCH --partition=rtx6000
+#SBATCH --qos=normal
 #SBATCH --output=job_%x_%j.out
 #SBATCH --error=job_%x_%j.err
 
@@ -45,6 +45,9 @@ EXP_TYPE=$3
 LR=$4
 WITH_INST=$5
 
+# prompt length.
+LEN=$6
+
 echo "Placing logs in: ${LOG_DIR}"
 
 echo "World size: ${SLURM_NTASKS}"
@@ -57,4 +60,4 @@ mkdir -p "${LOG_DIR}"
 
 # Run on all nodes
 /opt/slurm/bin/srun -N"${SLURM_NNODES}" -l \
-    bash -c "bash ${SCRIPT} EXP_TYPE=${EXP_TYPE} LR=${LR} WITH_INST=${WITH_INST}>> ${LOG_PATH} 2>&1"
+    bash -c "bash ${SCRIPT} LEN=${LEN} EXP_TYPE=${EXP_TYPE} LR=${LR} WITH_INST=${WITH_INST}>> ${LOG_PATH} 2>&1"

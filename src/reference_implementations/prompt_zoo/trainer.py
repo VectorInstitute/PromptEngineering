@@ -8,24 +8,21 @@ training/inference.
 import csv
 import io
 import os
-from typing import Any, Callable, Iterator, Optional, Tuple
+from typing import Any, Callable, Iterator, Tuple
 
 import numpy as np
 import torch
 from absl import app, flags
 from torch.utils.tensorboard import SummaryWriter
 
-from src.reference_implementations.prompt_zoo.data_utility import create_semeval_sentiment_dataset
-from src.reference_implementations.prompt_zoo.metrics import (
-    semeval_classifier_sentiment_metric,
-    semeval_sentiment_metric,
-)
+from src.reference_implementations.prompt_zoo.data_utility import create_sentiment_dataset
+from src.reference_implementations.prompt_zoo.metrics import classifier_sentiment_metric, sentiment_metric
 from src.reference_implementations.prompt_zoo.prompted_t5 import ClassifierT5, FineTuneT5, MyBaseT5
 
 FLAGS = flags.FLAGS
-flags.DEFINE_integer("max_epochs", 10, "The maximum number of epochs for training.")
+flags.DEFINE_integer("max_epochs", 20, "The maximum number of epochs for training.")
 flags.DEFINE_integer("training_steps", 100, "The number of training steps for each epoch.")
-flags.DEFINE_integer("steps_per_checkpoint", 100, "keep checkpoint of the model every this number of steps")
+flags.DEFINE_integer("steps_per_checkpoint", 50, "keep checkpoint of the model every this number of steps")
 flags.DEFINE_string("prediction_file", "/tmp/predictions.csv", "the path/name for saving the predictions.")
 flags.DEFINE_string("dev_file", "/tmp/dev.csv", "the path/name of the dev file.")
 flags.DEFINE_string("task_name", "semeval_3_class_sentiment", "the name of the downstream nlp task.")
@@ -59,11 +56,11 @@ def start_predicting(model: MyBaseT5, dataloader: torch.utils.data.DataLoader, p
     return
 
 
-def run_model(
+def train_model(
     model: MyBaseT5,
-    train_dataloader: Optional[torch.utils.data.DataLoader] = None,
-    eval_dataloader: Optional[torch.utils.data.DataLoader] = None,
-    metric: Optional[Callable[[str, str], float]] = None,
+    metric: Callable[[str, str, str], float],
+    train_dataloader: torch.utils.data.DataLoader,
+    eval_dataloader: torch.utils.data.DataLoader,
 ) -> None:
     """Run the model on input data; for training or inference."""
     if FLAGS.mode == "train":
@@ -75,20 +72,27 @@ def run_model(
         eval_file = os.path.join(FLAGS.model_path, "temp_eval.csv")
         while epoch < FLAGS.max_epochs:
             print("\nEpoch:{0}\n".format(epoch))
+            epoch_loss = []
             for step, loss in start_training(model, train_dataloader):
                 global_step += 1
                 total_loss.append(loss)
-                mean_loss = np.mean(total_loss)
-                print("\rEpoch:{0} | Batch:{1} | Mean Loss:{2} | Loss:{3}\n".format(epoch, step, mean_loss, loss))
+                epoch_loss.append(loss)
+                mean_total_loss = np.mean(total_loss)
+                mean_epoch_loss = np.mean(epoch_loss)
+                print(
+                    f"\rEpoch: {epoch} | Batch: {step} | Mean Loss: {mean_total_loss} | "
+                    f"Epoch Loss: {mean_epoch_loss} | Loss: {loss}\n"
+                )
                 if global_step % FLAGS.steps_per_checkpoint == 0:
                     start_predicting(model, eval_dataloader, eval_file)
-                    score = metric(FLAGS.dev_file, eval_file)  # type: ignore
+                    score = metric(FLAGS.dev_file, eval_file, FLAGS.task_name)  # type: ignore
                     writer.add_scalar("Score/dev", score, global_step)
                     if score > best_score:
                         best_score = score
                         model.save("best_step")
 
-                writer.add_scalar("Mean_Loss/train", mean_loss, global_step)
+                writer.add_scalar("Mean_Total_Loss/train", mean_total_loss, global_step)
+                writer.add_scalar("Mean_Epoch_Loss/train", mean_epoch_loss, global_step)
                 writer.flush()
                 if global_step == FLAGS.training_steps:
                     # stop training in this epoch.
@@ -96,7 +100,7 @@ def run_model(
 
             # do final evaluation on the dev data at the end of epoch.
             start_predicting(model, eval_dataloader, eval_file)
-            score = metric(FLAGS.dev_file, eval_file)  # type: ignore
+            score = metric(FLAGS.dev_file, eval_file, FLAGS.task_name)  # type: ignore
             writer.add_scalar("Score/dev", score, global_step)
             if score > best_score:
                 best_score = score
@@ -107,47 +111,47 @@ def run_model(
 
         # delete the eval_file
         os.remove(eval_file)
+    else:
+        raise Exception(f"the mode {FLAGS.mode} is not for training.")
 
-    if FLAGS.mode in ["test", "inference", "eval"]:
+
+def test_model(
+    model: MyBaseT5,
+    test_dataloader: torch.utils.data.DataLoader,
+) -> None:
+    if FLAGS.mode in ["test", "inference", "eval", "no_finetune_test"]:
         print("Predicting...")
-        start_predicting(model, eval_dataloader, FLAGS.prediction_file)
+        start_predicting(model, test_dataloader, FLAGS.prediction_file)
+    else:
+        raise Exception(f"the mode {FLAGS.mode} is not for testing.")
 
 
-def launch_no_prompt_train() -> None:
-    """launch the training phase for the no prompting experiments for the
-    following cases with the T5 model.
-
-    1 - Fully fine-tuning all the parameters of the T5 model.
-    2 - Only fine-tuning the shared input embedding layer of the T5 encoder/decoder.
-    3 - Only fine-tuning the output embedding layer of the T5 decoder.
-    4 - Fine-tuning both the shared input embedding layer +
-        the output embedding layer of the T5 decoder.
-    """
+def launch_train() -> None:
+    """launch the training phase for the prompting experiments without having
+    the classifier on top."""
 
     FLAGS.mode = "train"
 
     model = FineTuneT5()
-    if FLAGS.task_name == "semeval_3_class_sentiment":
-        train_dataloader = create_semeval_sentiment_dataset(
-            tokenizer=model.tokenizer,
-            file_name=FLAGS.train_file,
-            shuffle=True,
-            repeat_input=False,
-            with_instructions=FLAGS.with_instructions,
-        )
-        eval_dataloader = create_semeval_sentiment_dataset(
-            tokenizer=model.tokenizer,
-            file_name=FLAGS.dev_file,
-            shuffle=False,
-            repeat_input=True,
-            with_instructions=FLAGS.with_instructions,
-        )
-        run_model(
-            model=model,
-            train_dataloader=train_dataloader,
-            eval_dataloader=eval_dataloader,
-            metric=semeval_sentiment_metric,
-        )
+    train_dataloader = create_sentiment_dataset(
+        tokenizer=model.tokenizer,
+        file_name=FLAGS.train_file,
+        task_name=FLAGS.task_name,
+        shuffle=True,
+        repeat_input=False,
+        with_instructions=FLAGS.with_instructions,
+    )
+    eval_dataloader = create_sentiment_dataset(
+        tokenizer=model.tokenizer,
+        file_name=FLAGS.dev_file,
+        task_name=FLAGS.task_name,
+        shuffle=False,
+        repeat_input=True,
+        with_instructions=FLAGS.with_instructions,
+    )
+    train_model(
+        model=model, metric=sentiment_metric, train_dataloader=train_dataloader, eval_dataloader=eval_dataloader
+    )
 
 
 def launch_classifier_train() -> None:
@@ -155,28 +159,28 @@ def launch_classifier_train() -> None:
 
     FLAGS.mode = "train"
     model = ClassifierT5()
-    if FLAGS.task_name == "semeval_3_class_sentiment":
-        train_dataloader = create_semeval_sentiment_dataset(
-            tokenizer=model.tokenizer,
-            file_name=FLAGS.train_file,
-            shuffle=True,
-            repeat_input=False,
-            with_instructions=FLAGS.with_instructions,
-        )
-        eval_dataloader = create_semeval_sentiment_dataset(
-            tokenizer=model.tokenizer,
-            file_name=FLAGS.dev_file,
-            shuffle=False,
-            repeat_input=False,
-            with_instructions=FLAGS.with_instructions,
-        )
-        run_model(
-            model=model,
-            train_dataloader=train_dataloader,
-            eval_dataloader=eval_dataloader,
-            metric=semeval_classifier_sentiment_metric,
-        )
-    return
+    train_dataloader = create_sentiment_dataset(
+        tokenizer=model.tokenizer,
+        file_name=FLAGS.train_file,
+        task_name=FLAGS.task_name,
+        shuffle=True,
+        repeat_input=False,
+        with_instructions=FLAGS.with_instructions,
+    )
+    eval_dataloader = create_sentiment_dataset(
+        tokenizer=model.tokenizer,
+        file_name=FLAGS.dev_file,
+        task_name=FLAGS.task_name,
+        shuffle=False,
+        repeat_input=False,
+        with_instructions=FLAGS.with_instructions,
+    )
+    train_model(
+        model=model,
+        metric=classifier_sentiment_metric,
+        train_dataloader=train_dataloader,
+        eval_dataloader=eval_dataloader,
+    )
 
 
 def launch_no_finetune_predict() -> None:
@@ -185,30 +189,34 @@ def launch_no_finetune_predict() -> None:
 
     FLAGS.mode = "no_finetune_test"
     model = FineTuneT5()
-    if FLAGS.task_name == "semeval_3_class_sentiment":
-        eval_dataloader = create_semeval_sentiment_dataset(
-            tokenizer=model.tokenizer,
-            file_name=FLAGS.dev_file,
-            shuffle=False,
-            repeat_input=True,
-            with_instructions=FLAGS.with_instructions,
-        )
-        run_model(
-            model=model,
-            train_dataloader=None,
-            eval_dataloader=eval_dataloader,
-            metric=None,
-        )
+    eval_dataloader = create_sentiment_dataset(
+        tokenizer=model.tokenizer,
+        file_name=FLAGS.dev_file,
+        task_name=FLAGS.task_name,
+        shuffle=False,
+        repeat_input=True,
+        with_instructions=FLAGS.with_instructions,
+    )
+    test_model(
+        model=model,
+        test_dataloader=eval_dataloader,
+    )
 
 
 def main(argv: Any) -> None:
     """Main function to switch over the t5 experiment type and launch the
     correct train script."""
-    if FLAGS.t5_exp_type in ["all_finetune", "input_finetune", "output_finetune", "input_output_finetune"]:
-        launch_no_prompt_train()
+    if FLAGS.t5_exp_type in [
+        "soft_prompt_finetune",
+        "all_finetune",
+        "input_finetune",
+        "output_finetune",
+        "input_output_finetune",
+    ]:
+        launch_train()
     elif FLAGS.t5_exp_type == "no_finetune":
         launch_no_finetune_predict()
-    elif FLAGS.t5_exp_type == "classifier_finetune":
+    elif FLAGS.t5_exp_type in ["classifier_finetune", "soft_prompt_classifier_finetune"]:
         launch_classifier_train()
 
 

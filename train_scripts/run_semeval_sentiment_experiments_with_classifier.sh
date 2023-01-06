@@ -1,12 +1,8 @@
 #!/bin/bash
 
-#rates=(0.00005 0.0005 0.005 0.001)
-#exps=(all_finetune input_finetune output_finetune input_output_finetune)
+rates=(0.3 0.5)
 
-#rates=(0.0005)
-rates=(0.005)
-#exps=(all_finetune input_finetune output_finetune input_output_finetune)
-exps=(classifier_finetune)
+exps=(100)
 
 for i in ${!rates[@]};
 do
@@ -17,8 +13,9 @@ do
         sbatch src/reference_implementations/run_singlenode_prompt.slrm \
             src/reference_implementations/prompt_zoo/train_semeval_sentiment.sh \
             ./torch-prompt-tuning-exps-logs \
-            ${exp} \
+            soft_prompt_finetune \
             ${rate} \
-            False
+            True \
+            ${exp}
     done
 done
