@@ -340,7 +340,7 @@ def create_softprompt_T5_encoder() -> torch.nn.Module:
     return t5_encoder
 
 
-def create_softprompt_T5_forconditional_generation() -> torch.nn.Module:
+def create_softprompt_T5_for_conditional_generation() -> torch.nn.Module:
     """This function implements the modifications to the T5 module of the
     huggingface to include the soft prompt vectors in the input.
 
@@ -387,7 +387,7 @@ class FineTuneT5(MyBaseT5):
         if FLAGS.t5_exp_type in NO_SOFT_PROMPT_EXPS:
             self.model_pool["t5_model"] = T5ForConditionalGeneration.from_pretrained(FLAGS.t5_pretrained_model)
         elif FLAGS.t5_exp_type == "soft_prompt_finetune":
-            self.model_pool["t5_model"] = create_softprompt_T5_forconditional_generation()
+            self.model_pool["t5_model"] = create_softprompt_T5_for_conditional_generation()
         self.setup_models()
 
     def train(self, batch: torch.utils.data.Dataset) -> Dict[str, float]:
