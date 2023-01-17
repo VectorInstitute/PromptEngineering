@@ -59,7 +59,8 @@ def template_data(
 
     if the repeat_input is True, we will repeat the input multiple times for every possible output class.
 
-    Finally, the end of sentence token </s> used with T5 models are added to both input and output."""
+    Finally, the end of sentence token </s> used with T5 models are added to both input and output.
+    """
     class_to_id = {label: index for index, label in enumerate(all_classes)}
     if with_instructions:
         instruction = f"Generate the sentiment of the next sentence from the labels {' '.join(all_classes)}."

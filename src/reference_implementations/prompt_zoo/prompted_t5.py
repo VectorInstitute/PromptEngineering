@@ -16,23 +16,24 @@ The module implements the following baselines:
     train a classifier on top.
 """
 
-import gc
 import os
 import random
 from abc import abstractmethod
-from typing import Dict, Iterator, List, Tuple
+from typing import Dict, Iterator, List, Optional, Tuple
 
-import numpy
 import torch
 from absl import flags
 from transformers import T5EncoderModel, T5ForConditionalGeneration, T5Tokenizer
 
+from src.reference_implementations.prompt_zoo.model_utility import (
+    clear_cache,
+    log_of_labels,
+    modify_inputs_outputs,
+    set_random_seed,
+)
 from src.reference_implementations.prompt_zoo.prompt_optimizers import optimizer_definer
 
 FLAGS = flags.FLAGS
-
-# for all possible t5_exp_type, see 'optimizer_definer'
-flags.DEFINE_string("t5_exp_type", "all_finetune", "The type of experiment with the T5 model.")
 
 flags.DEFINE_integer("seed", 42, "the seed number")
 flags.DEFINE_bool("gpu", False, "Whether to put the model on gpu or not?")
@@ -47,57 +48,8 @@ flags.DEFINE_string("checkpoint", None, "checkpoint name to load from.")
 flags.DEFINE_integer("num_classes", 3, "Number of classes for sentiment analysis. Only used in linear classifier.")
 flags.DEFINE_float("dropout_rate", 0.1, "dropout_rate used in T5 base.")
 flags.DEFINE_integer("classifier_hidden_d", 128, "The number of hidden units used in the classifier.")
-flags.DEFINE_integer("prompt_length", 20, "length of the prompts in the input sequence.")
-
 
 NO_SOFT_PROMPT_EXPS = {"all_finetune", "input_finetune", "output_finetune", "input_output_finetune", "no_finetune"}
-
-
-def prepend_prompt(input_ids: torch.LongTensor, mask: torch.LongTensor) -> Tuple[torch.LongTensor, torch.LongTensor]:
-    """Prepend the input_ids with the prompt token ids after the first BOS
-    token.
-
-    - input_ids and mask are the raw inputs to t5 to be modified.
-
-    - For a prompt with length |P|, we add dummy prompt token ids from [0,
-    |P|-1] to map those into |P| vectors from the prompt embedder.
-    """
-    batch_size, sequence_length = input_ids.size()
-
-    prompt_tokens = torch.tensor(list(range(FLAGS.prompt_length)), device=input_ids.device)
-    prompt_tokens = prompt_tokens.view(1, FLAGS.prompt_length).expand(batch_size, FLAGS.prompt_length)
-
-    # prompt tokens are always valid so mask is always 1.
-    prompt_mask = torch.ones((batch_size, FLAGS.prompt_length), device=mask.device)
-
-    # put prompt dummy tokens after the first BOS token.
-    prompted_input_ids = torch.cat((input_ids[:, 0].view(batch_size, 1), prompt_tokens, input_ids[:, 1:]), dim=1)
-
-    # the mask on the BOS token is always 1.
-    prompted_mask = torch.cat((prompt_mask, mask), dim=1)
-    return prompted_input_ids, prompted_mask
-
-
-def clear_cache() -> None:
-    """Clean unused GPU Cache!"""
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-    gc.collect()
-
-
-def set_random_seed(seed: int) -> None:
-    """Set the random seed, which initializes the random number generator.
-
-    Ensures that runs are reproducible and eliminates differences due to
-    randomness.
-    """
-    random.seed(seed)
-    numpy.random.seed(seed)
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
 
 
 class FFClassifier(torch.nn.Module):
@@ -162,6 +114,11 @@ class MyBaseT5(torch.nn.Module):
         # and the actual model as the value.
         self.model_pool: Dict[str, torch.nn.Module] = {}
 
+        # for some subclasses, we will compute per token log probabilities.
+        # pad tokens have index -100 in huggingface.
+        # don't reduce loss (log likelihood), compute loss per token.
+        self.loss_func = torch.nn.CrossEntropyLoss(ignore_index=-100, reduction="none")
+
     def setup_models(self) -> None:
         """Setup optimizer in training or load from the checkpoint for
         testing."""
@@ -169,7 +126,9 @@ class MyBaseT5(torch.nn.Module):
         for model in self.model_pool.values():
             model.to(self.device)
 
-        if FLAGS.mode == "train":
+        self.loss_func = self.loss_func.to(self.device)
+
+        if FLAGS.mode == "train" and FLAGS.t5_exp_type != "gradient_search":
             # create optimizer only for training.
             # based on the experiment type, setup the optimizer.
             self.optimizer = optimizer_definer[FLAGS.t5_exp_type](self.model_pool)
@@ -209,7 +168,8 @@ class MyBaseT5(torch.nn.Module):
 
     def train_mode_on(self) -> None:
         """Before every forward-backward iteration over batch, clear gpu cache,
-        turn on train mode, and zero the optimizer gradient state."""
+        turn on train mode, and zero the optimizer gradient state if
+        defined!"""
 
         clear_cache()
 
@@ -217,7 +177,9 @@ class MyBaseT5(torch.nn.Module):
         for model in self.model_pool.values():
             model.train()
 
-        self.optimizer.zero_grad()
+        # the gradient search method doesn't require minimizing a loss function and is a discrete search technique.
+        if FLAGS.t5_exp_type != "gradient_search":
+            self.optimizer.zero_grad()
 
     def predict_mode_on(self) -> None:
         """For each iteration of prediction over batch, clear gpu cache, turn
@@ -243,6 +205,51 @@ class MyBaseT5(torch.nn.Module):
     def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
         """The abstract predict function."""
         pass
+
+    def forward_pass(
+        self, batch: torch.utils.data.Dataset, train: bool = False, prompt_lists: Optional[List[List[int]]] = None
+    ) -> torch.Tensor:
+        """Run a forward computation over the batch for each prompt lists and
+        compute the log probability over the batch for that given prompt
+        template.
+
+        This function can be called multiple times for training or
+        inference. If there is not prompt, it won't repeat the data per
+        prompt template.
+        """
+
+        if train:
+            self.train_mode_on()
+        else:
+            self.predict_mode_on()
+
+        loaded_batch = self.move_to_gpu(batch, keys=["input_ids", "attention_mask", "target_attention_mask", "labels"])
+        # keep an internal link to the loaded batch on gpu or cpu.
+        self.loaded_batch = loaded_batch
+
+        if prompt_lists is None:
+            modify_inputs_outputs(loaded_batch)
+        else:
+            modify_inputs_outputs(loaded_batch, prompt_lists)
+
+        # we have to make sure that the PAD token is ignored.
+        # huggingface ignores a pad token if the token is -100!
+        orig_labels = loaded_batch["labels"]
+        labels = orig_labels.masked_fill(orig_labels == self.tokenizer.pad_token_id, -100)
+
+        t5_model = self.model_pool["t5_model"]
+
+        with torch.set_grad_enabled(train):
+            class_log_p = log_of_labels(
+                model=t5_model,
+                input_ids=loaded_batch["input_ids"],
+                input_mask=loaded_batch["attention_mask"],
+                decoder_mask=loaded_batch["target_attention_mask"],
+                labels=labels,
+                loss_func=self.loss_func,
+            )
+
+        return class_log_p
 
 
 class PromptEmbedding(torch.nn.Module):
@@ -306,8 +313,8 @@ class PromptEmbedding(torch.nn.Module):
 
 
 def create_softprompt_T5_encoder() -> torch.nn.Module:
-    """This function implements the modifications to the T5 Encoder module of the
-    huggingface to include the soft prompt vectors in the input.
+    """This function implements the modifications to the T5 Encoder module of
+    the huggingface to include the soft prompt vectors in the input.
 
     see the original huggingface implementation:
     https://github.com/huggingface/transformers/blob/main/src/transformers/models/t5/modeling_t5.py#L1765
@@ -393,30 +400,10 @@ class FineTuneT5(MyBaseT5):
     def train(self, batch: torch.utils.data.Dataset) -> Dict[str, float]:
         """The main train loop for generating the class sequence in the decoder
         T5."""
+        class_log_ps = self.forward_pass(batch, train=True)
 
-        self.train_mode_on()
-        loaded_batch = self.move_to_gpu(batch, keys=["input_ids", "attention_mask", "target_attention_mask", "labels"])
-
-        if FLAGS.t5_exp_type == "soft_prompt_finetune":
-            loaded_batch["input_ids"], loaded_batch["attention_mask"] = prepend_prompt(
-                loaded_batch["input_ids"], loaded_batch["attention_mask"]
-            )
-
-        # we have to make sure that the PAD token is ignored.
-        # huggingface ignores a pad token if the token is -100!
-        labels = loaded_batch["labels"]
-        labels.masked_fill_(labels == self.tokenizer.pad_token_id, -100)
-
-        t5_model = self.model_pool["t5_model"]
-
-        output = t5_model(
-            input_ids=loaded_batch["input_ids"],
-            attention_mask=loaded_batch["attention_mask"],
-            decoder_attention_mask=loaded_batch["target_attention_mask"],
-            labels=labels,
-        )
-
-        loss = output.loss
+        # average log probs over the batch dimension.
+        loss = -class_log_ps.mean(dim=0)
         loss_value = loss.item()
 
         # backProp
@@ -430,65 +417,18 @@ class FineTuneT5(MyBaseT5):
     def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
         """The main prediction loop for a given potential class label."""
 
-        self.predict_mode_on()
-
-        # define loss function to compute token probabilities.
-        # pad tokens have index -100 in huggingface.
-        # don't reduce loss (log likelihood), compute loss per token.
-        loss_fct = torch.nn.CrossEntropyLoss(ignore_index=-100, reduction="none")
-        loss_fct = loss_fct.to(self.device)
-
-        loaded_batch = self.move_to_gpu(batch, keys=["input_ids", "attention_mask", "target_attention_mask", "labels"])
-
-        if FLAGS.t5_exp_type == "soft_prompt_finetune":
-            loaded_batch["input_ids"], loaded_batch["attention_mask"] = prepend_prompt(
-                loaded_batch["input_ids"], loaded_batch["attention_mask"]
-            )
-
-        # we have to make sure that the PAD token is ignored.
-        # huggingface ignores a pad token if the token is -100!
-        orig_labels = loaded_batch["labels"]
-        labels = orig_labels.masked_fill(orig_labels == self.tokenizer.pad_token_id, -100)
-
-        t5_model = self.model_pool["t5_model"]
-
-        # TODO: Can we make this per-token logit faster? I am doing multiple encoder runs per output label.
-        # shift the gold labels one step to the right and do teacher-forcing by giving the gold previous token
-        # and then compute the probablity for the next token at each step.
-        # labels = [pos, it, ive]
-        # decoder_input = [<BOS>, pos, it]
-        # we want to see what is log probability for the target sequence "positive".
-        output = t5_model(
-            input_ids=loaded_batch["input_ids"],
-            attention_mask=loaded_batch["attention_mask"],
-            decoder_attention_mask=loaded_batch["target_attention_mask"],
-            decoder_input_ids=t5_model._shift_right(labels),
-            labels=None,
-        )
-
-        # compute per-token log probability in a sequence.
-        # log_p has log probabilities for the following target output: [pos, it, ive]
-        log_p = -loss_fct(
-            output.logits.view(-1, output.logits.size(-1)),
-            labels.view(-1),
-        )
-
-        batch_size, sequence_length, vocab_size = output.logits.size()
-        log_p = log_p.view(batch_size, sequence_length)
-        good_log_p = log_p.masked_fill_(labels == -100, 0.0)
-
-        # class_log_p now has the log probability of the full sequence for the example output: "positive"
-        class_log_p = torch.sum(good_log_p, dim=1).squeeze().cpu().detach().numpy()
+        class_log_ps = self.forward_pass(batch)
+        class_log_ps = class_log_ps.cpu().detach().numpy()
 
         # not efficient, but let's pair input and potential class along the prediction scores.
         # all transformer special tokens will be removed
-        potentials_str = self.tokenizer.batch_decode(orig_labels, skip_special_tokens=True)
-        inputs_str = self.tokenizer.batch_decode(loaded_batch["input_ids"], skip_special_tokens=True)
+        potentials_str = self.tokenizer.batch_decode(self.loaded_batch["labels"], skip_special_tokens=True)
+        inputs_str = self.tokenizer.batch_decode(self.loaded_batch["input_ids"], skip_special_tokens=True)
 
         for index, input_str in enumerate(inputs_str):
             output_row = {
                 "potential_class": potentials_str[index],
-                "prediction_score": class_log_p[index],
+                "prediction_score": class_log_ps[index],
                 "input": input_str,
             }
             yield output_row
@@ -521,10 +461,7 @@ class ClassifierT5(MyBaseT5):
         self.predict_mode_on()
         loaded_batch = self.move_to_gpu(batch, keys=["input_ids", "attention_mask"])
 
-        if FLAGS.t5_exp_type == "soft_prompt_classifier_finetune":
-            loaded_batch["input_ids"], loaded_batch["attention_mask"] = prepend_prompt(
-                loaded_batch["input_ids"], loaded_batch["attention_mask"]
-            )
+        modify_inputs_outputs(loaded_batch)
 
         t5_encoder = self.model_pool["t5_encoder"]
         classifier_model = self.model_pool["classifier_model"]
@@ -555,10 +492,7 @@ class ClassifierT5(MyBaseT5):
         self.train_mode_on()
         loaded_batch = self.move_to_gpu(batch, keys=["input_ids", "attention_mask", "class_indices"])
 
-        if FLAGS.t5_exp_type == "soft_prompt_classifier_finetune":
-            loaded_batch["input_ids"], loaded_batch["attention_mask"] = prepend_prompt(
-                loaded_batch["input_ids"], loaded_batch["attention_mask"]
-            )
+        modify_inputs_outputs(loaded_batch)
 
         t5_encoder = self.model_pool["t5_encoder"]
         classifier_model = self.model_pool["classifier_model"]
