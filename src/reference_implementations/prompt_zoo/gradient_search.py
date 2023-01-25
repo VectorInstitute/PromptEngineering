@@ -33,24 +33,22 @@ class PromptTemplate:
 
 
 class PromptSearchMemory:
-    """A search memory that maps the training step index i to a sorted beam
-    (list) that stores the top beam_size templates according to the their label
+    """A search memory that keeps a sorted beam
+    (list) which stores the top beam_size templates according to the their label
     likelihood computed over a batch of training data.
 
-    This memory is used to easily store, read and update the
+    This memory is used to easily store and read
     PromptTemplates at different stages of the gradient-search prompting
     augmented with beam search.
     """
 
-    def __init__(self, prompt_length: int, top_k: int, init_token_id: int, beam_size: int) -> None:
-        """This initializes the search memory for the training and will be
-        dumped to disk for prediction."""
-        self.prompt_length = prompt_length
-        self.top_k = top_k
-        self.beam_size = beam_size
-
+    def __init__(self, init_token_id: int) -> None:
+        """This initializes the search memory for the training and its beam will be
+        dumped to disk while saving the model."""
         # allocate memory for the current beam of templates.
-        self.beam = [PromptTemplate(tokens=[init_token_id] * prompt_length, score=-float("inf"))] * beam_size
+        self.beam = [
+            PromptTemplate(tokens=[init_token_id] * FLAGS.prompt_length, score=-float("inf"))
+        ] * FLAGS.beam_size
 
     def update_beam(self, beam_candidates: List[PromptTemplate]) -> None:
         """For the next training step, select the top beam_size prompt templates out of beam_size * top_k template candidates
@@ -60,7 +58,7 @@ class PromptSearchMemory:
         sorted_candidates = sorted(beam_candidates, key=operator.attrgetter("score"), reverse=True)
 
         # keep the top beam_size prompt templates.
-        self.beam = sorted_candidates[: self.beam_size]
+        self.beam = sorted_candidates[: FLAGS.beam_size]
 
     def get_beam_loss(self) -> float:
         """Return the list of template scores inside the beam.
@@ -93,7 +91,7 @@ class PromptSearchMemory:
 
         embedding_grads_tensor = torch.stack(embedding_grads, dim=1)
         vocab_scores = torch.matmul(embedding_weight, embedding_grads_tensor)
-        top_scores, top_indices = torch.topk(vocab_scores, self.top_k, dim=0, largest=True, sorted=True)
+        top_scores, top_indices = torch.topk(vocab_scores, FLAGS.top_k, dim=0, largest=True, sorted=True)
         for prompt_template in self.beam:
             # memory is on RAM and not on GPU.
             for top_index in top_indices.tolist():
@@ -123,12 +121,7 @@ class SearchT5(MyBaseT5):
         # use one of the sentinel tokens
         # t5 uses last vocab indices as sentinel tokens
         # https://github.com/google-research/text-to-text-transfer-transformer/blob/main/t5/data/preprocessors.py#L3039
-        self.search_memory = PromptSearchMemory(
-            prompt_length=FLAGS.prompt_length,
-            top_k=FLAGS.top_k,
-            init_token_id=t5_model.config.vocab_size - 1,
-            beam_size=FLAGS.beam_size,
-        )
+        self.search_memory = PromptSearchMemory(init_token_id=t5_model.config.vocab_size - 1)
         self.setup_models()
 
     def score_templates(
