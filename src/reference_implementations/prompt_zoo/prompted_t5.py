@@ -227,10 +227,7 @@ class MyBaseT5(torch.nn.Module):
         # keep an internal link to the loaded batch on gpu or cpu.
         self.loaded_batch = loaded_batch
 
-        if prompt_lists is None:
-            modify_inputs_outputs(loaded_batch)
-        else:
-            modify_inputs_outputs(loaded_batch, prompt_lists)
+        modify_inputs_outputs(loaded_batch, prompt_lists)
 
         # we have to make sure that the PAD token is ignored.
         # huggingface ignores a pad token if the token is -100!

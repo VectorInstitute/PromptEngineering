@@ -1,6 +1,7 @@
+import copy
 import operator
 from dataclasses import dataclass, field
-from typing import List
+from typing import Dict, Iterator, List
 
 import torch
 from absl import flags
@@ -9,6 +10,9 @@ from transformers import T5ForConditionalGeneration, T5Tokenizer
 from src.reference_implementations.prompt_zoo.prompted_t5 import MyBaseT5
 
 FLAGS = flags.FLAGS
+
+flags.DEFINE_integer("top_k", 20, "Number of candidate tokens to replace the prompt token.")
+flags.DEFINE_integer("beam_size", 20, "Number of prompt templates to consider for beam search.")
 
 
 @dataclass(order=True)
@@ -38,36 +42,33 @@ class PromptSearchMemory:
     augmented with beam search.
     """
 
-    def __init__(self, train_steps: int, prompt_length: int, top_k: int, init_token_id: int, beam_size: int) -> None:
+    def __init__(self, prompt_length: int, top_k: int, init_token_id: int, beam_size: int) -> None:
         """This initializes the search memory for the training and will be
         dumped to disk for prediction."""
-        self.train_steps = train_steps
         self.prompt_length = prompt_length
         self.top_k = top_k
         self.beam_size = beam_size
-        self.memory = {}
 
-        # allocate memory for the first training step.
-        beam = [PromptTemplate(tokens=[init_token_id] * prompt_length, score=-float("inf"))] * beam_size
-        self.memory[0] = beam
-
-        # flag for the current training iteration.
-        self.current_step = 0
+        # allocate memory for the current beam of templates.
+        self.beam = [PromptTemplate(tokens=[init_token_id] * prompt_length, score=-float("inf"))] * beam_size
 
     def update_beam(self, beam_candidates: List[PromptTemplate]) -> None:
         """For the next training step, select the top beam_size prompt templates out of beam_size * top_k template candidates
         inside the beam_candidates. The sorting is based on the score attribute of the PromptTemplate.
-
-        Increment the self.current_step by 1.
         """
         # sort the prompt templates by their score in descending order.
         sorted_candidates = sorted(beam_candidates, key=operator.attrgetter("score"), reverse=True)
 
         # keep the top beam_size prompt templates.
-        self.memory[self.current_step + 1] = sorted_candidates[: self.beam_size]
-        self.current_step += 1
+        self.beam = sorted_candidates[: self.beam_size]
 
-    '''
+    def get_beam_loss(self) -> float:
+        """Return the list of template scores inside the beam.
+        then consider the averaged negative label log-likelihood over a beam of templates as the loss.
+        """
+        searched_scores = [template.score for template in self.beam]
+        return -sum(searched_scores) / len(searched_scores)
+
     def generate_beam_candidates(
         self, embedding_weight: torch.Tensor, losses: torch.Tensor, prompt_step: int
     ) -> List[PromptTemplate]:
@@ -82,29 +83,31 @@ class PromptSearchMemory:
         """
         beam_candidates = []
         embedding_grads = []
-        for beam_idx in self.beam_size:
-            prompt_template = self.memory[self.current_step][beam_idx]
+        for beam_idx, prompt_template in enumerate(self.beam):
             prompt_token_idx = prompt_template.tokens[prompt_step]
             loss = losses[beam_idx]
             embedding_weight.grad.data.zero_()
             loss.backward()
             embedding_grad = embedding_weight.grad[prompt_token_idx]
+            embedding_grads.append(embedding_grad)
 
-        vocab_scores = torch.matmul(embedding_weight * embedding_grad).squeeze().cpu().detach().numpy()
-        top_k_token_indices = numpy.argsort(vocab_scores)[: self.top_k]
-        for top_k_token_idx in top_k_token_indices:
-            candidate_template = copy.copy(prompt_template)
-            candidate_template.tokens[prompt_step] = top_k_token_idx
-            candidate_template.score = -float("inf")
-            beam_candidates.append(candidate_template)
+        embedding_grads_tensor = torch.stack(embedding_grads, dim=1)
+        vocab_scores = torch.matmul(embedding_weight, embedding_grads_tensor)
+        top_scores, top_indices = torch.topk(vocab_scores, self.top_k, dim=0, largest=True, sorted=True)
+        for prompt_template in self.beam:
+            # memory is on RAM and not on GPU.
+            for top_index in top_indices.tolist():
+                candidate_template = copy.copy(prompt_template)
+                candidate_template.tokens[prompt_step] = top_index
+                candidate_template.score = -float("inf")
+                beam_candidates.append(candidate_template)
 
         return beam_candidates
-    '''
 
 
 class SearchT5(MyBaseT5):
     """Subclassing the mybase T5 class to introduce the T5 for gradient-
-    search."""
+    search. We also define a search memory to keep templates as we are scoring them during training."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -113,7 +116,19 @@ class SearchT5(MyBaseT5):
         self.tokenizer = T5Tokenizer.from_pretrained(FLAGS.t5_pretrained_model)
 
         # construct the underlying t5 model
-        self.model_pool["t5_model"] = T5ForConditionalGeneration.from_pretrained(FLAGS.t5_pretrained_model)
+        t5_model = T5ForConditionalGeneration.from_pretrained(FLAGS.t5_pretrained_model)
+
+        self.model_pool["t5_model"] = t5_model
+
+        # use one of the sentinel tokens
+        # t5 uses last vocab indices as sentinel tokens
+        # https://github.com/google-research/text-to-text-transfer-transformer/blob/main/t5/data/preprocessors.py#L3039
+        self.search_memory = PromptSearchMemory(
+            prompt_length=FLAGS.prompt_length,
+            top_k=FLAGS.top_k,
+            init_token_id=t5_model.config.vocab_size - 1,
+            beam_size=FLAGS.beam_size,
+        )
         self.setup_models()
 
     def score_templates(
@@ -123,13 +138,55 @@ class SearchT5(MyBaseT5):
         and compute the log probability over the batch for that given prompt
         template.
 
-        This function can be called multiple times for training or
+        This function can be called for training or
         inference.
         """
         batch_size, _ = batch["input_ids"].size()
         prompt_lists = [template.tokens for template in prompt_templates]
         class_log_ps = self.forward_pass(batch, train, prompt_lists)
 
-        # average log probs over the batch dimension.
-        template_scores = class_log_ps.view(len(prompt_templates), batch_size).mean(dim=1)
+        template_scores = class_log_ps.view(len(prompt_templates), batch_size)
         return template_scores
+
+    def train(self, batch: torch.utils.data.Dataset) -> Dict[str, float]:
+        """The train loop for gradient-search method."""
+        train_batch_one, train_batch_two = torch.utils.data.random_split(
+            batch, lengths=[len(batch) // 2, len(batch) - len(batch) // 2]
+        )
+        for prompt_index in range(FLAGS.prompt_length):
+            prompt_templates = self.search_memory.beam
+            template_losses = self.score_templates(train_batch_one, prompt_templates, train=True)
+            template_losses = template_losses.mean(dim=1)  # mean across batch_size
+            beam_candidates = self.search_memory.generate_beam_candidates(
+                embedding_weight=self.model_pool["t5_model"].shared.weight,
+                losses=template_losses,
+                prompt_step=prompt_index,
+            )
+            beam_candidate_scores = self.score_templates(train_batch_two, beam_candidates, train=False)
+            beam_candidate_scores = beam_candidate_scores.mean(dim=1)  # mean across batch_size
+            for index, score in enumerate(beam_candidate_scores.tolist()):
+                beam_candidates[index].score = score
+            self.search_memory.update_beam(beam_candidates)
+
+        return {"loss_value": self.search_memory.get_beam_loss()}
+
+    def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
+        """The main prediction loop for a given potential class label using a beam of templates."""
+
+        prompt_templates = self.search_memory.beam
+        class_log_ps = self.score_templates(batch, prompt_templates, train=False)
+        class_log_ps = class_log_ps.mean(dim=0)  # mean across the beam size.
+        class_log_ps = class_log_ps.cpu().detach().numpy()
+
+        # not efficient, but let's pair input and potential class along the prediction scores.
+        # all transformer special tokens will be removed
+        potentials_str = self.tokenizer.batch_decode(self.loaded_batch["labels"], skip_special_tokens=True)
+        inputs_str = self.tokenizer.batch_decode(self.loaded_batch["input_ids"], skip_special_tokens=True)
+
+        for index, input_str in enumerate(inputs_str):
+            output_row = {
+                "potential_class": potentials_str[index],
+                "prediction_score": class_log_ps[index],
+                "input": input_str,
+            }
+            yield output_row
