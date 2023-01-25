@@ -147,8 +147,7 @@ class SearchT5(MyBaseT5):
             batch, lengths=[len(batch) // 2, len(batch) - len(batch) // 2]
         )
         for prompt_index in range(FLAGS.prompt_length):
-            prompt_templates = self.search_memory.beam
-            template_losses = self.score_templates(train_batch_one, prompt_templates, train=True)
+            template_losses = self.score_templates(train_batch_one, self.search_memory.beam, train=True)
             template_losses = template_losses.mean(dim=1)  # mean across batch_size
             beam_candidates = self.search_memory.generate_beam_candidates(
                 embedding_weight=self.model_pool["t5_model"].shared.weight,
@@ -165,9 +164,7 @@ class SearchT5(MyBaseT5):
 
     def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
         """The main prediction loop for a given potential class label using a beam of templates."""
-
-        prompt_templates = self.search_memory.beam
-        class_log_ps = self.score_templates(batch, prompt_templates, train=False)
+        class_log_ps = self.score_templates(batch, self.search_memory.beam, train=False)
         class_log_ps = class_log_ps.mean(dim=0)  # mean across the beam size.
         class_log_ps = class_log_ps.cpu().detach().numpy()
 
