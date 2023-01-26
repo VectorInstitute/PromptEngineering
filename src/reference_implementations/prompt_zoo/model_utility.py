@@ -64,15 +64,15 @@ def modify_inputs_outputs(batch: torch.utils.data.Dataset, prompt_lists: Optiona
             input_mask_stack.append(mask)
             num_prompts += 1
 
-        batch["input_ids"] = torch.stack(input_ids_stack, dim=0).view(-1, sequence_length)
-        batch["attention_mask"] = torch.stack(input_mask_stack, dim=0).view(-1, sequence_length)
+        batch["input_ids"] = torch.stack(input_ids_stack, dim=0).view(num_prompts * batch_size, -1)
+        batch["attention_mask"] = torch.stack(input_mask_stack, dim=0).view(num_prompts * batch_size, -1)
 
         # repeat the output mask and output ids for every prompt template in the batch dimension.
 
         batch["target_attention_mask"] = (
-            batch["target_attention_mask"].repeat(1, num_prompts).view(-1, sequence_length)
+            batch["target_attention_mask"].repeat(1, num_prompts).view(num_prompts * batch_size, -1)
         )
-        batch["labels"] = batch["labels"].repeat(1, num_prompts).view(-1, sequence_length)
+        batch["labels"] = batch["labels"].repeat(1, num_prompts).view(num_prompts * batch_size, -1)
 
 
 def log_of_labels(

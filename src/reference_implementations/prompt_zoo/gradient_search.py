@@ -166,20 +166,21 @@ class SearchT5(MyBaseT5):
         template_scores = class_log_ps.view(len(prompt_templates), batch_size)
         return template_scores
 
-    def train(self, batch: torch.utils.data.Dataset) -> Dict[str, float]:
+    def two_batch_train(
+        self, batch: torch.utils.data.Dataset, next_batch: torch.utils.data.Dataset
+    ) -> Dict[str, float]:
         """The train loop for gradient-search method."""
-        train_batch_one, train_batch_two = torch.utils.data.random_split(
-            batch, lengths=[len(batch) // 2, len(batch) - len(batch) // 2]
-        )
         for prompt_index in range(FLAGS.prompt_length):
-            template_losses = self.score_templates(train_batch_one, self.search_memory.beam, train=True)
+            template_losses = self.score_templates(batch, self.search_memory.beam, train=True)
             template_losses = template_losses.mean(dim=1)  # mean across batch_size
+
+            print(template_losses)
             beam_candidates = self.search_memory.generate_beam_candidates(
                 embedding_weight=self.model_pool["t5_model"].shared.weight,
                 losses=template_losses,
                 prompt_step=prompt_index,
             )
-            beam_candidate_scores = self.score_templates(train_batch_two, beam_candidates, train=False)
+            beam_candidate_scores = self.score_templates(next_batch, beam_candidates, train=False)
             beam_candidate_scores = beam_candidate_scores.mean(dim=1)  # mean across batch_size
             for index, score in enumerate(beam_candidate_scores.tolist()):
                 beam_candidates[index].score = score

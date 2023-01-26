@@ -32,10 +32,19 @@ flags.DEFINE_bool("with_instructions", False, "Whether to augment the input to h
 
 
 def start_training(model: MyBaseT5, dataloader: torch.utils.data.DataLoader) -> Iterator[Tuple[int, float]]:
-    """Pick a batch from the dataloader, and train the model for one step."""
+    """Pick one or two batches from the dataloader, and train the model for one step."""
     step = 0
-    for batch in dataloader:
-        loss_values = model.train(batch)
+    data_iter = iter(dataloader)
+    # https://peps.python.org/pep-0572/
+    while (batch := next(data_iter, None)) is not None:
+        if FLAGS.t5_exp_type == "gradient_search":
+            # for training with gradient_search, we need two batches.
+            next_batch = next(data_iter, None)
+            if next_batch is None:
+                next_batch = batch
+            loss_values = model.two_batch_train(batch, next_batch)
+        else:
+            loss_values = model.train(batch)
         step += 1
         yield step, loss_values["loss_value"]
 

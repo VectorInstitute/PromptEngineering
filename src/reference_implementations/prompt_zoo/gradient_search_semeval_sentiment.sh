@@ -22,7 +22,7 @@ model_path=/scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval-v2-gra
 mkdir -p ${model_path}
 
 python -m src.reference_implementations.prompt_zoo.trainer \
-    --batch_size 16 \
+    --batch_size 8 \
     --mode train \
     --task_name semeval \
     --train_file ${PROJECT_DIR}/../../../resources/datasets/2018-Valence-oc-En-train.txt \
@@ -31,7 +31,7 @@ python -m src.reference_implementations.prompt_zoo.trainer \
     --gpu True \
     --model_path ${model_path} \
     --learning_rate ${LEARN_RATE} \
-    --max_epochs 20 \
+    --max_epochs 30 \
     --training_steps 10000000 \
     --steps_per_checkpoint 50 \
     --source_max_length 180 \

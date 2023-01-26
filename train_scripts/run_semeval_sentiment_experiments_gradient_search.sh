@@ -5,7 +5,7 @@ exps=(gradient_search)
 
 for i in ${!rates[@]};
 do
-	rate=${rates[$i]}
+    rate=${rates[$i]}
     for j in ${!exps[@]};
     do
         exp=${exps[$j]}

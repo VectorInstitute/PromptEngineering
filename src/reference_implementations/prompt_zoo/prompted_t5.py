@@ -128,10 +128,14 @@ class MyBaseT5(torch.nn.Module):
 
         self.loss_func = self.loss_func.to(self.device)
 
-        if FLAGS.mode == "train" and FLAGS.t5_exp_type != "gradient_search":
-            # create optimizer only for training.
-            # based on the experiment type, setup the optimizer.
-            self.optimizer = optimizer_definer[FLAGS.t5_exp_type](self.model_pool)
+        if FLAGS.mode == "train":
+            if FLAGS.t5_exp_type != "gradient_search":
+                # create optimizer only for training.
+                # based on the experiment type, setup the optimizer.
+                self.optimizer = optimizer_definer[FLAGS.t5_exp_type](self.model_pool)
+            else:
+                # gradient_search does not require optimizer.
+                pass
         elif FLAGS.mode in ["test", "inference", "eval"]:
             # load from the given checkpoint.
             self.load_from_checkpoint()
@@ -198,6 +202,13 @@ class MyBaseT5(torch.nn.Module):
 
     @abstractmethod
     def train(self, batch: torch.utils.data.Dataset) -> Dict[str, float]:
+        """The abstract train function."""
+        pass
+
+    @abstractmethod
+    def two_batch_train(
+        self, batch: torch.utils.data.Dataset, next_batch: torch.utils.data.Dataset
+    ) -> Dict[str, float]:
         """The abstract train function."""
         pass
 
