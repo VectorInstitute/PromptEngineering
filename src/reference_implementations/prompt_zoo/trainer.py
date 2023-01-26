@@ -16,6 +16,7 @@ from absl import app, flags
 from torch.utils.tensorboard import SummaryWriter
 
 from src.reference_implementations.prompt_zoo.data_utility import create_sentiment_dataset
+from src.reference_implementations.prompt_zoo.gradient_search import SearchT5
 from src.reference_implementations.prompt_zoo.metrics import classifier_sentiment_metric, sentiment_metric
 from src.reference_implementations.prompt_zoo.prompted_t5 import ClassifierT5, FineTuneT5, MyBaseT5
 
@@ -131,8 +132,10 @@ def launch_train() -> None:
     the classifier on top."""
 
     FLAGS.mode = "train"
-
-    model = FineTuneT5()
+    if FLAGS.t5_exp_type == "gradient_search":
+        model = SearchT5()
+    else:
+        model = FineTuneT5()
     train_dataloader = create_sentiment_dataset(
         tokenizer=model.tokenizer,
         file_name=FLAGS.train_file,
@@ -212,6 +215,7 @@ def main(argv: Any) -> None:
         "input_finetune",
         "output_finetune",
         "input_output_finetune",
+        "gradient_search",
     ]:
         launch_train()
     elif FLAGS.t5_exp_type == "no_finetune":

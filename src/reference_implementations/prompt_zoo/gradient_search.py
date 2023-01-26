@@ -1,5 +1,7 @@
 import copy
 import operator
+import os
+import pickle
 from dataclasses import dataclass, field
 from typing import Dict, Iterator, List
 
@@ -125,6 +127,27 @@ class SearchT5(MyBaseT5):
         # https://github.com/google-research/text-to-text-transfer-transformer/blob/main/t5/data/preprocessors.py#L3039
         self.search_memory = PromptSearchMemory(init_token_id=t5_model.config.vocab_size - 1)
         self.setup_models()
+
+    def load_from_checkpoint(self) -> None:
+        """Load the optimized prompt templates from the specified checkpoint
+        name and update the internal beam."""
+        m_path = FLAGS.model_path
+        ckp_name = FLAGS.checkpoint
+        try:
+            with open(os.path.join(m_path, f"{ckp_name}.pkl"), "rb") as inp:
+                self.search_memory.beam = pickle.load(inp)
+        except Exception as e:
+            raise Exception("Could not load the checkpoint due to error:{}".format(e))
+
+    def save(self, checkpoint_name: str) -> None:
+        """Save the optimized prompt templates to the model_path for the specified checkpoint
+        name."""
+        m_path = FLAGS.model_path
+        if not os.path.exists(m_path):
+            os.makedirs(m_path)
+
+        with open(os.path.join(m_path, f"{checkpoint_name}.pkl"), "wb") as outp:
+            pickle.dump(self.search_memory.beam, outp, pickle.HIGHEST_PROTOCOL)
 
     def score_templates(
         self, batch: torch.utils.data.Dataset, prompt_templates: List[PromptTemplate], train: bool = False
