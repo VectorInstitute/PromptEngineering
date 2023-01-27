@@ -22,7 +22,7 @@ model_path=/scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval-v2-gra
 mkdir -p ${model_path}
 
 python -m src.reference_implementations.prompt_zoo.trainer \
-    --batch_size 16 \
+    --batch_size 8 \
     --mode train \
     --task_name semeval \
     --train_file ${PROJECT_DIR}/../../../resources/datasets/2018-Valence-oc-En-train.txt \
@@ -40,5 +40,5 @@ python -m src.reference_implementations.prompt_zoo.trainer \
     --with_instructions ${WITH_INSTRUCTIONS} \
     --prompt_length ${PROM_LEN} \
     --weight_decay_rate 0.00001 \
-    --beam_size 4 \
-    --top_k 20
+    --beam_size 2 \
+    --top_k 10
