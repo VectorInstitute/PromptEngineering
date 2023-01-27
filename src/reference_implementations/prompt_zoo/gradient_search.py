@@ -58,6 +58,7 @@ class PromptSearchMemory:
         """
         # In the comparison, also include the current beam templates.
         template_pool = beam_candidates + self.beam
+
         # sort the prompt templates by their score in descending order.
         sorted_pool = sorted(template_pool, key=operator.attrgetter("score"), reverse=True)
 
@@ -88,19 +89,19 @@ class PromptSearchMemory:
         for beam_idx, prompt_template in enumerate(self.beam):
             prompt_token_idx = prompt_template.tokens[prompt_step]
             loss = losses[beam_idx]
-            embedding_weight.grad.data.zero_()
-            loss.backward()
-            embedding_grad = embedding_weight.grad[prompt_token_idx]
+            loss.backward(retain_graph=True)
+            embedding_grad = embedding_weight.grad[prompt_token_idx].detach().clone()
             embedding_grads.append(embedding_grad)
+            embedding_weight.grad.data.zero_()
 
         embedding_grads_tensor = torch.stack(embedding_grads, dim=1)
         vocab_scores = torch.matmul(embedding_weight, embedding_grads_tensor)
         top_scores, top_indices = torch.topk(vocab_scores, FLAGS.top_k, dim=0, largest=True, sorted=True)
-        for prompt_template in self.beam:
-            # memory is on RAM and not on GPU.
-            for top_index in top_indices.tolist():
-                candidate_template = copy.copy(prompt_template)
-                candidate_template.tokens[prompt_step] = top_index
+        # memory is on RAM and not on GPU.
+        for top_idx_per_beam in top_indices.tolist():
+            for beam_idx, prompt_template in enumerate(self.beam):
+                candidate_template = copy.deepcopy(prompt_template)
+                candidate_template.tokens[prompt_step] = top_idx_per_beam[beam_idx]
                 candidate_template.score = -float("inf")
                 beam_candidates.append(candidate_template)
 
@@ -173,8 +174,6 @@ class SearchT5(MyBaseT5):
         for prompt_index in range(FLAGS.prompt_length):
             template_losses = self.score_templates(batch, self.search_memory.beam, train=True)
             template_losses = template_losses.mean(dim=1)  # mean across batch_size
-
-            print(template_losses)
             beam_candidates = self.search_memory.generate_beam_candidates(
                 embedding_weight=self.model_pool["t5_model"].shared.weight,
                 losses=template_losses,
@@ -185,7 +184,6 @@ class SearchT5(MyBaseT5):
             for index, score in enumerate(beam_candidate_scores.tolist()):
                 beam_candidates[index].score = score
             self.search_memory.update_beam(beam_candidates)
-
         return {"loss_value": self.search_memory.get_beam_loss()}
 
     def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
