@@ -180,10 +180,17 @@ class SearchT5(MyBaseT5):
                 losses=template_losses,
                 prompt_step=prompt_index,
             )
-            beam_candidate_scores = self.score_templates(next_batch, beam_candidates, train=False)
-            beam_candidate_scores = beam_candidate_scores.mean(dim=1)  # mean across batch_size
-            for index, score in enumerate(beam_candidate_scores.tolist()):
-                beam_candidates[index].score = score
+
+            # this part is memory intensive, let's use a for-loop to search better by using larger beam and batches.
+            chunk_size = len(beam_candidates) // 10
+            for chunk_idx in range(chunk_size):
+                beam_candidate_scores = self.score_templates(
+                    next_batch, beam_candidates[chunk_size * 10 : (chunk_size + 1) * 10], train=False
+                )
+                beam_candidate_scores = beam_candidate_scores.mean(dim=1)  # mean across batch_size
+                for index, score in enumerate(beam_candidate_scores.tolist()):
+                    beam_candidates[chunk_size * 10 + index].score = score
+
             self.search_memory.update_beam(beam_candidates)
         return {"loss_value": self.search_memory.get_beam_loss()}
 
