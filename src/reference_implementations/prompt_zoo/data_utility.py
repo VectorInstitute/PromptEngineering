@@ -98,12 +98,9 @@ def read_semeval_sentiment_file(
     tweets = [white_space_fix(tweet) for tweet in df["Tweet"].tolist()]
     sentiments = [preprocess_semeval_sentiment(sent) for sent in df["Intensity Class"].tolist()]
 
-    # store class information for classification modules.
-    # for converting the class label to its index, we string sort the set to block
-    # different permutations of the class labels. required if we call function multiple times.
-    all_classes = sorted(list(set(sentiments)))
-    assert all_classes == sorted(["positive", "negative", "neutral"])
-    return template_data(all_classes, tweets, sentiments, with_instructions, repeat_input)
+    all_classes = set(sentiments)
+    assert all_classes.issubset({"positive", "negative", "neutral"})
+    return template_data(list(all_classes), tweets, sentiments, with_instructions, repeat_input)
 
 
 def read_sst2_sentiment_file(

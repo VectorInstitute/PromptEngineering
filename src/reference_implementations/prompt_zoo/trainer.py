@@ -26,6 +26,7 @@ flags.DEFINE_integer("training_steps", 100, "The number of training steps for ea
 flags.DEFINE_integer("steps_per_checkpoint", 50, "keep checkpoint of the model every this number of steps")
 flags.DEFINE_string("prediction_file", "/tmp/predictions.csv", "the path/name for saving the predictions.")
 flags.DEFINE_string("dev_file", "/tmp/dev.csv", "the path/name of the dev file.")
+flags.DEFINE_string("test_file", "/tmp/test.csv", "the path/name of the test file.")
 flags.DEFINE_string("task_name", "semeval_3_class_sentiment", "the name of the downstream nlp task.")
 flags.DEFINE_string("train_file", "/tmp/train.csv", "the path/name of the train file.")
 flags.DEFINE_bool("with_instructions", False, "Whether to augment the input to have instructions or not.")
@@ -136,34 +137,48 @@ def test_model(
         raise Exception(f"the mode {FLAGS.mode} is not for testing.")
 
 
-def launch_train() -> None:
-    """launch the training phase for the prompting experiments without having
+def launch_test_or_train() -> None:
+    """launch the testing or training phase for the prompting experiments without having
     the classifier on top."""
 
-    FLAGS.mode = "train"
-    if FLAGS.t5_exp_type == "gradient_search":
-        model = SearchT5()
-    else:
-        model = FineTuneT5()
-    train_dataloader = create_sentiment_dataset(
-        tokenizer=model.tokenizer,
-        file_name=FLAGS.train_file,
-        task_name=FLAGS.task_name,
-        shuffle=True,
-        repeat_input=False,
-        with_instructions=FLAGS.with_instructions,
-    )
-    eval_dataloader = create_sentiment_dataset(
-        tokenizer=model.tokenizer,
-        file_name=FLAGS.dev_file,
-        task_name=FLAGS.task_name,
-        shuffle=False,
-        repeat_input=True,
-        with_instructions=FLAGS.with_instructions,
-    )
-    train_model(
-        model=model, metric=sentiment_metric, train_dataloader=train_dataloader, eval_dataloader=eval_dataloader
-    )
+    if FLAGS.mode == "train":
+        if FLAGS.t5_exp_type == "gradient_search":
+            model = SearchT5()
+        else:
+            model = FineTuneT5()
+        train_dataloader = create_sentiment_dataset(
+            tokenizer=model.tokenizer,
+            file_name=FLAGS.train_file,
+            task_name=FLAGS.task_name,
+            shuffle=True,
+            repeat_input=False,
+            with_instructions=FLAGS.with_instructions,
+        )
+        eval_dataloader = create_sentiment_dataset(
+            tokenizer=model.tokenizer,
+            file_name=FLAGS.dev_file,
+            task_name=FLAGS.task_name,
+            shuffle=False,
+            repeat_input=True,
+            with_instructions=FLAGS.with_instructions,
+        )
+        train_model(
+            model=model, metric=sentiment_metric, train_dataloader=train_dataloader, eval_dataloader=eval_dataloader
+        )
+    elif FLAGS.mode in ["test", "inference"]:
+        if FLAGS.t5_exp_type == "gradient_search":
+            model = SearchT5()
+        else:
+            model = FineTuneT5()
+        test_dataloader = create_sentiment_dataset(
+            tokenizer=model.tokenizer,
+            file_name=FLAGS.test_file,
+            task_name=FLAGS.task_name,
+            shuffle=False,
+            repeat_input=True,
+            with_instructions=FLAGS.with_instructions,
+        )
+        test_model(model=model, test_dataloader=test_dataloader)
 
 
 def launch_classifier_train() -> None:
@@ -226,7 +241,7 @@ def main(argv: Any) -> None:
         "input_output_finetune",
         "gradient_search",
     ]:
-        launch_train()
+        launch_test_or_train()
     elif FLAGS.t5_exp_type == "no_finetune":
         launch_no_finetune_predict()
     elif FLAGS.t5_exp_type in ["classifier_finetune", "soft_prompt_classifier_finetune"]:
