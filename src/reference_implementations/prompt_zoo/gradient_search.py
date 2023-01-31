@@ -165,7 +165,7 @@ class SearchT5(MyBaseT5):
         prompt_lists = [template.tokens for template in prompt_templates]
         class_log_ps = self.forward_pass(batch, train, prompt_lists)
 
-        template_scores = class_log_ps.view(len(prompt_templates), batch_size)
+        template_scores = class_log_ps.view(batch_size, len(prompt_templates))
         return template_scores
 
     def two_batch_train(
@@ -174,14 +174,14 @@ class SearchT5(MyBaseT5):
         """The train loop for gradient-search method."""
         for prompt_index in range(FLAGS.prompt_length):
             template_losses = self.score_templates(batch, self.search_memory.beam, train=True)
-            template_losses = template_losses.mean(dim=1)  # mean across batch_size
+            template_losses = template_losses.mean(dim=0)  # mean across batch_size
             beam_candidates = self.search_memory.generate_beam_candidates(
                 embedding_weight=self.model_pool["t5_model"].shared.weight,
                 losses=template_losses,
                 prompt_step=prompt_index,
             )
             beam_candidate_scores = self.score_templates(next_batch, beam_candidates, train=False)
-            beam_candidate_scores = beam_candidate_scores.mean(dim=1)  # mean across batch_size
+            beam_candidate_scores = beam_candidate_scores.mean(dim=0)  # mean across batch_size
             for index, score in enumerate(beam_candidate_scores.tolist()):
                 beam_candidates[index].score = score
 
@@ -191,15 +191,13 @@ class SearchT5(MyBaseT5):
     def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
         """The main prediction loop for a given potential class label using a beam of templates."""
         class_log_ps = self.score_templates(batch, self.search_memory.beam, train=False)
-        class_log_ps = class_log_ps.mean(dim=0)  # mean across the beam size.
-        batch_size = class_log_ps.size()[0]
+        class_log_ps = class_log_ps.mean(dim=1)  # mean across the beam size.
         class_log_ps = class_log_ps.cpu().detach().numpy()
 
         # not efficient, but let's pair potential class along the prediction scores.
         # all transformer special tokens will be removed.
         # same labels have been repeated once per template in beam.
-        uniq_labels = self.loaded_batch["labels"].view(FLAGS.beam_size, batch_size, -1)[0]
-        potentials_str = self.tokenizer.batch_decode(uniq_labels, skip_special_tokens=True)
+        potentials_str = self.tokenizer.batch_decode(self.loaded_batch["labels"], skip_special_tokens=True)
         for index, potential_class in enumerate(potentials_str):
             output_row = {
                 "potential_class": potential_class,

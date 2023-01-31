@@ -50,9 +50,13 @@ def modify_inputs_outputs(batch: torch.utils.data.Dataset, prompt_lists: Optiona
         # This is used for soft prompt tuning! Then for a prompt with length |P|,
         # we add dummy prompt token ids from [0, |P|-1] to map
         # those into |P| vectors from the prompt embedder.
-        batch["input_ids"], batch["attention_mask"] = prepend_prompt(
+        batch["modified_input_ids"], batch["modified_attention_mask"] = prepend_prompt(
             batch["input_ids"], batch["attention_mask"], prompt_tokens=list(range(FLAGS.prompt_length))
         )
+
+        # no change in the output for soft-prompting.
+        batch["modified_target_attention_mask"] = batch["target_attention_mask"]
+        batch["modified_labels"] = batch["labels"]
 
     elif FLAGS.t5_exp_type == "gradient_search" and prompt_lists:
         input_ids_stack = []
@@ -64,15 +68,14 @@ def modify_inputs_outputs(batch: torch.utils.data.Dataset, prompt_lists: Optiona
             input_mask_stack.append(mask)
             num_prompts += 1
 
-        batch["input_ids"] = torch.stack(input_ids_stack, dim=0).view(num_prompts * batch_size, -1)
-        batch["attention_mask"] = torch.stack(input_mask_stack, dim=0).view(num_prompts * batch_size, -1)
+        batch["modified_input_ids"] = torch.stack(input_ids_stack, dim=1).view(num_prompts * batch_size, -1)
+        batch["modified_attention_mask"] = torch.stack(input_mask_stack, dim=1).view(num_prompts * batch_size, -1)
 
         # repeat the output mask and output ids for every prompt template in the batch dimension.
-
-        batch["target_attention_mask"] = (
-            batch["target_attention_mask"].repeat(1, num_prompts).view(num_prompts * batch_size, -1)
+        batch["modified_target_attention_mask"] = (
+            batch["target_attention_mask"].repeat(1, num_prompts).view(num_prompts * batch_size, 1)
         )
-        batch["labels"] = batch["labels"].repeat(1, num_prompts).view(num_prompts * batch_size, -1)
+        batch["modified_labels"] = batch["labels"].repeat(1, num_prompts).view(num_prompts * batch_size, 1)
 
 
 def log_of_labels(

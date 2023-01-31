@@ -242,7 +242,7 @@ class MyBaseT5(torch.nn.Module):
 
         # we have to make sure that the PAD token is ignored.
         # huggingface ignores a pad token if the token is -100!
-        orig_labels = loaded_batch["labels"]
+        orig_labels = loaded_batch["modified_labels"]
         labels = orig_labels.masked_fill(orig_labels == self.tokenizer.pad_token_id, -100)
 
         t5_model = self.model_pool["t5_model"]
@@ -250,9 +250,9 @@ class MyBaseT5(torch.nn.Module):
         with torch.set_grad_enabled(train):
             class_log_p = log_of_labels(
                 model=t5_model,
-                input_ids=loaded_batch["input_ids"],
-                input_mask=loaded_batch["attention_mask"],
-                decoder_mask=loaded_batch["target_attention_mask"],
+                input_ids=loaded_batch["modified_input_ids"],
+                input_mask=loaded_batch["modified_attention_mask"],
+                decoder_mask=loaded_batch["modified_target_attention_mask"],
                 labels=labels,
                 loss_func=self.loss_func,
             )
