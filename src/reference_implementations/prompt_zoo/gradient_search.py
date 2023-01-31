@@ -161,7 +161,6 @@ class SearchT5(MyBaseT5):
         inference.
         """
         batch_size, _ = batch["input_ids"].size()
-        print(batch_size)
         prompt_lists = [template.tokens for template in prompt_templates]
         class_log_ps = self.forward_pass(batch, train, prompt_lists)
 

@@ -32,7 +32,7 @@ python -m src.reference_implementations.prompt_zoo.trainer \
     --model_path ${model_path} \
     --learning_rate ${LEARN_RATE} \
     --max_epochs 30 \
-    --training_steps 10000000 \
+    --training_steps 1000000 \
     --steps_per_checkpoint 50 \
     --source_max_length 180 \
     --decoder_max_length 16 \
