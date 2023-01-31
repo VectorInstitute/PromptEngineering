@@ -96,6 +96,7 @@ class PromptSearchMemory:
 
         embedding_grads_tensor = torch.stack(embedding_grads, dim=1)
         vocab_scores = torch.matmul(embedding_weight, embedding_grads_tensor)
+
         top_scores, top_indices = torch.topk(vocab_scores, FLAGS.top_k, dim=0, largest=True, sorted=True)
         # memory is on RAM and not on GPU.
         for top_idx_per_beam in top_indices.tolist():
