@@ -73,9 +73,9 @@ def modify_inputs_outputs(batch: torch.utils.data.Dataset, prompt_lists: Optiona
 
         # repeat the output mask and output ids for every prompt template in the batch dimension.
         batch["modified_target_attention_mask"] = (
-            batch["target_attention_mask"].repeat(1, num_prompts).view(num_prompts * batch_size, 1)
+            batch["target_attention_mask"].repeat(1, num_prompts).view(num_prompts * batch_size, -1)
         )
-        batch["modified_labels"] = batch["labels"].repeat(1, num_prompts).view(num_prompts * batch_size, 1)
+        batch["modified_labels"] = batch["labels"].repeat(1, num_prompts).view(num_prompts * batch_size, -1)
 
 
 def log_of_labels(
