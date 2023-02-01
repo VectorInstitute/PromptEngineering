@@ -5,6 +5,7 @@ import pickle
 from dataclasses import dataclass, field
 from typing import Dict, Iterator, List
 
+import numpy as np
 import torch
 from absl import flags
 from transformers import T5ForConditionalGeneration, T5Tokenizer
@@ -44,13 +45,14 @@ class PromptSearchMemory:
     augmented with beam search.
     """
 
-    def __init__(self, init_token_id: int) -> None:
+    def __init__(self, t5_vocab_size: int) -> None:
         """This initializes the search memory for the training and its beam will be
         dumped to disk while saving the model."""
         # allocate memory for the current beam of templates.
-        self.beam = [
-            PromptTemplate(tokens=[init_token_id] * FLAGS.prompt_length, score=-float("inf"))
-        ] * FLAGS.beam_size
+        sampled_tokens = np.random.randint(t5_vocab_size, size=(FLAGS.beam_size, FLAGS.prompt_length)).tolist()
+        self.beam = []
+        for beam_idx in range(FLAGS.beam_size):
+            self.beam.append(PromptTemplate(tokens=sampled_tokens[beam_idx], score=-float("inf")))
 
     def update_beam(self, beam_candidates: List[PromptTemplate]) -> None:
         """For the next training step, select the top beam_size prompt templates out of beam_size * top_k template candidates
@@ -124,10 +126,7 @@ class SearchT5(MyBaseT5):
 
         self.model_pool["t5_model"] = t5_model
 
-        # use one of the sentinel tokens
-        # t5 uses last vocab indices as sentinel tokens
-        # https://github.com/google-research/text-to-text-transfer-transformer/blob/main/t5/data/preprocessors.py#L3039
-        self.search_memory = PromptSearchMemory(init_token_id=t5_model.config.vocab_size - 1)
+        self.search_memory = PromptSearchMemory(t5_vocab_size=t5_model.config.vocab_size)
         self.setup_models()
 
     def load_from_checkpoint(self) -> None:
