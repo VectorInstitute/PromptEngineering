@@ -2,6 +2,7 @@ import copy
 import operator
 import os
 import pickle
+import random
 from dataclasses import dataclass, field
 from typing import Dict, Iterator, List
 
@@ -16,6 +17,11 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_integer("top_k", 20, "Number of candidate tokens to replace the prompt token.")
 flags.DEFINE_integer("beam_size", 20, "Number of prompt templates to consider for beam search.")
+flags.DEFINE_bool(
+    "to_iterate",
+    False,
+    "Should be iterate over the sequence or we should just optimize for one step in the prompt template?",
+)
 
 
 @dataclass(order=True)
@@ -171,7 +177,23 @@ class SearchT5(MyBaseT5):
         self, batch: torch.utils.data.Dataset, next_batch: torch.utils.data.Dataset
     ) -> Dict[str, float]:
         """The train loop for gradient-search method."""
-        for prompt_index in range(FLAGS.prompt_length):
+        if FLAGS.to_iterate:
+            for prompt_index in range(FLAGS.prompt_length):
+                template_losses = self.score_templates(batch, self.search_memory.beam, train=True)
+                template_losses = template_losses.mean(dim=0)  # mean across batch_size
+                beam_candidates = self.search_memory.generate_beam_candidates(
+                    embedding_weight=self.model_pool["t5_model"].shared.weight,
+                    losses=template_losses,
+                    prompt_step=prompt_index,
+                )
+                beam_candidate_scores = self.score_templates(next_batch, beam_candidates, train=False)
+                beam_candidate_scores = beam_candidate_scores.mean(dim=0)  # mean across batch_size
+                for index, score in enumerate(beam_candidate_scores.tolist()):
+                    beam_candidates[index].score = score
+
+                self.search_memory.update_beam(beam_candidates)
+        else:
+            prompt_index = random.randint(0, FLAGS.prompt_length)
             template_losses = self.score_templates(batch, self.search_memory.beam, train=True)
             template_losses = template_losses.mean(dim=0)  # mean across batch_size
             beam_candidates = self.search_memory.generate_beam_candidates(
