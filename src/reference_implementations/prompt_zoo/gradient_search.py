@@ -17,11 +17,6 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_integer("top_k", 20, "Number of candidate tokens to replace the prompt token.")
 flags.DEFINE_integer("beam_size", 20, "Number of prompt templates to consider for beam search.")
-flags.DEFINE_bool(
-    "to_iterate",
-    False,
-    "Should be iterate over the sequence or we should just optimize for one step in the prompt template?",
-)
 
 
 @dataclass(order=True)
@@ -65,7 +60,7 @@ class PromptSearchMemory:
         inside the beam_candidates. The sorting is based on the score attribute of the PromptTemplate.
         """
         # In the comparison, also include the current beam templates.
-        template_pool = beam_candidates + self.beam
+        template_pool = beam_candidates
 
         # sort the prompt templates by their score in descending order.
         sorted_pool = sorted(template_pool, key=operator.attrgetter("score"), reverse=True)
@@ -105,7 +100,17 @@ class PromptSearchMemory:
         embedding_grads_tensor = torch.stack(embedding_grads, dim=1)
         vocab_scores = torch.matmul(embedding_weight, embedding_grads_tensor)
 
-        top_scores, top_indices = torch.topk(vocab_scores, FLAGS.top_k, dim=0, largest=True, sorted=True)
+        # to provide more exploration.
+        if random.random() < 0.1:
+            selected_scores, selected_indices = torch.topk(
+                vocab_scores, 100 * FLAGS.top_k, dim=0, largest=True, sorted=True
+            )
+            random_indices = list(range(100 * FLAGS.top_k))
+            random.shuffle(random_indices)
+            top_indices = torch.index_select(selected_indices, 0, torch.LongTensor(random_indices[: FLAGS.top_k]))
+        else:
+            top_scores, top_indices = torch.topk(vocab_scores, FLAGS.top_k, dim=0, largest=True, sorted=True)
+
         # memory is on RAM and not on GPU.
         for top_idx_per_beam in top_indices.tolist():
             for beam_idx, prompt_template in enumerate(self.beam):
@@ -177,23 +182,7 @@ class SearchT5(MyBaseT5):
         self, batch: torch.utils.data.Dataset, next_batch: torch.utils.data.Dataset
     ) -> Dict[str, float]:
         """The train loop for gradient-search method."""
-        if FLAGS.to_iterate:
-            for prompt_index in range(FLAGS.prompt_length):
-                template_losses = self.score_templates(batch, self.search_memory.beam, train=True)
-                template_losses = template_losses.mean(dim=0)  # mean across batch_size
-                beam_candidates = self.search_memory.generate_beam_candidates(
-                    embedding_weight=self.model_pool["t5_model"].shared.weight,
-                    losses=template_losses,
-                    prompt_step=prompt_index,
-                )
-                beam_candidate_scores = self.score_templates(next_batch, beam_candidates, train=False)
-                beam_candidate_scores = beam_candidate_scores.mean(dim=0)  # mean across batch_size
-                for index, score in enumerate(beam_candidate_scores.tolist()):
-                    beam_candidates[index].score = score
-
-                self.search_memory.update_beam(beam_candidates)
-        else:
-            prompt_index = random.randint(0, FLAGS.prompt_length)
+        for prompt_index in range(FLAGS.prompt_length):
             template_losses = self.score_templates(batch, self.search_memory.beam, train=True)
             template_losses = template_losses.mean(dim=0)  # mean across batch_size
             beam_candidates = self.search_memory.generate_beam_candidates(

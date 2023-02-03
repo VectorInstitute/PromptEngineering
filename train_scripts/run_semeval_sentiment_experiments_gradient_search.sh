@@ -15,7 +15,7 @@ do
             ${exp} \
             ${rate} \
             True \
-            10
+            25
 
     done
 done
