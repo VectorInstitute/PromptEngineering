@@ -40,6 +40,6 @@ python -m src.reference_implementations.prompt_zoo.trainer \
     --with_instructions ${WITH_INSTRUCTIONS} \
     --prompt_length ${PROM_LEN} \
     --weight_decay_rate 0.00001 \
-    --beam_size 4 \
-    --top_k 10 \
+    --beam_size 1 \
+    --top_k 40 \
     --t5_pretrained_model google/t5-large-lm-adapt
