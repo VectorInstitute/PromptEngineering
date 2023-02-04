@@ -63,8 +63,10 @@ def template_data(
     """
     class_to_id = {label: index for index, label in enumerate(all_classes)}
     if with_instructions:
-        instruction = f"Generate the sentiment of the next sentence from the labels {' '.join(all_classes)}."
-        sentences = [f"instruction: {instruction} sentence: {sent} sentiment:" for sent in sentences]
+        instruction = "what would be the sentiment of the sentence?"
+        sentences = [f"question: {instruction} context: {sent}" for sent in sentences]
+    else:
+        sentences = [f"context: {sent}" for sent in sentences]
 
     if repeat_input:
         # repeat every input for every possible output class.
@@ -154,15 +156,17 @@ def create_sentiment_dataset(
     task_name: str,
     shuffle: bool,
     repeat_input: bool = False,
-    with_instructions: bool = False,
+    with_instructions: str = "False",
 ) -> DataLoader:
     """Function to create the required huggingface dataset to train the T5
     models on the sentiment analysis task."""
 
+    # to fix bug with boolean arguments.
+    with_instruct = with_instructions == "True"
     if task_name == "semeval":
-        rawdata = read_semeval_sentiment_file(file_name, repeat_input, with_instructions)
+        rawdata = read_semeval_sentiment_file(file_name, repeat_input, with_instruct)
     elif task_name == "sst2":
-        rawdata = read_sst2_sentiment_file(file_name, repeat_input, with_instructions)
+        rawdata = read_sst2_sentiment_file(file_name, repeat_input, with_instruct)
     else:
         raise Exception(f"this {task_name} is not supported!")
 

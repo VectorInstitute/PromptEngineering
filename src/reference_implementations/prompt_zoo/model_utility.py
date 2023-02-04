@@ -46,7 +46,7 @@ def modify_inputs_outputs(batch: torch.utils.data.Dataset, prompt_lists: Optiona
     repeat the outputs per prompt template.
     """
     batch_size, sequence_length = batch["input_ids"].size()
-    if FLAGS.t5_exp_type in ["soft_prompt_finetune", "soft_prompt_classifier_finetune"]:
+    if FLAGS.t5_exp_type == "soft_prompt_finetune":
         # This is used for soft prompt tuning! Then for a prompt with length |P|,
         # we add dummy prompt token ids from [0, |P|-1] to map
         # those into |P| vectors from the prompt embedder.
@@ -76,6 +76,12 @@ def modify_inputs_outputs(batch: torch.utils.data.Dataset, prompt_lists: Optiona
             batch["target_attention_mask"].repeat(1, num_prompts).view(num_prompts * batch_size, -1)
         )
         batch["modified_labels"] = batch["labels"].repeat(1, num_prompts).view(num_prompts * batch_size, -1)
+
+    else:
+        batch["modified_target_attention_mask"] = batch["target_attention_mask"]
+        batch["modified_labels"] = batch["labels"]
+        batch["modified_input_ids"] = batch["input_ids"]
+        batch["modified_attention_mask"] = batch["attention_mask"]
 
 
 def log_of_labels(

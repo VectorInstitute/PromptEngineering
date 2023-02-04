@@ -15,10 +15,11 @@ import torch
 from absl import app, flags
 from torch.utils.tensorboard import SummaryWriter
 
+from src.reference_implementations.prompt_zoo.classifier_over_t5 import ClassifierT5
 from src.reference_implementations.prompt_zoo.data_utility import create_sentiment_dataset
 from src.reference_implementations.prompt_zoo.gradient_search import SearchT5
 from src.reference_implementations.prompt_zoo.metrics import classifier_sentiment_metric, sentiment_metric
-from src.reference_implementations.prompt_zoo.prompted_t5 import ClassifierT5, FineTuneT5, MyBaseT5
+from src.reference_implementations.prompt_zoo.prompted_t5 import FineTuneT5, MyBaseT5
 
 FLAGS = flags.FLAGS
 flags.DEFINE_integer("max_epochs", 20, "The maximum number of epochs for training.")
@@ -29,7 +30,7 @@ flags.DEFINE_string("dev_file", "/tmp/dev.csv", "the path/name of the dev file."
 flags.DEFINE_string("test_file", "/tmp/test.csv", "the path/name of the test file.")
 flags.DEFINE_string("task_name", "semeval_3_class_sentiment", "the name of the downstream nlp task.")
 flags.DEFINE_string("train_file", "/tmp/train.csv", "the path/name of the train file.")
-flags.DEFINE_bool("with_instructions", False, "Whether to augment the input to have instructions or not.")
+flags.DEFINE_string("with_instructions", "False", "Whether to augment the input to have instructions or not.")
 
 
 def start_predicting(model: MyBaseT5, dataloader: torch.utils.data.DataLoader, prediction_file: str) -> None:
@@ -214,7 +215,7 @@ def launch_no_finetune_predict() -> None:
     model = FineTuneT5()
     eval_dataloader = create_sentiment_dataset(
         tokenizer=model.tokenizer,
-        file_name=FLAGS.dev_file,
+        file_name=FLAGS.test_file,
         task_name=FLAGS.task_name,
         shuffle=False,
         repeat_input=True,
