@@ -46,21 +46,23 @@ class PromptSearchMemory:
     augmented with beam search.
     """
 
-    def __init__(self, t5_vocab_size: int) -> None:
+    def __init__(self, instruction_ids: List[int], t5_vocab_size: int) -> None:
         """This initializes the search memory for the training and its beam will be
         dumped to disk while saving the model."""
         # allocate memory for the current beam of templates.
+        FLAGS.prompt_length = len(instruction_ids)
         sampled_tokens = np.random.randint(t5_vocab_size, size=(FLAGS.beam_size, FLAGS.prompt_length)).tolist()
+        FLAGS.prompt_length *= 2
         self.beam = []
         for beam_idx in range(FLAGS.beam_size):
-            self.beam.append(PromptTemplate(tokens=sampled_tokens[beam_idx], score=-float("inf")))
+            self.beam.append(PromptTemplate(tokens=instruction_ids + sampled_tokens[beam_idx], score=-float("inf")))
 
     def update_beam(self, beam_candidates: List[PromptTemplate]) -> None:
         """For the next training step, select the top beam_size prompt templates out of beam_size * top_k template candidates
         inside the beam_candidates. The sorting is based on the score attribute of the PromptTemplate.
         """
         # In the comparison, also include the current beam templates.
-        template_pool = beam_candidates
+        template_pool = beam_candidates + self.beam
 
         # sort the prompt templates by their score in descending order.
         sorted_pool = sorted(template_pool, key=operator.attrgetter("score"), reverse=True)
@@ -100,26 +102,18 @@ class PromptSearchMemory:
         embedding_grads_tensor = torch.stack(embedding_grads, dim=1)
         vocab_scores = torch.matmul(embedding_weight, embedding_grads_tensor)
 
-        # to provide more exploration.
-        if random.random() < 0.1:
-            selected_scores, selected_indices = torch.topk(
-                vocab_scores, 10 * FLAGS.top_k, dim=0, largest=True, sorted=True
-            )
-            random_indices = list(range(10 * FLAGS.top_k))
-            random.shuffle(random_indices)
-            top_indices = torch.index_select(
-                selected_indices, 0, torch.LongTensor(random_indices[: FLAGS.top_k]).to(selected_indices.device)
-            )
-        else:
-            top_scores, top_indices = torch.topk(vocab_scores, FLAGS.top_k, dim=0, largest=True, sorted=True)
+        top_scores, top_indices = torch.topk(
+            torch.nn.functional.relu(vocab_scores), FLAGS.top_k, dim=0, largest=True, sorted=True
+        )
 
         # memory is on RAM and not on GPU.
-        for top_idx_per_beam in top_indices.tolist():
+        for top_idx, top_idx_per_beam in enumerate(top_indices.tolist()):
             for beam_idx, prompt_template in enumerate(self.beam):
-                candidate_template = copy.deepcopy(prompt_template)
-                candidate_template.tokens[prompt_step] = top_idx_per_beam[beam_idx]
-                candidate_template.score = -float("inf")
-                beam_candidates.append(candidate_template)
+                if top_scores[top_idx][beam_idx] > 0:
+                    candidate_template = copy.deepcopy(prompt_template)
+                    candidate_template.tokens[prompt_step] = top_idx_per_beam[beam_idx]
+                    candidate_template.score = -float("inf")
+                    beam_candidates.append(candidate_template)
 
         return beam_candidates
 
@@ -139,7 +133,10 @@ class SearchT5(MyBaseT5):
 
         self.model_pool["t5_model"] = t5_model
 
-        self.search_memory = PromptSearchMemory(t5_vocab_size=t5_model.config.vocab_size)
+        instruct_ids = self.tokenizer(
+            "question: what would be the sentiment of the sentence?", add_special_tokens=False
+        )["input_ids"]
+        self.search_memory = PromptSearchMemory(instruct_ids, t5_vocab_size=t5_model.config.vocab_size)
         self.setup_models()
 
     def load_from_checkpoint(self) -> None:
@@ -185,7 +182,7 @@ class SearchT5(MyBaseT5):
     ) -> Dict[str, float]:
         """The train loop for gradient-search method."""
         # for prompt_index in range(FLAGS.prompt_length):
-        prompt_index = random.randint(0, FLAGS.prompt_length - 1)
+        prompt_index = random.randint(5, FLAGS.prompt_length - 1)
         template_losses = self.score_templates(batch, self.search_memory.beam, train=True)
         template_losses = template_losses.mean(dim=0)  # mean across batch_size
         beam_candidates = self.search_memory.generate_beam_candidates(
