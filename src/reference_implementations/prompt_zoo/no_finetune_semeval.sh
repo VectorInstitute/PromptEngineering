@@ -14,7 +14,7 @@ python -m src.reference_implementations.prompt_zoo.trainer \
     --test_file ${PROJECT_DIR}/../../../resources/datasets/2018-Valence-oc-En-dev.txt \
     --t5_exp_type no_finetune \
     --model_path ${model_path} \
-    --source_max_length 180 \
+    --source_max_length 64 \
     --decoder_max_length 16 \
     --prediction_file ${model_path}/test_sentiment.csv \
     --with_instructions True \
@@ -30,7 +30,7 @@ python -m src.reference_implementations.prompt_zoo.trainer \
     --test_file ${PROJECT_DIR}/../../../resources/datasets/2018-Valence-oc-En-dev.txt \
     --t5_exp_type no_finetune \
     --model_path ${model_path} \
-    --source_max_length 180 \
+    --source_max_length 64 \
     --decoder_max_length 16 \
     --prediction_file ${model_path}/test_sentiment.csv \
     --with_instructions False \

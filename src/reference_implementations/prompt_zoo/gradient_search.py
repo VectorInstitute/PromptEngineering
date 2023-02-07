@@ -102,18 +102,15 @@ class PromptSearchMemory:
         embedding_grads_tensor = torch.stack(embedding_grads, dim=1)
         vocab_scores = torch.matmul(embedding_weight, embedding_grads_tensor)
 
-        top_scores, top_indices = torch.topk(
-            torch.nn.functional.relu(vocab_scores), FLAGS.top_k, dim=0, largest=True, sorted=True
-        )
+        top_scores, top_indices = torch.topk(vocab_scores, FLAGS.top_k, dim=0, largest=True, sorted=True)
 
         # memory is on RAM and not on GPU.
-        for top_idx, top_idx_per_beam in enumerate(top_indices.tolist()):
+        for top_idx_per_beam in top_indices.tolist():
             for beam_idx, prompt_template in enumerate(self.beam):
-                if top_scores[top_idx][beam_idx] > 0:
-                    candidate_template = copy.deepcopy(prompt_template)
-                    candidate_template.tokens[prompt_step] = top_idx_per_beam[beam_idx]
-                    candidate_template.score = -float("inf")
-                    beam_candidates.append(candidate_template)
+                candidate_template = copy.deepcopy(prompt_template)
+                candidate_template.tokens[prompt_step] = top_idx_per_beam[beam_idx]
+                candidate_template.score = -float("inf")
+                beam_candidates.append(candidate_template)
 
         return beam_candidates
 
@@ -182,7 +179,7 @@ class SearchT5(MyBaseT5):
     ) -> Dict[str, float]:
         """The train loop for gradient-search method."""
         # for prompt_index in range(FLAGS.prompt_length):
-        prompt_index = random.randint(5, FLAGS.prompt_length - 1)
+        prompt_index = random.randint(0, FLAGS.prompt_length - 1)
         template_losses = self.score_templates(batch, self.search_memory.beam, train=True)
         template_losses = template_losses.mean(dim=0)  # mean across batch_size
         beam_candidates = self.search_memory.generate_beam_candidates(
