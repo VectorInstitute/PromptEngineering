@@ -235,13 +235,12 @@ def main(argv: Any) -> None:
         "all_finetune",
         "input_finetune",
         "output_finetune",
-        "input_output_finetune",
         "gradient_search",
     ]:
         launch_test_or_train()
     elif FLAGS.t5_exp_type == "no_finetune":
         launch_no_finetune_predict()
-    elif FLAGS.t5_exp_type in ["classifier_finetune", "soft_prompt_classifier_finetune"]:
+    elif FLAGS.t5_exp_type == "classifier_finetune":
         launch_classifier_train()
 
 
