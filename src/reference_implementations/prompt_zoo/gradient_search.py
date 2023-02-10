@@ -6,7 +6,6 @@ import random
 from dataclasses import dataclass, field
 from typing import Dict, Iterator, List
 
-import numpy as np
 import torch
 from absl import flags
 from transformers import T5ForConditionalGeneration, T5Tokenizer
@@ -46,16 +45,14 @@ class PromptSearchMemory:
     augmented with beam search.
     """
 
-    def __init__(self, instruction_ids: List[int], t5_vocab_size: int) -> None:
+    def __init__(self, instruction_ids: List[int]) -> None:
         """This initializes the search memory for the training and its beam will be
         dumped to disk while saving the model."""
         # allocate memory for the current beam of templates.
         FLAGS.prompt_length = len(instruction_ids)
-        sampled_tokens = np.random.randint(t5_vocab_size, size=(FLAGS.beam_size, FLAGS.prompt_length)).tolist()
-        FLAGS.prompt_length *= 2
         self.beam = []
         for beam_idx in range(FLAGS.beam_size):
-            self.beam.append(PromptTemplate(tokens=instruction_ids + sampled_tokens[beam_idx], score=-float("inf")))
+            self.beam.append(PromptTemplate(tokens=instruction_ids, score=-float("inf")))
 
     def update_beam(self, beam_candidates: List[PromptTemplate]) -> None:
         """For the next training step, select the top beam_size prompt templates out of beam_size * top_k template candidates
@@ -131,9 +128,9 @@ class SearchT5(MyBaseT5):
         self.model_pool["t5_model"] = t5_model
 
         instruct_ids = self.tokenizer(
-            "question: what would be the sentiment of the sentence?", add_special_tokens=False
+            "question: what would be the sentiment of the sentence ?", add_special_tokens=False
         )["input_ids"]
-        self.search_memory = PromptSearchMemory(instruct_ids, t5_vocab_size=t5_model.config.vocab_size)
+        self.search_memory = PromptSearchMemory(instruct_ids)
         self.setup_models()
 
     def load_from_checkpoint(self) -> None:
@@ -178,8 +175,9 @@ class SearchT5(MyBaseT5):
         self, batch: torch.utils.data.Dataset, next_batch: torch.utils.data.Dataset
     ) -> Dict[str, float]:
         """The train loop for gradient-search method."""
-        # for prompt_index in range(FLAGS.prompt_length):
-        prompt_index = random.randint(0, FLAGS.prompt_length - 1)
+        # don't touch the initial question: token.
+        # don't touch the final question mark.
+        prompt_index = random.randint(2, FLAGS.prompt_length - 2)
         template_losses = self.score_templates(batch, self.search_memory.beam, train=True)
         template_losses = template_losses.mean(dim=0)  # mean across batch_size
         beam_candidates = self.search_memory.generate_beam_candidates(
@@ -197,7 +195,8 @@ class SearchT5(MyBaseT5):
 
     def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
         """The main prediction loop for a given potential class label using a beam of templates."""
-        class_log_ps = self.score_templates(batch, self.search_memory.beam, train=False)
+        top_template = [self.search_memory.beam[0]]
+        class_log_ps = self.score_templates(batch, top_template, train=False)
         class_log_ps = class_log_ps.mean(dim=1)  # mean across the beam size.
         class_log_ps = class_log_ps.cpu().detach().numpy()
 
