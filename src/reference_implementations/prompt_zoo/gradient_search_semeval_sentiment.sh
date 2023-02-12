@@ -15,11 +15,13 @@ EXPERIMENT_TYPE=${EXP_TYPE}
 # We source to keep the internal env variables defined.
 source ${PROJECT_DIR}/../setup_gpu_worker.sh
 
-model_path=/scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval-v2/gradient_search_v2/
+# model_path=/scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval-v2/gradient_search_v2/
+model_path=/tmp/gradient_search_v2/
+
 mkdir -p ${model_path}
 
 python -m src.reference_implementations.prompt_zoo.trainer \
-    --batch_size 8 \
+    --batch_size 4 \
     --mode train \
     --task_name semeval \
     --train_file ${PROJECT_DIR}/../../../resources/datasets/2018-Valence-oc-En-train.txt \
@@ -34,6 +36,6 @@ python -m src.reference_implementations.prompt_zoo.trainer \
     --decoder_max_length 16 \
     --prediction_file ${model_path}/dev_sentiment.csv \
     --with_instructions False \
-    --beam_size 1 \
-    --top_k 80 \
+    --beam_size 4 \
+    --top_k 40 \
     --t5_pretrained_model google/t5-large-lm-adapt
