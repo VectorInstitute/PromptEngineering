@@ -72,7 +72,7 @@ def template_data(
         sentences = sentences
     elif instruction_type == "instruction_at_end":
         instruction = "The sentiment of the previous sentence is"
-        sentences = [f"{sent} . {instruction}" for sent in sentences]
+        sentences = [f"{sent.rstrip('.')}. {instruction}" for sent in sentences]
 
     if repeat_input:
         # repeat every input for every possible output class.
