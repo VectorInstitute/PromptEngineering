@@ -70,7 +70,7 @@ def template_data(
         sentences = [f"{instruction} . {sent}" for sent in sentences]
     elif instruction_type == "no_instruction":
         sentences = sentences
-    elif instruction_type == "gradient_search_template":
+    elif instruction_type == "instruction_at_end":
         instruction = "The sentiment of the previous sentence is"
         sentences = [f"{sent} . {instruction}" for sent in sentences]
 

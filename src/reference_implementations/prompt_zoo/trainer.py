@@ -132,8 +132,8 @@ def test_model(
     if FLAGS.mode in ["test", "inference", "eval", "no_finetune_test"]:
         print("Predicting...")
         start_predicting(model, test_dataloader, FLAGS.prediction_file)
-        score = metric(FLAGS.test_file, FLAGS.prediction_file, FLAGS.task_name, FLAGS.intruction_type)
-        writer.add_scalar("Score", score, FLAGS.test_file)
+        score = metric(FLAGS.test_file, FLAGS.prediction_file, FLAGS.task_name, FLAGS.instruction_type)
+        writer.add_scalar("Score", score, 0)
     else:
         raise Exception(f"the mode {FLAGS.mode} is not for testing.")
 

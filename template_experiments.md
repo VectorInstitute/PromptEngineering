@@ -12,9 +12,9 @@ We assume you are following this instruction online from the vector's github rep
 https://github.com/VectorInstitute/PromptEngineering
 
 
-Login to Vector's Vaughan cluster. I use the username `snajafi` as an example.
+Login to Vector's Vaughan cluster. I use the username `username` as an example.
 ```bash
-ssh snajafi@v.vectorinstitute.ai
+ssh username@v.vectorinstitute.ai
 ```
 
 Then start a tmux session.
@@ -50,7 +50,7 @@ jupyter notebook --ip 0.0.0.0 --port 8888
 
 Using a new terminal window from our personal laptop, we need to create an ssh tunnel to that specific port of the gpu node:
 ```bash
-ssh snajafi@v.vectorinstitute.ai -L 8888:gpu001:8888
+ssh username@v.vectorinstitute.ai -L 8888:gpu001:8888
 ```
 
 
