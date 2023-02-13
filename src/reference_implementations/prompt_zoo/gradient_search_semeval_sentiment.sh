@@ -15,8 +15,7 @@ EXPERIMENT_TYPE=${EXP_TYPE}
 # We source to keep the internal env variables defined.
 source ${PROJECT_DIR}/../setup_gpu_worker.sh
 
-# model_path=/scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval-v2/gradient_search_v2/
-model_path=/tmp/gradient_search_v2/
+model_path=/scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval-v2/gradient_search_v2/
 
 mkdir -p ${model_path}
 
