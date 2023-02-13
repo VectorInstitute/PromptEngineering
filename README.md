@@ -105,25 +105,6 @@ sbatch src/reference_implementations/run_multinode_2_2.slrm \
 ```
 
 
-# Training prompt experiments
-The following lines outline the steps to train the prompt library implemented in pytorch on the vector's cluster.
-
-Make sure you install the cluster dependencies via the following command:
-```
-bash setup.sh OS=vcluster ENV_NAME=prompt_torch DEV=true
-```
-
-Then submit the following slurm job for training prompts for 3-class sentiment analysis on the semeval dataset.
-```
-source prompt_torch-env/bin/activate
-sbatch src/reference_implementations/run_singlenode_prompt.slrm \
-       <path/to/a_t5x_log/dir>
-```
-
-For example:
-```
-source prompt_torch-env/bin/activate
-sbatch src/reference_implementations/run_singlenode_prompt.slrm \
-       src/reference_implementations/prompt_zoo/train_semeval_sentiment.sh \
-       ./torch-prompt-tuning-exps-logs \
-```
+# Prompt Experiments
+For prompt experiments using t5 language model, please see the corresponding .md files.
+For example, `template_experiments.md` describes the experiments with manual prompts.
