@@ -1,12 +1,7 @@
-# Experiment Description
-
-<p> In this set of experiments, we are going to test four different kinds of <b>manually designed templates</b> for
-prompting a <b>T5-large</b> language model for the binary sentiment classification task on <b>SST-2</b> dataset and 3-way sentiment classification task on the <b>SemEval 2018</b> dataset. </p>
-
-<p> With manual templates, we no longer need any training examples and we will only make predictions on the corresponding development sets for these two datasets. </p>
-
 
 # Installation On Vector's Cluster.
+
+## Direct Access to a GPU Node.
 
 We assume you are following this instruction online from the vector's github repo for PromptEngineering:
 https://github.com/VectorInstitute/PromptEngineering
@@ -64,8 +59,5 @@ Now we can access the notebooks using our local browser. Copy the URL given by t
 (Example Token)
 http://127.0.0.1:8888/?token=7ba0ba5c3e9f5668f92518e4c5e723fea8b69aca065b4d57
 ```
-
-
-**Follow the instructions in the jupyter notebook `template_experiments.ipynb`.**
 
 **Don't close the local terminal windows in your personal laptop!**

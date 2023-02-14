@@ -1,23 +1,28 @@
 # Prompt Engineering
-This repository holds all of the code associated with the project considering prompt engineering for large language models. This includes work around reference implementations, demo notebooks, and fairness and bias evaluation.
+This repository holds all of the code associated with the project considering prompt engineering for large language models. This includes work around reference implementations, demo notebooks.
 
-The static code checker runs on python3.9
+The static code checker runs on python3.8
 
 # Installing dependencies
 
-## Installing on macOS
+## Prompt Experiments
+For prompt experiments using t5 language model, please see the corresponding .md file.
+[installation_for_experiments.md](./installation_for_experiments.md) describes the steps to install the package and access gpu in the vector's cluster for the experiments around different prompt techniques.
+
+
+## Virtualenv installing on macOS
 If you wish to install the package in macOS for local development, you should call the following script to install `python3.9` on macOS and then setup the virtual env for the module you want to install. This approach only installs the ML libraries (`pytorch`, `tensorflow`, `jax`) for the CPU. If you also want to install the package in the editable mode with all the development requirements, you should use the flag `DEV=true` when you run the script, otherwise use the flag `DEV=false`.
 ```
 bash setup.sh OS=mac ENV_NAME=t5x DEV=true
 ```
 
-## Installing on Vector's Cluster
+## Virtualenv installing on Vector's Cluster
 You can call `setup.sh` with the `OS=vcluster` flag. This installs python in the linux cluster of Vector and installs the ML libraries for the GPU cards.
 ```
 bash setup.sh OS=vcluster ENV_NAME=t5x DEV=true
 ```
 
-### Using Pre-commit Hooks
+## Using Pre-commit Hooks
 To check your code at commit time
 ```
 pre-commit install
@@ -27,8 +32,9 @@ You can also get pre-commit to fix your code
 ```
 pre-commit run
 ```
-# Running T5x
-We currently support running T5x only on the vector's cluster.
+
+## Running T5x
+We support running T5x only on the vector's cluster.
 Make sure you install the cluster dependencies via the following command:
 ```
 bash setup.sh OS=vcluster ENV_NAME=t5x DEV=false
@@ -59,7 +65,7 @@ Then, you can monitor the training status using `tensorboard` by specifying the 
 tensorboard --logdir=/scratch/ssd004/scratch/snajafi/data_temp/t5x-exps/model
 ```
 
-# Using google-prompt-tuning
+## Using google-prompt-tuning
 The following lines outline the steps to train the google's soft-prompt code based on t5x for the binary sentiment analysis task on the vector's cluster.
 
 Make sure you install the cluster dependencies via the following command:
@@ -103,8 +109,3 @@ sbatch src/reference_implementations/run_multinode_2_2.slrm \
        /scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tuning-exps/model \
        /scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tuning-exps/data/infer
 ```
-
-
-# Prompt Experiments
-For prompt experiments using t5 language model, please see the corresponding .md files.
-For example, `template_experiments.md` describes the experiments with manual prompts.
