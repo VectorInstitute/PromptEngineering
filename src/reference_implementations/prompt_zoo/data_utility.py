@@ -50,7 +50,11 @@ def preprocess_semeval_sentiment(text: str) -> str:
 
 
 def template_data(
-    all_classes: List[str], sentences: List[str], labels: List[str], with_instructions: bool, repeat_input: bool
+    all_classes: List[str],
+    sentences: List[str],
+    labels: List[str],
+    instruction_type: str,
+    repeat_input: bool,
 ) -> SentimentRawData:
     """Helper function to format the data for the models.
 
@@ -62,11 +66,17 @@ def template_data(
     Finally, the end of sentence token </s> used with T5 models are added to both input and output.
     """
     class_to_id = {label: index for index, label in enumerate(all_classes)}
-    if with_instructions:
+    if instruction_type == "qa":
         instruction = "what would be the sentiment of the sentence?"
         sentences = [f"question: {instruction} context: {sent}" for sent in sentences]
-    else:
-        sentences = [f"context: {sent}" for sent in sentences]
+    elif instruction_type == "describe_task":
+        instruction = f"Generate the sentiment of the next sentence from the labels {' '.join(all_classes)}"
+        sentences = [f"{instruction} . {sent}" for sent in sentences]
+    elif instruction_type == "no_instruction":
+        sentences = sentences
+    elif instruction_type == "instruction_at_end":
+        instruction = "The sentiment of the previous sentence is"
+        sentences = [f"{sent.rstrip('.')}. {instruction}" for sent in sentences]
 
     if repeat_input:
         # repeat every input for every possible output class.
@@ -89,9 +99,7 @@ def template_data(
     return SentimentRawData(inputs=inputs, outputs=outputs, class_indices=class_indices)
 
 
-def read_semeval_sentiment_file(
-    file_path: str, repeat_input: bool = False, with_instructions: bool = False
-) -> SentimentRawData:
+def read_semeval_sentiment_file(file_path: str, instruction_type: str, repeat_input: bool = False) -> SentimentRawData:
     """This function reads the semeval 2018 data files for sentiment analysis.
 
     Example header: 'ID  Tweet Affect Dimension  Intensity Class'
@@ -102,12 +110,10 @@ def read_semeval_sentiment_file(
 
     all_classes = set(sentiments)
     assert all_classes.issubset({"positive", "negative", "neutral"})
-    return template_data(list(all_classes), tweets, sentiments, with_instructions, repeat_input)
+    return template_data(list(all_classes), tweets, sentiments, instruction_type, repeat_input)
 
 
-def read_sst2_sentiment_file(
-    split_name: str, repeat_input: bool = False, with_instructions: bool = False
-) -> SentimentRawData:
+def read_sst2_sentiment_file(split_name: str, instruction_type: str, repeat_input: bool = False) -> SentimentRawData:
     """Load the sst2 sentiment analysis split for train, validation or test."""
     assert split_name in {"train", "validation", "test"}
     dataset = load_dataset("sst2", split=split_name)
@@ -129,7 +135,7 @@ def read_sst2_sentiment_file(
         labels.append(row["sentiment"])
 
     all_classes = sorted(list(set(labels)))
-    return template_data(all_classes, sentences, labels, with_instructions, repeat_input)
+    return template_data(all_classes, sentences, labels, instruction_type, repeat_input)
 
 
 class SentimentDataset(Dataset):
@@ -155,18 +161,16 @@ def create_sentiment_dataset(
     file_name: str,
     task_name: str,
     shuffle: bool,
+    instruction_type: str,
     repeat_input: bool = False,
-    with_instructions: str = "False",
 ) -> DataLoader:
     """Function to create the required huggingface dataset to train the T5
     models on the sentiment analysis task."""
 
-    # to fix bug with boolean arguments.
-    with_instruct = with_instructions == "True"
     if task_name == "semeval":
-        rawdata = read_semeval_sentiment_file(file_name, repeat_input, with_instruct)
+        rawdata = read_semeval_sentiment_file(file_name, instruction_type, repeat_input)
     elif task_name == "sst2":
-        rawdata = read_sst2_sentiment_file(file_name, repeat_input, with_instruct)
+        rawdata = read_sst2_sentiment_file(file_name, instruction_type, repeat_input)
     else:
         raise Exception(f"this {task_name} is not supported!")
 

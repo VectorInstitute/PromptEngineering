@@ -30,7 +30,7 @@ flags.DEFINE_string("dev_file", "/tmp/dev.csv", "the path/name of the dev file."
 flags.DEFINE_string("test_file", "/tmp/test.csv", "the path/name of the test file.")
 flags.DEFINE_string("task_name", "semeval_3_class_sentiment", "the name of the downstream nlp task.")
 flags.DEFINE_string("train_file", "/tmp/train.csv", "the path/name of the train file.")
-flags.DEFINE_string("with_instructions", "False", "Whether to augment the input to have instructions or not.")
+flags.DEFINE_string("instruction_type", "qa", "The intruction type to format the input sentences.")
 
 
 def start_predicting(model: MyBaseT5, dataloader: torch.utils.data.DataLoader, prediction_file: str) -> None:
@@ -125,11 +125,15 @@ def train_model(
 
 def test_model(
     model: MyBaseT5,
+    metric: Callable[[str, str, str], float],
     test_dataloader: torch.utils.data.DataLoader,
 ) -> None:
+    writer = SummaryWriter(FLAGS.model_path)
     if FLAGS.mode in ["test", "inference", "eval", "no_finetune_test"]:
         print("Predicting...")
         start_predicting(model, test_dataloader, FLAGS.prediction_file)
+        score = metric(FLAGS.test_file, FLAGS.prediction_file, FLAGS.task_name)
+        writer.add_scalar("Score", score, 0)
     else:
         raise Exception(f"the mode {FLAGS.mode} is not for testing.")
 
@@ -148,16 +152,16 @@ def launch_test_or_train() -> None:
             file_name=FLAGS.train_file,
             task_name=FLAGS.task_name,
             shuffle=True,
+            instruction_type=FLAGS.instruction_type,
             repeat_input=False,
-            with_instructions=FLAGS.with_instructions,
         )
         eval_dataloader = create_sentiment_dataset(
             tokenizer=model.tokenizer,
             file_name=FLAGS.dev_file,
             task_name=FLAGS.task_name,
             shuffle=False,
+            instruction_type=FLAGS.instruction_type,
             repeat_input=True,
-            with_instructions=FLAGS.with_instructions,
         )
         train_model(
             model=model, metric=sentiment_metric, train_dataloader=train_dataloader, eval_dataloader=eval_dataloader
@@ -172,10 +176,10 @@ def launch_test_or_train() -> None:
             file_name=FLAGS.test_file,
             task_name=FLAGS.task_name,
             shuffle=False,
+            instruction_type=FLAGS.instruction_type,
             repeat_input=True,
-            with_instructions=FLAGS.with_instructions,
         )
-        test_model(model=model, test_dataloader=test_dataloader)
+        test_model(model=model, metric=sentiment_metric, test_dataloader=test_dataloader)
 
 
 def launch_classifier_train() -> None:
@@ -188,16 +192,16 @@ def launch_classifier_train() -> None:
         file_name=FLAGS.train_file,
         task_name=FLAGS.task_name,
         shuffle=True,
+        instruction_type=FLAGS.instruction_type,
         repeat_input=False,
-        with_instructions=FLAGS.with_instructions,
     )
     eval_dataloader = create_sentiment_dataset(
         tokenizer=model.tokenizer,
         file_name=FLAGS.dev_file,
         task_name=FLAGS.task_name,
         shuffle=False,
+        instruction_type=FLAGS.instruction_type,
         repeat_input=False,
-        with_instructions=FLAGS.with_instructions,
     )
     train_model(
         model=model,
@@ -209,7 +213,7 @@ def launch_classifier_train() -> None:
 
 def launch_no_finetune_predict() -> None:
     """launch the predict phase for the no prompting experiments without
-    finetuning any parameters and only relying on the T5-base."""
+    finetuning any parameters and only relying on the T5 model."""
 
     FLAGS.mode = "no_finetune_test"
     model = FineTuneT5()
@@ -218,11 +222,12 @@ def launch_no_finetune_predict() -> None:
         file_name=FLAGS.test_file,
         task_name=FLAGS.task_name,
         shuffle=False,
+        instruction_type=FLAGS.instruction_type,
         repeat_input=True,
-        with_instructions=FLAGS.with_instructions,
     )
     test_model(
         model=model,
+        metric=sentiment_metric,
         test_dataloader=eval_dataloader,
     )
 
