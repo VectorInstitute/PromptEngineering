@@ -52,7 +52,7 @@ def start_predicting(model: MyBaseT5, dataloader: torch.utils.data.DataLoader, p
 
 def train_model(
     model: MyBaseT5,
-    metric: Callable[[str, str, str, str], float],
+    metric: Callable[[str, str, str], float],
     train_dataloader: torch.utils.data.DataLoader,
     eval_dataloader: torch.utils.data.DataLoader,
 ) -> None:
@@ -93,7 +93,7 @@ def train_model(
                 )
                 if global_step % FLAGS.steps_per_checkpoint == 0:
                     start_predicting(model, eval_dataloader, eval_file)
-                    score = metric(FLAGS.dev_file, eval_file, FLAGS.task_name, FLAGS.instruction_type)  # type: ignore
+                    score = metric(FLAGS.dev_file, eval_file, FLAGS.task_name)  # type: ignore
                     writer.add_scalar("Score/dev", score, global_step)
                     if score > best_score:
                         best_score = score
@@ -108,7 +108,7 @@ def train_model(
 
             # do final evaluation on the dev data at the end of epoch.
             start_predicting(model, eval_dataloader, eval_file)
-            score = metric(FLAGS.dev_file, eval_file, FLAGS.task_name, FLAGS.instruction_type)  # type: ignore
+            score = metric(FLAGS.dev_file, eval_file, FLAGS.task_name)  # type: ignore
             writer.add_scalar("Score/dev", score, global_step)
             if score > best_score:
                 best_score = score
@@ -125,14 +125,14 @@ def train_model(
 
 def test_model(
     model: MyBaseT5,
-    metric: Callable[[str, str, str, str], float],
+    metric: Callable[[str, str, str], float],
     test_dataloader: torch.utils.data.DataLoader,
 ) -> None:
     writer = SummaryWriter(FLAGS.model_path)
     if FLAGS.mode in ["test", "inference", "eval", "no_finetune_test"]:
         print("Predicting...")
         start_predicting(model, test_dataloader, FLAGS.prediction_file)
-        score = metric(FLAGS.test_file, FLAGS.prediction_file, FLAGS.task_name, FLAGS.instruction_type)
+        score = metric(FLAGS.test_file, FLAGS.prediction_file, FLAGS.task_name)
         writer.add_scalar("Score", score, 0)
     else:
         raise Exception(f"the mode {FLAGS.mode} is not for testing.")

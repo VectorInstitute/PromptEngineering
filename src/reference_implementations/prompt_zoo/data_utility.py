@@ -50,7 +50,11 @@ def preprocess_semeval_sentiment(text: str) -> str:
 
 
 def template_data(
-    all_classes: List[str], sentences: List[str], labels: List[str], instruction_type: str, repeat_input: bool
+    all_classes: List[str],
+    sentences: List[str],
+    labels: List[str],
+    instruction_type: str,
+    repeat_input: bool,
 ) -> SentimentRawData:
     """Helper function to format the data for the models.
 
