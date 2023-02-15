@@ -39,15 +39,22 @@ fi
 
 # Process input args
 SCRIPT=$1
+
 LOG_DIR=$2
+
 LOG_PATH="${LOG_DIR}/log_${SLURM_JOB_ID}_rank_\${SLURM_PROCID}.log"
+
 EXP_TYPE=$3
 
+TASK=$4
+
+MODEL_PATH=$5
+
 # learning rate.
-LR=$4
+LR=$6
 
 # prompt length.
-LEN=$5
+LEN=$7
 
 echo "Placing logs in: ${LOG_DIR}"
 
@@ -61,4 +68,6 @@ mkdir -p "${LOG_DIR}"
 
 # Run on all nodes
 /opt/slurm/bin/srun -N"${SLURM_NNODES}" -l \
-    bash -c "bash ${SCRIPT} LEN=${LEN} EXP_TYPE=${EXP_TYPE} LR=${LR} >> ${LOG_PATH} 2>&1"
+    bash -c "bash ${SCRIPT} MODEL_PATH=${MODEL_PATH} \
+             LEN=${LEN} EXP_TYPE=${EXP_TYPE} LR=${LR} \
+             TASK=${TASK} >> ${LOG_PATH} 2>&1"
