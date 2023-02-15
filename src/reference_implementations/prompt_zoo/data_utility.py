@@ -69,14 +69,14 @@ def template_data(
     if instruction_type == "qa":
         instruction = "what would be the sentiment of the sentence?"
         sentences = [f"question: {instruction} context: {sent}" for sent in sentences]
-    elif instruction_type == "describe_task":
-        instruction = f"Generate the sentiment of the next sentence from the labels {' '.join(all_classes)}"
-        sentences = [f"{instruction} . {sent}" for sent in sentences]
+    elif instruction_type == "instruction_at_start":
+        instruction = "Generate the sentiment of the next sentence."
+        sentences = [f"{instruction} {sent}" for sent in sentences]
     elif instruction_type == "no_instruction":
         sentences = sentences
     elif instruction_type == "instruction_at_end":
-        instruction = "The sentiment of the previous sentence is"
-        sentences = [f"{sent.rstrip('.')}. {instruction}" for sent in sentences]
+        instruction = "Generate the sentiment of the previous sentence."
+        sentences = [f"{sent} {instruction}" for sent in sentences]
 
     if repeat_input:
         # repeat every input for every possible output class.

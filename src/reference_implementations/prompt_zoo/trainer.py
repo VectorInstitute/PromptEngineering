@@ -8,7 +8,7 @@ training/inference.
 import csv
 import io
 import os
-from typing import Any, Callable
+from typing import Any, Callable, Iterator, Tuple
 
 import numpy as np
 import torch
@@ -50,6 +50,15 @@ def start_predicting(model: MyBaseT5, dataloader: torch.utils.data.DataLoader, p
     return
 
 
+def start_training(model: MyBaseT5, dataloader: torch.utils.data.DataLoader) -> Iterator[Tuple[int, float]]:
+    """Pick a batch from the dataloader, and train the model for one step."""
+    step = 0
+    for batch in dataloader:
+        loss_values = model.train(batch)
+        step += 1
+        yield step, loss_values["loss_value"]
+
+
 def train_model(
     model: MyBaseT5,
     metric: Callable[[str, str, str], float],
@@ -67,21 +76,7 @@ def train_model(
         while epoch < FLAGS.max_epochs and global_step < FLAGS.training_steps:
             print("\nEpoch:{0}\n".format(epoch))
             epoch_loss = []
-            step = 0
-            data_iter = iter(train_dataloader)
-            # https://peps.python.org/pep-0572/
-            while (batch := next(data_iter, None)) is not None:
-                if FLAGS.t5_exp_type == "gradient_search":
-                    # for training with gradient_search, we need two batches.
-                    next_batch = next(data_iter, None)
-                    if next_batch is None:
-                        next_batch = batch
-                    loss_values = model.two_batch_train(batch, next_batch)
-                else:
-                    loss_values = model.train(batch)
-
-                loss = loss_values["loss_value"]
-                step += 1
+            for step, loss in start_training(model, train_dataloader):
                 global_step += 1
                 total_loss.append(loss)
                 epoch_loss.append(loss)

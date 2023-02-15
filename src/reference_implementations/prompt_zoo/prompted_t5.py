@@ -150,13 +150,6 @@ class MyBaseT5(torch.nn.Module):
         pass
 
     @abstractmethod
-    def two_batch_train(
-        self, batch: torch.utils.data.Dataset, next_batch: torch.utils.data.Dataset
-    ) -> Dict[str, float]:
-        """The abstract train function."""
-        pass
-
-    @abstractmethod
     def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
         """The abstract predict function."""
         pass

@@ -32,7 +32,6 @@ def prepend_prompt(
 
     # put prompt tokens after the first BOS token.
     prompted_input_ids = torch.cat((input_ids[:, 0].view(batch_size, 1), prompt_tensor, input_ids[:, 1:]), dim=1)
-
     # the mask on the BOS token is always 1.
     prompted_mask = torch.cat((prompt_mask, mask), dim=1)
     return prompted_input_ids, prompted_mask
