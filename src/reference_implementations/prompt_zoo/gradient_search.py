@@ -58,11 +58,8 @@ class PromptSearchMemory:
         """For the next training step, select the top beam_size prompt templates out of beam_size * top_k template candidates
         inside the beam_candidates. The sorting is based on the score attribute of the PromptTemplate.
         """
-        # In the comparison, also include the current beam templates.
-        template_pool = beam_candidates
-
         # sort the prompt templates by their score in descending order.
-        sorted_pool = sorted(template_pool, key=operator.attrgetter("score"), reverse=True)
+        sorted_pool = sorted(beam_candidates, key=operator.attrgetter("score"), reverse=True)
 
         # keep the top beam_size prompt templates.
         self.beam = sorted_pool[: FLAGS.beam_size]
@@ -106,7 +103,7 @@ class PromptSearchMemory:
         # memory is on RAM and not on GPU.
         for index, top_idx_per_beam in enumerate(top_indices.tolist()):
             for beam_idx, prompt_template in enumerate(self.beam):
-                if top_scores[index][top_idx_per_beam] > 0:
+                if top_scores[index][beam_idx] > 0:
                     candidate_template = copy.deepcopy(prompt_template)
                     candidate_template.tokens[prompt_step] = top_idx_per_beam[beam_idx]
                     candidate_template.score = -float("inf")
