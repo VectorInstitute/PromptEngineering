@@ -12,7 +12,8 @@ from torch.utils.data import DataLoader, Dataset
 from transformers import T5Tokenizer
 
 FLAGS = flags.FLAGS
-flags.DEFINE_integer("batch_size", 16, "The batch size used for training or inference.")
+flags.DEFINE_integer("train_batch_size", 16, "The batch size used for training.")
+flags.DEFINE_integer("eval_batch_size", 2048, "The batch size used for inference on the test or validation data.")
 flags.DEFINE_integer("source_max_length", 128, "The maximum number of tokens consider in the input sequence.")
 flags.DEFINE_integer("decoder_max_length", 128, "The maximum number of tokens consider in the output sequence.")
 
@@ -69,14 +70,14 @@ def template_data(
     if instruction_type == "qa":
         instruction = "what would be the sentiment of the sentence?"
         sentences = [f"question: {instruction} context: {sent}" for sent in sentences]
-    elif instruction_type == "describe_task":
-        instruction = f"Generate the sentiment of the next sentence from the labels {' '.join(all_classes)}"
-        sentences = [f"{instruction} . {sent}" for sent in sentences]
+    elif instruction_type == "instruction_at_start":
+        instruction = "Generate the sentiment of the next sentence."
+        sentences = [f"{instruction} {sent}" for sent in sentences]
     elif instruction_type == "no_instruction":
         sentences = sentences
     elif instruction_type == "instruction_at_end":
-        instruction = "The sentiment of the previous sentence is"
-        sentences = [f"{sent.rstrip('.')}. {instruction}" for sent in sentences]
+        instruction = "Generate the sentiment of the previous sentence."
+        sentences = [f"{sent} {instruction}" for sent in sentences]
 
     if repeat_input:
         # repeat every input for every possible output class.
@@ -197,5 +198,10 @@ def create_sentiment_dataset(
         "class_indices": rawdata.class_indices,
     }
 
-    dataloader = DataLoader(SentimentDataset(data), batch_size=FLAGS.batch_size, shuffle=shuffle)
+    if shuffle:
+        # this is training phase.
+        dataloader = DataLoader(SentimentDataset(data), batch_size=FLAGS.train_batch_size, shuffle=True)
+    else:
+        # this is inference phase.
+        dataloader = DataLoader(SentimentDataset(data), batch_size=FLAGS.eval_batch_size, shuffle=False)
     return dataloader
