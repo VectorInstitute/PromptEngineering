@@ -12,7 +12,8 @@ from torch.utils.data import DataLoader, Dataset
 from transformers import T5Tokenizer
 
 FLAGS = flags.FLAGS
-flags.DEFINE_integer("batch_size", 16, "The batch size used for training or inference.")
+flags.DEFINE_integer("train_batch_size", 16, "The batch size used for training.")
+flags.DEFINE_integer("eval_batch_size", 2048, "The batch size used for inference on the test or validation data.")
 flags.DEFINE_integer("source_max_length", 128, "The maximum number of tokens consider in the input sequence.")
 flags.DEFINE_integer("decoder_max_length", 128, "The maximum number of tokens consider in the output sequence.")
 
@@ -197,5 +198,10 @@ def create_sentiment_dataset(
         "class_indices": rawdata.class_indices,
     }
 
-    dataloader = DataLoader(SentimentDataset(data), batch_size=FLAGS.batch_size, shuffle=shuffle)
+    if shuffle:
+        # this is training phase.
+        dataloader = DataLoader(SentimentDataset(data), batch_size=FLAGS.train_batch_size, shuffle=True)
+    else:
+        # this is inference phase.
+        dataloader = DataLoader(SentimentDataset(data), batch_size=FLAGS.eval_batch_size, shuffle=False)
     return dataloader
