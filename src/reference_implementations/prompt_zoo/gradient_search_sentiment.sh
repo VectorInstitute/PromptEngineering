@@ -52,5 +52,5 @@ elif [ "${TASK}" = "sst2" ]; then
         --training_steps 1000000 \
         --steps_per_checkpoint 2 \
         --beam_size 1 \
-        --top_k 40 \
+        --top_k 40
 fi
