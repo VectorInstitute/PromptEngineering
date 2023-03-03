@@ -1,10 +1,5 @@
 """This module implements different ideas for fine-tuning a T5 model, which is
 adapted with the prefix language modelling, on some downstream NLP datasets.
-
-The module implements the following baselines:
-0 - No fine-tuning, and no instructions!
-1 - No fine-tuning, however, augment input with prompt instructions
-2 - No fine-tuning, however, augment input with prompt instructions + in-context examples.
 """
 
 import os
@@ -204,8 +199,7 @@ class FineTuneT5(MyBaseT5):
         1 - Fully fine-tuning all the parameters of the T5 model.
         2 - Only fine-tuning the shared input embedding layer of the T5 encoder/decoder.
         3 - Only fine-tuning the output embedding layer of the T5 decoder.
-        4 - Search for the discrete prompts to augment the input using the gradient-search.
-        5 - Initialize some soft-prompt vectors and augment to the input embedding matrix and
+        4 - Initialize some soft-prompt vectors and augment to the input embedding matrix and
             only fine-tune those prompt vectors on the downstream task.
     """
 
