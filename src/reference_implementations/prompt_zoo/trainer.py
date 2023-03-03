@@ -113,6 +113,11 @@ def train_model(
             if score > best_score:
                 best_score = score
                 model.save("best_step")
+            elif score < best_score and FLAGS.t5_exp_type == "gradient_search":
+                # re-load the best previous template searched so far!
+                # the previous templates was not good!
+                FLAGS.checkpoint = "best_step"
+                model.load_from_checkpoint()
             epoch += 1
 
         writer.close()
