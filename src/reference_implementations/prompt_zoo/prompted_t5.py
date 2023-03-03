@@ -9,7 +9,7 @@ The module implements the following baselines:
 
 import os
 from abc import abstractmethod
-from typing import Dict, Iterator, List, Optional
+from typing import Dict, Iterator, List, Optional, Union
 
 import torch
 from absl import flags
@@ -150,7 +150,7 @@ class MyBaseT5(torch.nn.Module):
         pass
 
     @abstractmethod
-    def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
+    def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, Union[str, float]]]:
         """The abstract predict function."""
         pass
 
@@ -239,7 +239,7 @@ class FineTuneT5(MyBaseT5):
 
         return {"loss_value": loss_value}
 
-    def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
+    def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, Union[str, float]]]:
         """The main prediction loop for a given potential class label."""
 
         class_log_ps = self.forward_pass(batch)

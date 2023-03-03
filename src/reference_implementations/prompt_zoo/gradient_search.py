@@ -4,7 +4,7 @@ import os
 import pickle
 import random
 from dataclasses import dataclass, field
-from typing import Dict, Iterator, List
+from typing import Dict, Iterator, List, Union
 
 import torch
 from absl import flags
@@ -89,13 +89,20 @@ class PromptSearchMemory:
             prompt_token_idx = prompt_template.tokens[prompt_step]
             log_likelihood = log_likelihoods[beam_idx]
             log_likelihood.backward(retain_graph=True)
+
+            # this is where we compute the gradient of the log likelihood
+            # w.r.t the embedding matrix weights of the token being optimized.
             embedding_grad = embedding_weight.grad[prompt_token_idx].detach().clone()
             embedding_grads.append(embedding_grad)
             embedding_weight.grad.data.zero_()
 
         embedding_grads_tensor = torch.stack(embedding_grads, dim=1)
+        # subtracting the embedding weight of the current prompt token to guarantee that its computed vocab score is 0.
+        # vocab_scores has the shape (vocab_size, beam_size)
         vocab_scores = torch.matmul(embedding_weight - embedding_weight[prompt_token_idx], embedding_grads_tensor)
 
+        # we use relu to zero out the negative scores and then don't use the vocab with zero scores.
+        # we only include words where in approximation, they give us positive increment in the label likelihood.
         top_scores, top_indices = torch.topk(
             torch.nn.functional.relu(vocab_scores), FLAGS.top_k, dim=0, largest=True, sorted=True
         )
@@ -106,6 +113,8 @@ class PromptSearchMemory:
                 if top_scores[index][beam_idx] > 0:
                     candidate_template = copy.deepcopy(prompt_template)
                     candidate_template.tokens[prompt_step] = top_idx_per_beam[beam_idx]
+                    # we use the initial score -inf because the candidate needs to be scored on a batch data
+                    # and the proper score will be given later.
                     candidate_template.score = -float("inf")
                     beam_candidates.append(candidate_template)
 
@@ -173,6 +182,7 @@ class SearchT5(MyBaseT5):
 
     def train(self, batch: torch.utils.data.Dataset) -> Dict[str, float]:
         """The train loop for gradient-search method."""
+        # select random prompt token to optimize
         prompt_index = random.randint(0, FLAGS.prompt_length - 1)
         template_log_likelihood = self.score_templates(batch, self.search_memory.beam, train=True)
         template_log_likelihood = template_log_likelihood.mean(dim=0)  # mean across batch_size
@@ -181,6 +191,9 @@ class SearchT5(MyBaseT5):
             log_likelihoods=template_log_likelihood,
             prompt_step=prompt_index,
         )
+
+        # we're optimizing and scoring the beams on the training batch here
+        # rather than double batching as the autoprompt paper does.
         beam_candidate_scores = self.score_templates(batch, beam_candidates, train=False)
         beam_candidate_scores = beam_candidate_scores.mean(dim=0)  # mean across batch_size
         for index, score in enumerate(beam_candidate_scores.tolist()):
@@ -189,7 +202,7 @@ class SearchT5(MyBaseT5):
         self.search_memory.update_beam(beam_candidates)
         return {"loss_value": self.search_memory.get_beam_loss()}
 
-    def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
+    def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, Union[str, float]]]:
         """The main prediction loop for a given potential class label using a beam of templates."""
         top_template = [self.search_memory.beam[0]]
         class_log_ps = self.score_templates(batch, top_template, train=False)
@@ -199,7 +212,7 @@ class SearchT5(MyBaseT5):
         # not efficient, but let's pair potential class along the prediction scores.
         # all transformer special tokens will be removed.
         # same labels have been repeated once per template in beam.
-        potentials_str = self.tokenizer.batch_decode(self.loaded_batch["labels"], skip_special_tokens=True)
+        potentials_str = self.tokenizer.batch_decode(batch["labels"], skip_special_tokens=True)
         prompt_str = self.tokenizer.batch_decode(top_template[0].tokens, skip_special_tokens=True)
         print("evaluating batch with prompt template:", prompt_str)
         for index, potential_class in enumerate(potentials_str):
