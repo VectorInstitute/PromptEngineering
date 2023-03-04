@@ -86,7 +86,10 @@ class PromptSearchMemory:
         beam_candidates = []
         embedding_grads = []
         for beam_idx, prompt_template in enumerate(self.beam):
+            # prompt_token_idx is the word embedding index; the index of vocabulary table.
             prompt_token_idx = prompt_template.tokens[prompt_step]
+
+            # log_likelihood produced by a particular prompt template from the beam.
             log_likelihood = log_likelihoods[beam_idx]
             log_likelihood.backward(retain_graph=True)
 
@@ -153,10 +156,11 @@ class SearchT5(MyBaseT5):
         except Exception as e:
             raise Exception("Could not load the checkpoint due to error:{}".format(e))
 
-    def save(self, checkpoint_name: str) -> None:
+    def save(self) -> None:
         """Save the optimized prompt templates to the model_path for the specified checkpoint
         name."""
         m_path = FLAGS.model_path
+        checkpoint_name = FLAGS.checkpoint
         if not os.path.exists(m_path):
             os.makedirs(m_path)
 

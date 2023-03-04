@@ -35,7 +35,7 @@ flags.DEFINE_integer("seed", 42, "the seed number")
 flags.DEFINE_string("t5_pretrained_model", "google/t5-large-lm-adapt", "initial pre-trained model to use as T5.")
 flags.DEFINE_string("mode", "train", "the mode of run? train or test")
 flags.DEFINE_string("model_path", "/tmp/", "main directory to save or load the model from")
-flags.DEFINE_string("checkpoint", None, "checkpoint name to load from.")
+flags.DEFINE_string("checkpoint", "best_step", "checkpoint name to load from.")
 flags.DEFINE_float("dropout_rate", 0.1, "dropout_rate used in T5 base.")
 
 
@@ -105,10 +105,11 @@ class MyBaseT5(torch.nn.Module):
         except Exception as e:
             raise Exception("Could not load the checkpoint due to error:{}".format(e))
 
-    def save(self, checkpoint_name: str) -> None:
+    def save(self) -> None:
         """Save the modules to the model_path for the specified checkpoint
         name."""
         m_path = FLAGS.model_path
+        checkpoint_name = FLAGS.checkpoint
         if not os.path.exists(m_path):
             os.makedirs(m_path)
         for m_name, model in self.model_pool.items():
@@ -161,8 +162,8 @@ class MyBaseT5(torch.nn.Module):
         compute the log probability over the batch for that given prompt
         template.
 
-        This function can be called multiple times for training or
-        inference. If there is not prompt, it won't repeat the data per
+        This function can be called or training or
+        inference or If there are no prompts. If there is no prompt, it won't repeat the data per
         prompt template.
         """
 
