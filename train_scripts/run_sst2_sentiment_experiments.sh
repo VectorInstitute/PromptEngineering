@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# This is the main directory where the model checkpoints will be saved.
+# if you are working under a different username on the vector's cluster,
+# please create a specific directory under your username: /scratch/ssd004/scratch/username/
+# the following directory is created under the username snajafi.
 mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/
 
 rates=(0.3 0.1 0.001 0.01 0.0005 0.005)
