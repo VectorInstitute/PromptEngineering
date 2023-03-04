@@ -60,12 +60,11 @@ def modify_inputs_outputs(batch: torch.utils.data.Dataset, prompt_lists: Optiona
     elif FLAGS.t5_exp_type == "gradient_search" and prompt_lists:
         input_ids_stack = []
         input_mask_stack = []
-        num_prompts = 0
+        num_prompts = len(prompt_lists)
         for prompt_tokens in prompt_lists:
             input_ids, mask = prepend_prompt(batch["input_ids"], batch["attention_mask"], prompt_tokens)
             input_ids_stack.append(input_ids)
             input_mask_stack.append(mask)
-            num_prompts += 1
 
         batch["modified_input_ids"] = torch.stack(input_ids_stack, dim=1).view(num_prompts * batch_size, -1)
         batch["modified_attention_mask"] = torch.stack(input_mask_stack, dim=1).view(num_prompts * batch_size, -1)

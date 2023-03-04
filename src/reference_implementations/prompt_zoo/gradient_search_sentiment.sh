@@ -32,7 +32,8 @@ if [ "${TASK}" = "semeval" ]; then
         --instruction_type no_instruction \
         --beam_size 1 \
         --top_k 40 \
-        --t5_pretrained_model google/t5-large-lm-adapt
+        --t5_pretrained_model google/t5-large-lm-adapt \
+        --gradient_search_initial_prompt "Generate the sentiment of the next sentence."
 
 elif [ "${TASK}" = "sst2" ]; then
     python -m src.reference_implementations.prompt_zoo.trainer \
@@ -52,5 +53,6 @@ elif [ "${TASK}" = "sst2" ]; then
         --training_steps 1000000 \
         --steps_per_checkpoint 2 \
         --beam_size 1 \
-        --top_k 40
+        --top_k 40 \
+        --gradient_search_initial_prompt "Generate the sentiment of the next sentence."
 fi

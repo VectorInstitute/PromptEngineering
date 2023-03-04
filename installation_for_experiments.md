@@ -37,6 +37,9 @@ bash setup.sh OS=vcluster ENV_NAME=prompt_torch DEV=true
 ```
 
 Now we can run a jupyter notebook on this gpu node. We start the notebook on the example port `8888`:
+If the port `8888` is taken, try another random port between 1024 and 65000.
+Also note the URL output by the command to be used later. (ex. http://127.0.0.1:8888/?token=7ba0ba5c3e9f5668f92518e4c5e723fea8b69aca065b4d57)
+
 ```bash
 source ./prompt_torch-env/bin/activate
 jupyter notebook --ip 0.0.0.0 --port 8888
@@ -44,6 +47,7 @@ jupyter notebook --ip 0.0.0.0 --port 8888
 
 
 Using a new terminal window from our personal laptop, we need to create an ssh tunnel to that specific port of the gpu node:
+Note that `gpu001` is the name of the gpu we reserved at the beginnging.
 ```bash
 ssh username@v.vectorinstitute.ai -L 8888:gpu001:8888
 ```

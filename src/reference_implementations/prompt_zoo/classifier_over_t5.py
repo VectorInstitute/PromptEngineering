@@ -1,5 +1,5 @@
-"""This is a module to train a classifier on top of the encoder of T5."""
-from typing import Dict, Iterator, Tuple
+""" This is a module to train a classifier on top of the encoder of T5."""
+from typing import Dict, Iterator, Tuple, Union
 
 import torch
 from absl import flags
@@ -43,7 +43,7 @@ class FFClassifier(torch.nn.Module):
         good_hidden_states = hidden_states * extended_mask
 
         # average pooling as the input feature vector.
-        hidden_vector = torch.mean(good_hidden_states, dim=1)
+        hidden_vector = torch.sum(good_hidden_states, dim=1) / torch.sum(extended_mask, dim=1)
 
         feature_vector = self.act(self.layer(hidden_vector))
         scores = self.classifier(feature_vector)
@@ -78,7 +78,7 @@ class ClassifierT5(MyBaseT5):
 
         self.setup_models()
 
-    def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, str]]:
+    def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, Union[str, float]]]:
         """The main prediction loop using a separate classifier."""
 
         self.predict_mode_on()

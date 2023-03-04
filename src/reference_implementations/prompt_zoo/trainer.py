@@ -92,11 +92,11 @@ def train_model(
                     writer.add_scalar("Score/dev", score, global_step)
                     if score > best_score:
                         best_score = score
-                        model.save("best_step")
+                        # default checkpoint name is "best_step".
+                        model.save()
                     elif score < best_score and FLAGS.t5_exp_type == "gradient_search":
                         # re-load the best previous template searched so far!
                         # the previous templates was not good!
-                        FLAGS.checkpoint = "best_step"
                         model.load_from_checkpoint()
 
                 writer.add_scalar("Mean_Total_Loss/train", mean_total_loss, global_step)
@@ -112,12 +112,12 @@ def train_model(
             writer.add_scalar("Score/dev", score, global_step)
             if score > best_score:
                 best_score = score
-                model.save("best_step")
+                model.save()
             elif score < best_score and FLAGS.t5_exp_type == "gradient_search":
                 # re-load the best previous template searched so far!
                 # the previous templates was not good!
-                FLAGS.checkpoint = "best_step"
                 model.load_from_checkpoint()
+
             epoch += 1
 
         writer.close()
@@ -139,6 +139,7 @@ def test_model(
         start_predicting(model, test_dataloader, FLAGS.prediction_file)
         score = metric(FLAGS.test_file, FLAGS.prediction_file, FLAGS.task_name)
         writer.add_scalar("Score", score, 0)
+        print(f"The performance on the {FLAGS.test_file} is {score}")
     else:
         raise Exception(f"the mode {FLAGS.mode} is not for testing.")
 
@@ -171,7 +172,7 @@ def launch_test_or_train() -> None:
         train_model(
             model=model, metric=sentiment_metric, train_dataloader=train_dataloader, eval_dataloader=eval_dataloader
         )
-    elif FLAGS.mode in ["test", "inference"]:
+    elif FLAGS.mode in ["test", "inference", "no_finetune_test"]:
         if FLAGS.t5_exp_type == "gradient_search":
             model = SearchT5()
         else:
