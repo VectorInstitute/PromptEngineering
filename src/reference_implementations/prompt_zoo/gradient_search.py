@@ -110,7 +110,7 @@ class PromptSearchMemory:
         vocab_scores = torch.matmul(embedding_weight - embedding_weight[prompt_token_idx], embedding_grads_tensor)
 
         # we use relu to zero out the negative scores and then don't use the vocab with zero scores.
-        # we only include words where in approximation, they give us positive increment in the label likelihood.
+        # we only include words where in approximation, they give us positive increment in the label log likelihood.
         top_scores, top_indices = torch.topk(
             torch.nn.functional.relu(vocab_scores), FLAGS.top_k, dim=0, largest=True, sorted=True
         )
