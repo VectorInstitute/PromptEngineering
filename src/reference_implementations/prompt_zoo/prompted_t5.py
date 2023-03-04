@@ -84,7 +84,8 @@ class MyBaseT5(torch.nn.Module):
             # load from the given checkpoint.
             self.load_from_checkpoint()
         elif FLAGS.mode in ["no_finetune_test"]:
-            # just rely on the pre-trained T5 for prediction and no loading from the checkpoint.
+            # just rely on the pre-trained T5 or default prompt template
+            # for prediction and no loading from the checkpoint.
             pass
         else:
             raise Exception("Wrong mode {}!".format(FLAGS.mode))

@@ -135,6 +135,7 @@ def test_model(
         start_predicting(model, test_dataloader, FLAGS.prediction_file)
         score = metric(FLAGS.test_file, FLAGS.prediction_file, FLAGS.task_name)
         writer.add_scalar("Score", score, 0)
+        print(f"The performance on the {FLAGS.test_file} is {score}")
     else:
         raise Exception(f"the mode {FLAGS.mode} is not for testing.")
 
@@ -167,7 +168,7 @@ def launch_test_or_train() -> None:
         train_model(
             model=model, metric=sentiment_metric, train_dataloader=train_dataloader, eval_dataloader=eval_dataloader
         )
-    elif FLAGS.mode in ["test", "inference"]:
+    elif FLAGS.mode in ["test", "inference", "no_finetune_test"]:
         if FLAGS.t5_exp_type == "gradient_search":
             model = SearchT5()
         else:

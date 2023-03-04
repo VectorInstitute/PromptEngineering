@@ -16,6 +16,11 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_integer("top_k", 20, "Number of candidate tokens to replace the prompt token.")
 flags.DEFINE_integer("beam_size", 20, "Number of prompt templates to consider for beam search.")
+flags.DEFINE_integer(
+    "gradient_search_initial_prompt",
+    "Generate the sentiment of the next sentence.",
+    "An initial instruction to append to the start of the sentence.",
+)
 
 
 @dataclass(order=True)
@@ -139,9 +144,7 @@ class SearchT5(MyBaseT5):
 
         self.model_pool["t5_model"] = t5_model
 
-        instruct_ids = self.tokenizer("Generate the sentiment of the next sentence.", add_special_tokens=False)[
-            "input_ids"
-        ]
+        instruct_ids = self.tokenizer(FLAGS.gradient_search_initial_prompt, add_special_tokens=False)["input_ids"]
         self.search_memory = PromptSearchMemory(instruct_ids)
         self.setup_models()
 
