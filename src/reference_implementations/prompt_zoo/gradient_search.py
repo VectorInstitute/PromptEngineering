@@ -41,18 +41,18 @@ class PromptTemplate:
 
 
 class PromptSearchMemory:
-    """A search memory that keeps a sorted beam
-    (list) which stores the top beam_size templates according to the their label
-    likelihood computed over a batch of training data.
+    """A search memory that keeps a sorted beam (list) which stores the top
+    beam_size templates according to the their label likelihood computed over a
+    batch of training data.
 
-    This memory is used to easily store and read
-    PromptTemplates at different stages of the gradient-search prompting
-    augmented with beam search.
+    This memory is used to easily store and read PromptTemplates at
+    different stages of the gradient-search prompting augmented with
+    beam search.
     """
 
     def __init__(self, instruction_ids: List[int]) -> None:
-        """This initializes the search memory for the training and its beam will be
-        dumped to disk while saving the model."""
+        """This initializes the search memory for the training and its beam
+        will be dumped to disk while saving the model."""
         # allocate memory for the current beam of templates.
         FLAGS.prompt_length = len(instruction_ids)
         self.beam = []
@@ -60,7 +60,9 @@ class PromptSearchMemory:
             self.beam.append(PromptTemplate(tokens=instruction_ids, score=-float("inf")))
 
     def update_beam(self, beam_candidates: List[PromptTemplate]) -> None:
-        """For the next training step, select the top beam_size prompt templates out of beam_size * top_k template candidates
+        """For the next training step, select the top beam_size prompt.
+
+        templates out of beam_size * top_k template candidates
         inside the beam_candidates. The sorting is based on the score attribute of the PromptTemplate.
         """
         # sort the prompt templates by their score in descending order.
@@ -71,7 +73,9 @@ class PromptSearchMemory:
 
     def get_beam_loss(self) -> float:
         """Return the list of template scores inside the beam.
-        then consider the averaged negative label log-likelihood over a beam of templates as the loss.
+
+        then consider the averaged negative label log-likelihood over a
+        beam of templates as the loss.
         """
         searched_scores = [template.score for template in self.beam]
         return -sum(searched_scores) / len(searched_scores)
@@ -131,7 +135,11 @@ class PromptSearchMemory:
 
 class SearchT5(MyBaseT5):
     """Subclassing the mybase T5 class to introduce the T5 for gradient-
-    search. We also define a search memory to keep templates as we are scoring them during training."""
+    search.
+
+    We also define a search memory to keep templates as we are scoring
+    them during training.
+    """
 
     def __init__(self) -> None:
         super().__init__()
@@ -160,8 +168,8 @@ class SearchT5(MyBaseT5):
             raise Exception("Could not load the checkpoint due to error:{}".format(e))
 
     def save(self) -> None:
-        """Save the optimized prompt templates to the model_path for the specified checkpoint
-        name."""
+        """Save the optimized prompt templates to the model_path for the
+        specified checkpoint name."""
         m_path = FLAGS.model_path
         checkpoint_name = FLAGS.checkpoint
         if not os.path.exists(m_path):
@@ -177,8 +185,7 @@ class SearchT5(MyBaseT5):
         and compute the log probability over the batch for that given prompt
         template.
 
-        This function can be called for training or
-        inference.
+        This function can be called for training or inference.
         """
         batch_size, _ = batch["input_ids"].size()
         prompt_lists = [template.tokens for template in prompt_templates]
@@ -210,7 +217,8 @@ class SearchT5(MyBaseT5):
         return {"loss_value": self.search_memory.get_beam_loss()}
 
     def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, Union[str, float]]]:
-        """The main prediction loop for a given potential class label using a beam of templates."""
+        """The main prediction loop for a given potential class label using a
+        beam of templates."""
         top_template = [self.search_memory.beam[0]]
         class_log_ps = self.score_templates(batch, top_template, train=False)
         class_log_ps = class_log_ps.mean(dim=1)  # mean across the beam size.

@@ -1,6 +1,5 @@
-"""
-A module that defines the modifications to the T5 encoder-decoder and defines a new embedding for soft-prompt tuning.
-"""
+"""A module that defines the modifications to the T5 encoder-decoder and
+defines a new embedding for soft-prompt tuning."""
 import random
 
 import torch

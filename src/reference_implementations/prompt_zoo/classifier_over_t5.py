@@ -1,4 +1,4 @@
-""" This is a module to train a classifier on top of the encoder of T5."""
+"""This is a module to train a classifier on top of the encoder of T5."""
 from typing import Dict, Iterator, Tuple, Union
 
 import torch

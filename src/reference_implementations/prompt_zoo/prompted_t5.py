@@ -1,6 +1,5 @@
 """This module implements different ideas for fine-tuning a T5 model, which is
-adapted with the prefix language modelling, on some downstream NLP datasets.
-"""
+adapted with the prefix language modelling, on some downstream NLP datasets."""
 
 import os
 from abc import abstractmethod
@@ -158,9 +157,9 @@ class MyBaseT5(torch.nn.Module):
         compute the log probability over the batch for that given prompt
         template.
 
-        This function can be called or training or
-        inference or If there are no prompts. If there is no prompt, it won't repeat the data per
-        prompt template.
+        This function can be called or training or inference or If there
+        are no prompts. If there is no prompt, it won't repeat the data
+        per prompt template.
         """
 
         if train:
@@ -196,13 +195,14 @@ class MyBaseT5(torch.nn.Module):
 
 class FineTuneT5(MyBaseT5):
     """Wrapper class around the MyBaseT5 Model to experiment with different
-    finetuning ideas without having classifier.
-    Used for the following experiments:
-        1 - Fully fine-tuning all the parameters of the T5 model.
-        2 - Only fine-tuning the shared input embedding layer of the T5 encoder/decoder.
-        3 - Only fine-tuning the output embedding layer of the T5 decoder.
-        4 - Initialize some soft-prompt vectors and augment to the input embedding matrix and
-            only fine-tune those prompt vectors on the downstream task.
+    finetuning ideas without having classifier. Used for the following
+    experiments:
+
+    1 - Fully fine-tuning all the parameters of the T5 model.
+    2 - Only fine-tuning the shared input embedding layer of the T5 encoder/decoder.
+    3 - Only fine-tuning the output embedding layer of the T5 decoder.
+    4 - Initialize some soft-prompt vectors and augment to the input embedding matrix and
+        only fine-tune those prompt vectors on the downstream task.
     """
 
     def __init__(self) -> None:

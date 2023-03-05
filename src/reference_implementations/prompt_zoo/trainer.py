@@ -145,8 +145,8 @@ def test_model(
 
 
 def launch_test_or_train() -> None:
-    """launch the testing or training phase for the prompting experiments without having
-    the classifier on top."""
+    """launch the testing or training phase for the prompting experiments
+    without having the classifier on top."""
 
     if FLAGS.mode == "train":
         if FLAGS.t5_exp_type == "gradient_search":

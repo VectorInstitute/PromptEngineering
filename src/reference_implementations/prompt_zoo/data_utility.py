@@ -57,8 +57,9 @@ def template_data(
     instruction_type: str,
     repeat_input: bool,
 ) -> SentimentRawData:
-    """Helper function to format the data for the models.
-    The instruction_type could have 4 options:
+    """Helper function to format the data for the models. The instruction_type
+    could have 4 options:
+
         - "no_instruction": we just feed the input as is to the model.
         - "instruction_at_start": we include an instruction as the prefix to the input sentence.
         - "instruction_at_end": we inlcude an instruction as the suffix to the input sentence.
