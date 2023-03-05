@@ -31,7 +31,7 @@ bash setup.sh OS=vcluster ENV_NAME=prompt_torch DEV=true
 
 Then activate the `prompt_torch` environment to launch the training jobs.
 ```bash
-s
+source ./prompt_torch-env/bin/activate
 ```
 
 
@@ -107,7 +107,19 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     100
 ```
 
-Running hyper-parameter search and training of fine-tuning baselines on `SST2`:
+To view the tensorboard with the training status for all of the submitted jobs:
+```
+tensorboard --logdir=/scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semval/ --port=6008
+```
+
+Then create an ssh tunnel to the port 6008 we used in the above command from your local computer:
+```bash
+ssh username@v.vectorinstitute.ai -L 6008:localhost:6008
+```
+
+Then visit `https://localhost:6008`.
+
+# Running hyper-parameter search and training of fine-tuning baselines on `SST2`:
 ```bash
 source prompt_torch-env/bin/activate
 bash ./train_scripts/run_sst2_sentiment_experiments.sh
