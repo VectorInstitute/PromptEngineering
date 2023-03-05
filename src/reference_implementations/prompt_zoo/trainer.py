@@ -112,8 +112,12 @@ def train_model(
             writer.add_scalar("Score/dev", score, global_step)
             if score > best_score:
                 best_score = score
-                # default checkpoint name is "best_step".
                 model.save()
+            elif score < best_score and FLAGS.t5_exp_type == "gradient_search":
+                # re-load the best previous template searched so far!
+                # the previous templates was not good!
+                model.load_from_checkpoint()
+
             epoch += 1
 
         writer.close()
