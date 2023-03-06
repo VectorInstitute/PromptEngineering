@@ -12,7 +12,8 @@ from torch.utils.data import DataLoader, Dataset
 from transformers import T5Tokenizer
 
 FLAGS = flags.FLAGS
-flags.DEFINE_integer("batch_size", 16, "The batch size used for training or inference.")
+flags.DEFINE_integer("train_batch_size", 16, "The batch size used for training.")
+flags.DEFINE_integer("eval_batch_size", 2048, "The batch size used for inference on the test or validation data.")
 flags.DEFINE_integer("source_max_length", 128, "The maximum number of tokens consider in the input sequence.")
 flags.DEFINE_integer("decoder_max_length", 128, "The maximum number of tokens consider in the output sequence.")
 
@@ -50,20 +51,35 @@ def preprocess_semeval_sentiment(text: str) -> str:
 
 
 def template_data(
-    all_classes: List[str], sentences: List[str], labels: List[str], with_instructions: bool, repeat_input: bool
+    class_to_id: Dict[str, int],
+    sentences: List[str],
+    labels: List[str],
+    instruction_type: str,
+    repeat_input: bool,
 ) -> SentimentRawData:
-    """Helper function to format the data for the models.
+    """Helper function to format the data for the models. The instruction_type
+    could have 4 options:
 
-    if with_instructions is True, we will add an instruction to the input sentence
-    and make the input a template with special keywords "instructions:", "sentence:", and "sentiment:".
+        - "no_instruction": we just feed the input as is to the model.
+        - "instruction_at_start": we include an instruction as the prefix to the input sentence.
+        - "instruction_at_end": we inlcude an instruction as the suffix to the input sentence.
+        - "qa": we convert the input to the question-answering format used by the T5 model.
 
-    if the repeat_input is True, we will repeat the input multiple times for every possible output class.
+    If the repeat_input is True, we will repeat the input multiple times for every possible output class.
 
-    Finally, the end of sentence token </s> used with T5 models are added to both input and output."""
-    class_to_id = {label: index for index, label in enumerate(all_classes)}
-    if with_instructions:
-        instruction = f"Generate the sentiment of the next sentence from the labels {' '.join(all_classes)}."
-        sentences = [f"instruction: {instruction} sentence: {sent} sentiment:" for sent in sentences]
+    Finally, the end of sentence token </s> used with T5 models are added to both input and output.
+    """
+    if instruction_type == "qa":
+        instruction = "what would be the sentiment of the sentence?"
+        sentences = [f"question: {instruction} context: {sent}" for sent in sentences]
+    elif instruction_type == "instruction_at_start":
+        instruction = "Generate the sentiment of the next sentence."
+        sentences = [f"{instruction} {sent}" for sent in sentences]
+    elif instruction_type == "no_instruction":
+        sentences = sentences
+    elif instruction_type == "instruction_at_end":
+        instruction = "Generate the sentiment of the previous sentence."
+        sentences = [f"{sent} {instruction}" for sent in sentences]
 
     if repeat_input:
         # repeat every input for every possible output class.
@@ -73,10 +89,10 @@ def template_data(
         outputs = []
         class_indices = []
         for sent in sentences:
-            for label in all_classes:
+            for label, index in class_to_id.items():
                 inputs.append(f"{sent} </s>")
                 outputs.append(f"{label} </s>")
-                class_indices.append(class_to_id[label])
+                class_indices.append(index)
         return SentimentRawData(inputs=inputs, outputs=outputs, class_indices=class_indices)
 
     # add end of sequence token:
@@ -86,31 +102,26 @@ def template_data(
     return SentimentRawData(inputs=inputs, outputs=outputs, class_indices=class_indices)
 
 
-def read_semeval_sentiment_file(
-    file_path: str, repeat_input: bool = False, with_instructions: bool = False
-) -> SentimentRawData:
+def read_semeval_sentiment_file(file_path: str, instruction_type: str, repeat_input: bool = False) -> SentimentRawData:
     """This function reads the semeval 2018 data files for sentiment analysis.
 
     Example header: 'ID  Tweet Affect Dimension  Intensity Class'
     """
     df = pd.read_csv(file_path, delimiter="\t")
+    class_to_id = {"negative": 0, "neutral": 1, "positive": 2}
     tweets = [white_space_fix(tweet) for tweet in df["Tweet"].tolist()]
     sentiments = [preprocess_semeval_sentiment(sent) for sent in df["Intensity Class"].tolist()]
 
-    # store class information for classification modules.
-    # for converting the class label to its index, we string sort the set to block
-    # different permutations of the class labels. required if we call function multiple times.
-    all_classes = sorted(list(set(sentiments)))
-    assert all_classes == sorted(["positive", "negative", "neutral"])
-    return template_data(all_classes, tweets, sentiments, with_instructions, repeat_input)
+    # the test data may have examples for some of the labels.
+    assert set(sentiments).issubset({"positive", "negative", "neutral"})
+    return template_data(class_to_id, tweets, sentiments, instruction_type, repeat_input)
 
 
-def read_sst2_sentiment_file(
-    split_name: str, repeat_input: bool = False, with_instructions: bool = False
-) -> SentimentRawData:
+def read_sst2_sentiment_file(split_name: str, instruction_type: str, repeat_input: bool = False) -> SentimentRawData:
     """Load the sst2 sentiment analysis split for train, validation or test."""
     assert split_name in {"train", "validation", "test"}
     dataset = load_dataset("sst2", split=split_name)
+    class_to_id = {"negative": 0, "positive": 1}
 
     def process_row(row: Dict[str, str]) -> Dict[str, str]:
         """Helper function to process each row of the dataset."""
@@ -128,8 +139,9 @@ def read_sst2_sentiment_file(
         sentences.append(row["sentence"])
         labels.append(row["sentiment"])
 
-    all_classes = sorted(list(set(labels)))
-    return template_data(all_classes, sentences, labels, with_instructions, repeat_input)
+    # the test data may only have examples with one label.
+    assert set(labels).issubset({"positive", "negative"})
+    return template_data(class_to_id, sentences, labels, instruction_type, repeat_input)
 
 
 class SentimentDataset(Dataset):
@@ -155,16 +167,16 @@ def create_sentiment_dataset(
     file_name: str,
     task_name: str,
     shuffle: bool,
+    instruction_type: str,
     repeat_input: bool = False,
-    with_instructions: bool = False,
 ) -> DataLoader:
     """Function to create the required huggingface dataset to train the T5
     models on the sentiment analysis task."""
 
     if task_name == "semeval":
-        rawdata = read_semeval_sentiment_file(file_name, repeat_input, with_instructions)
+        rawdata = read_semeval_sentiment_file(file_name, instruction_type, repeat_input)
     elif task_name == "sst2":
-        rawdata = read_sst2_sentiment_file(file_name, repeat_input, with_instructions)
+        rawdata = read_sst2_sentiment_file(file_name, instruction_type, repeat_input)
     else:
         raise Exception(f"this {task_name} is not supported!")
 
@@ -191,5 +203,10 @@ def create_sentiment_dataset(
         "class_indices": rawdata.class_indices,
     }
 
-    dataloader = DataLoader(SentimentDataset(data), batch_size=FLAGS.batch_size, shuffle=shuffle)
+    if shuffle:
+        # this is training phase.
+        dataloader = DataLoader(SentimentDataset(data), batch_size=FLAGS.train_batch_size, shuffle=True)
+    else:
+        # this is inference phase.
+        dataloader = DataLoader(SentimentDataset(data), batch_size=FLAGS.eval_batch_size, shuffle=False)
     return dataloader
