@@ -1,28 +1,55 @@
-# Prompt Engineering
+# Prompt Engineering Laboratory
+
 This repository holds all of the code associated with the project considering prompt engineering for large language models. This includes work around reference implementations, demo notebooks.
 
-The static code checker runs on python3.8
+The static code checker runs on python3.9
 
-# Installing dependencies
+All reference implementations are housed in `src/reference_implementations/`. Datasets to be used are placed in `resources/datasets`. There is also some information about JAX for those curious in learning more about that framework and the implementation of prompt tuning by Google (This is included but not supported in the prompt engineering lab).
 
-## Prompt Experiments
-For prompt experiments using t5 language model, please see the corresponding .md file.
-[installation_for_experiments.md](./installation_for_experiments.md) describes the steps to install the package and access gpu in the vector's cluster for the experiments around different prompt techniques.
+This repository is organized as follows
 
+## Prompt Tuning Reference Implementaitons
 
-## Virtualenv installing on macOS
+Automatic Prompt Tuning Methods are implemented under `src/reference_implementations/prompt_zoo`. Currently supported methods include:
+* Prompt Tuning
+* Gradient-based Discrete search
+* GrIPS
+* P-tuning.
+There are also several alternatives to prompt optimization implemented, including full model tuning and partial fine-tuning.
+
+For more information about using and running the prompt tuning experiments using the T5 language model, please see the corresponding .md file.
+[README.md](/src/reference_implementations/prompt_zoo/README.md) describes the steps to install the package and access gpu in the vector's cluster for the experiments around different prompt techniques.
+
+## Prompting OPT-175B, Galactica, or Other Large Language Models On the Cluster
+
+These reference implementations are housed in `src/reference_implementations/prompting_vector_llms/`
+
+This folder houses notebooks and implementations of prompting large language models hosted on Vector's compute cluster. There are notebooks for demonstrating various prompted downstream tasks, the affects of prompts on tasks like Aspect-Based Sentiment Analysis and text classification, along with prompt ensembling.
+
+## Fairness in language models
+
+These reference implementations reside in `src/reference_implementations/measuring_fairness/`
+
+This folder contains implementations for measuring fairness for models that have been fine-tuning or prompted to complete a sentiment classification task. There is also an implementation of measuring fairness for LLMs like OPT-175B or Galactica accessed on Vector's cluster.
+
+## Installing dependencies
+
+### Virtualenv installing on macOS
+
 If you wish to install the package in macOS for local development, you should call the following script to install `python3.9` on macOS and then setup the virtual env for the module you want to install. This approach only installs the ML libraries (`pytorch`, `tensorflow`, `jax`) for the CPU. If you also want to install the package in the editable mode with all the development requirements, you should use the flag `DEV=true` when you run the script, otherwise use the flag `DEV=false`.
 ```
-bash setup.sh OS=mac ENV_NAME=t5x DEV=true
+bash setup.sh OS=mac ENV_NAME=env_name DEV=true
 ```
 
-## Virtualenv installing on Vector's Cluster
+### Virtualenv installing on Vector's Cluster
 You can call `setup.sh` with the `OS=vcluster` flag. This installs python in the linux cluster of Vector and installs the ML libraries for the GPU cards.
 ```
-bash setup.sh OS=vcluster ENV_NAME=t5x DEV=true
+bash setup.sh OS=vcluster ENV_NAME=env_name DEV=true
 ```
 
-## Using Pre-commit Hooks
+The `setup.sh` script takes an *ENV_NAME* argument with possible values of `prompt_torch`, `t5x`, and `google_prompt_tuning`. The first value should be used for our prompt tuning implementations, while the second and third are used for running the JAX versions of prompt tuning (not currently supported).
+
+## Using Pre-commit Hooks (for developing in this repository)
 To check your code at commit time
 ```
 pre-commit install
@@ -31,81 +58,4 @@ pre-commit install
 You can also get pre-commit to fix your code
 ```
 pre-commit run
-```
-
-## Running T5x
-We support running T5x only on the vector's cluster.
-Make sure you install the cluster dependencies via the following command:
-```
-bash setup.sh OS=vcluster ENV_NAME=t5x DEV=false
-```
-
-To start training a translation model using T5x, we submit the following slurm job.
-```
-source t5x-env/bin/activate
-sbatch src/reference_implementations/run_multinode_2_2.slrm \
-       <path/to/a_t5x_run_script.sh> \
-       <path/to/a_t5x_log/dir> \
-       <path/to/a_model_save/dir> \
-       <path/to/a_data_save/dir>
-```
-
-For example:
-```
-source t5x-env/bin/activate
-sbatch src/reference_implementations/run_multinode_2_2.slrm \
-       src/reference_implementations/t5x/run_t5x.sh \
-       ./t5x-exps-logs \
-       /scratch/ssd004/scratch/snajafi/data_temp/t5x-exps/model \
-       /scratch/ssd004/scratch/snajafi/data_temp/t5x-exps/data
-```
-
-Then, you can monitor the training status using `tensorboard` by specifying the directory used for saving models:
-```
-tensorboard --logdir=/scratch/ssd004/scratch/snajafi/data_temp/t5x-exps/model
-```
-
-## Using google-prompt-tuning
-The following lines outline the steps to train the google's soft-prompt code based on t5x for the binary sentiment analysis task on the vector's cluster.
-
-Make sure you install the cluster dependencies via the following command:
-```
-bash setup.sh OS=vcluster ENV_NAME=google_prompt_tuning DEV=true
-```
-
-Then submit the following slurm job for training prompts for binary sentiment analysis.
-```
-source google_prompt_tuning-env/bin/activate
-sbatch src/reference_implementations/run_multinode_2_2.slrm \
-       <path/to/a_t5x_run_script.sh> \
-       <path/to/a_t5x_log/dir> \
-       <path/to/a_model_save/dir> \
-       <path/to/a_data_save/dir>
-```
-
-For example:
-```
-source google_prompt_tuning-env/bin/activate
-sbatch src/reference_implementations/run_multinode_2_2.slrm \
-       src/reference_implementations/google_prompt_tuning/train_sst2.sh \
-       ./google-prompt-tuning-exps-logs \
-       /scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tuning-exps/model \
-       /scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tuning-exps/data
-```
-
-Then, you can monitor the training status using `tensorboard` by specifying the directory used for saving models:
-```
-tensorboard --logdir=/scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tuning-exps/model
-```
-
-Inference:
-
-The following commands read the input file `src/reference_implementations/google_prompt_tuning/resources/example_input_sentences.csv` and store the predictions at `/scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tuning-exps/model/inference_eval/`:
-```
-source google_prompt_tuning-env/bin/activate
-sbatch src/reference_implementations/run_multinode_2_2.slrm \
-       src/reference_implementations/google_prompt_tuning/infer_sst2.sh \
-       ./google-prompt-tuning-infer-exps-logs \
-       /scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tuning-exps/model \
-       /scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tuning-exps/data/infer
 ```
