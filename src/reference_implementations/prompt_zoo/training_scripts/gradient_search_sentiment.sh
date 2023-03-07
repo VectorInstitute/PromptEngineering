@@ -12,7 +12,7 @@ done
 PROJECT_DIR=$( dirname -- "$0"; )
 
 # We source to keep the internal env variables defined.
-source ${PROJECT_DIR}/../setup_gpu_worker.sh
+source ${PROJECT_DIR}/../../setup_gpu_worker.sh
 
 if [ "${TASK}" = "semeval" ]; then
     python -m src.reference_implementations.prompt_zoo.trainer \
@@ -20,8 +20,8 @@ if [ "${TASK}" = "semeval" ]; then
         --eval_batch_size 2048 \
         --mode train \
         --task_name ${TASK} \
-        --train_file ${PROJECT_DIR}/../../../resources/datasets/2018-Valence-oc-En-train.txt \
-        --dev_file ${PROJECT_DIR}/../../../resources/datasets/2018-Valence-oc-En-dev.txt \
+        --train_file ${PROJECT_DIR}/../../../../resources/datasets/2018-Valence-oc-En-train.txt \
+        --dev_file ${PROJECT_DIR}/../../../../resources/datasets/2018-Valence-oc-En-dev.txt \
         --t5_exp_type ${EXP_TYPE} \
         --model_path ${MODEL_PATH} \
         --max_epochs 5 \
