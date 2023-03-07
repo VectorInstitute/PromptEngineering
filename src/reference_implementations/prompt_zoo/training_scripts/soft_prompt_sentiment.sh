@@ -37,7 +37,7 @@ if [ "${TASK}" = "semeval" ]; then
 
 elif [ "${TASK}" = "sst2" ]; then
     python -m src.reference_implementations.prompt_zoo.trainer \
-        --train_batch_size 16 \
+        --train_batch_size 32 \
         --eval_batch_size 128 \
         --mode train \
         --task_name ${TASK} \
@@ -51,6 +51,7 @@ elif [ "${TASK}" = "sst2" ]; then
         --t5_pretrained_model google/t5-large-lm-adapt \
         --max_epochs 2 \
         --training_steps 1000000 \
+        --learning_rate ${LR} \
         --steps_per_checkpoint 10 \
         --prompt_length ${LEN} \
         --weight_decay_rate 0.00001 \

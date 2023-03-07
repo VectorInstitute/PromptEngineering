@@ -46,6 +46,6 @@ do
             sst2 \
             /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/${exp}/${rate} \
             ${rate} \
-            100
+            50
     done
 done
