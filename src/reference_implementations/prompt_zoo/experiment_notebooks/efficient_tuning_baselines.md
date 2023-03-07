@@ -31,7 +31,7 @@ bash setup.sh OS=vcluster ENV_NAME=prompt_torch DEV=true
 
 Then activate the `prompt_torch` environment to launch the training jobs. 
 
-__Note__: This assumes that your are at the top directory. If you are not, you should manipulate the directory to point to the environment. All jobs should also be run from the top directory.
+*Note*: This assumes that your are at the top directory. If you are not, you should manipulate the directory to point to the environment. All jobs should also be run from the top directory.
 ```bash
 source ./prompt_torch-env/bin/activate
 ```
@@ -42,12 +42,12 @@ Note that the following directories are created under the username `snajafi`.
 You should use your dedicated username to create similar directories. These directories will hold the training and evaluation results for each of the experiments. They can be viewed with tensorboard following the comment below. These experiments can be run for SST2 by replacing `semeval` with `sst2` everywhere in the sbatch calls and changing the appropriate directory names.
 
 ```bash
-mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semval
-mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semval/all_finetune
-mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semval/input_finetune
-mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semval/output_finetune
-mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semval/classifier_finetuning
-mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semval/soft_prompt_finetune
+mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval
+mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/all_finetune
+mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/input_finetune
+mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/output_finetune
+mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/classifier_finetuning
+mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/soft_prompt_finetune
 ```
 *NOTE*: In the following also be sure to change the scratch directory in the bash commands
 
@@ -59,7 +59,7 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     ./torch-prompt-tuning-exps-logs \
     all_finetune \
     semeval \
-    /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semval/all_finetune \
+    /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/all_finetune \
     0.0005
 ```
 
@@ -71,7 +71,7 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     ./torch-prompt-tuning-exps-logs \
     input_finetune \
     semeval \
-    /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semval/input_finetune \
+    /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/input_finetune \
     0.001
 ```
 
@@ -83,7 +83,7 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     ./torch-prompt-tuning-exps-logs \
     output_finetune \
     semeval \
-    /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semval/output_finetune \
+    /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/output_finetune \
     0.001
 ```
 
@@ -95,7 +95,7 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     ./torch-prompt-tuning-exps-logs \
     classifier_finetuning \
     semeval \
-    /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semval/classifier_finetuning \
+    /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/classifier_finetuning \
     0.001
 ```
 
@@ -107,14 +107,14 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     ./torch-prompt-tuning-exps-logs \
     soft_prompt_finetune \
     semeval \
-    /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semval/soft_prompt_finetune \
+    /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/soft_prompt_finetune \
     0.3 \
     100
 ```
 
 To view the tensorboard with the training status for all of the submitted jobs:
 ```
-tensorboard --logdir=/scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semval/ --port=6008
+tensorboard --logdir=/scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/ --port=6008
 ```
 
 *NOTE*: You will need to create a tunnel directory to the v instance that you are starting the tensorboard on. This will be one of `v1`, `v2`, or `v3`. It is written in your prompt as `username@v#`... so replace `v` in the command below with the `v#` that you have on your command line
