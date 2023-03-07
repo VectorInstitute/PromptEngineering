@@ -167,7 +167,7 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     input_finetune \
     sst2 \
     /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/input_finetune \
-    0.01
+    0.3
 ```
 
 ## Fine tuning only the output layer of T5
@@ -179,7 +179,7 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     output_finetune \
     sst2 \
     /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/output_finetune \
-    0.005
+    0.01
 ```
 
 ## Fine tuning only a classifier on the output activations of T5
@@ -203,8 +203,8 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     soft_prompt_finetune \
     sst2 \
     /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/soft_prompt_finetune \
-    0.3 \
-    100
+    0.5 \
+    50
 ```
 
 To view the tensorboard with the training status for all of the submitted jobs:
