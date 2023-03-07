@@ -29,7 +29,7 @@ To run the experiments, we need to install the `prompt_torch` virtual environmen
 bash setup.sh OS=vcluster ENV_NAME=prompt_torch DEV=true
 ```
 
-Then activate the `prompt_torch` environment to launch the training jobs. 
+Then activate the `prompt_torch` environment to launch the training jobs.
 
 *Note*: This assumes that your are at the top directory. If you are not, you should manipulate the directory to point to the environment. All jobs should also be run from the top directory.
 ```bash

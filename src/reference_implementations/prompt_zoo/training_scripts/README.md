@@ -8,7 +8,7 @@ The two larger scale scripts for running experiments are `run_sst2_sentiment_exp
 
 ### run_sst2_sentiment_experiments
 
-This script orchestrates running a hyper parameter search for the learning rate on various kinds of prompt tuning and fine tuning setups. For more information on how to run each experiment individually see `experiments_notebooks/efficient_tuning_baselines.md`. This script can be run from the top level directory as 
+This script orchestrates running a hyper parameter search for the learning rate on various kinds of prompt tuning and fine tuning setups. For more information on how to run each experiment individually see `experiments_notebooks/efficient_tuning_baselines.md`. This script can be run from the top level directory as
 
 ```bash
 source prompt_torch-env/bin/activate
@@ -35,7 +35,7 @@ Then visit `https://localhost:6008`.
 
 ### run_sentiment_experiments_gradient_search
 
-This script orchestrates running gradient-based discrete prompt search for semeval and sst-2. This script can be run from the top level directory as 
+This script orchestrates running gradient-based discrete prompt search for semeval and sst-2. This script can be run from the top level directory as
 
 ```bash
 source prompt_torch-env/bin/activate
