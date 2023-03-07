@@ -49,7 +49,7 @@ elif [ "${TASK}" = "sst2" ]; then
         --instruction_type no_instruction \
         --t5_pretrained_model google/t5-large-lm-adapt \
         --max_epochs 2 \
-        --training_steps 1000000 \
+        --training_steps 8000 \
         --learning_rate ${LR} \
         --steps_per_checkpoint 10 \
         --weight_decay_rate 0.00001 \

@@ -48,7 +48,7 @@ mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval
 mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/all_finetune
 mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/input_finetune
 mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/output_finetune
-mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/classifier_finetuning
+mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/classifier_finetune
 mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/soft_prompt_finetune
 ```
 *NOTE*: In the following also be sure to change the scratch directory in the bash commands
@@ -74,7 +74,7 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     input_finetune \
     semeval \
     /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/input_finetune \
-    0.001
+    0.3
 ```
 
 ## Fine tuning only the output layer of T5
@@ -86,19 +86,19 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     output_finetune \
     semeval \
     /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/output_finetune \
-    0.001
+    0.005
 ```
 
 ## Fine tuning only a classifier on the output activations of T5
-submitting the job for classifier `finetuning` baseline with the learning rate 0.001:
+submitting the job for `classifier finetuning` baseline with the learning rate 0.001:
 ```bash
 sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     src/reference_implementations/prompt_zoo/training_scripts/finetuning_sentiment.sh \
     ./torch-prompt-tuning-exps-logs \
-    classifier_finetuning \
+    classifier_finetune \
     semeval \
-    /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/classifier_finetuning \
-    0.001
+    /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/classifier_finetune \
+    0.01
 ```
 
 ## Soft Prompt Tuning 100 continuous prompt tokens for T5
@@ -141,7 +141,7 @@ mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2
 mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/all_finetune
 mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/input_finetune
 mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/output_finetune
-mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/classifier_finetuning
+mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/classifier_finetune
 mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/soft_prompt_finetune
 ```
 *NOTE*: In the following also be sure to change the scratch directory in the bash commands
@@ -183,14 +183,14 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
 ```
 
 ## Fine tuning only a classifier on the output activations of T5
-submitting the job for classifier `finetuning` baseline with the learning rate 0.001:
+submitting the job for `classifier finetuning` baseline with the learning rate 0.001:
 ```bash
 sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     src/reference_implementations/prompt_zoo/training_scripts/finetuning_sentiment.sh \
     ./torch-prompt-tuning-exps-logs \
-    classifier_finetuning \
+    classifier_finetune \
     sst2 \
-    /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/classifier_finetuning \
+    /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/classifier_finetune \
     0.01
 ```
 
@@ -204,7 +204,7 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     sst2 \
     /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/soft_prompt_finetune \
     0.3 \
-    50
+    100
 ```
 
 To view the tensorboard with the training status for all of the submitted jobs:
