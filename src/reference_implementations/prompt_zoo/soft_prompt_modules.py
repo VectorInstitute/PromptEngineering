@@ -17,7 +17,7 @@ class PromptEmbedding(torch.nn.Module):
     which will be populated when we load the T5 encoders from the huggingface.
 
     prompt tokens are always at the first prompt_length steps of the
-    input after the BOS token (first token).
+    input.
     """
 
     def __init__(
@@ -43,19 +43,18 @@ class PromptEmbedding(torch.nn.Module):
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         """prompt tokens are always at the first prompt_length steps of the
-        input after the BOS token.
+        input.
 
-        split the input sequences into three parts:
-            1 - the first BOS token to be embedded by the normal embedding.
-            2 - the next prompt_length tokens should be mapped to prompt vectors.
-            3 - the rest should be embedded by the normal embedding table of T5 defined for english tokens.
+        split the input sequences into two parts:
+            1 - the first prompt_length tokens should be mapped to prompt vectors.
+            2 - the rest should be embedded by the normal embedding table of T5 defined for english tokens.
 
         concatinate the embedded splits into a single split along the sequence dimension.
         """
         batch_size, sequence_length = input.size()
 
-        bos_input, prompt_input, normal_input = torch.split(
-            input, [1, self.prompt_length, sequence_length - self.prompt_length - 1], dim=1
+        prompt_input, normal_input = torch.split(
+            input, [self.prompt_length, sequence_length - self.prompt_length], dim=1
         )
 
         # prompt_embedded has shape: (batch_size,  self.prompt_length, embedding_dim)
@@ -63,10 +62,8 @@ class PromptEmbedding(torch.nn.Module):
 
         # normal_input_embedded has shape: (batch_size,  sequence_length - self.prompt_length, embedding_dim)
         normal_input_embedded = self.normal_embedder(normal_input)
-        bos_input_embedded = self.normal_embedder(bos_input.view(batch_size, 1))
-
         # concat along the dimension 1
-        return torch.cat((bos_input_embedded, prompt_embedded, normal_input_embedded), dim=1)
+        return torch.cat((prompt_embedded, normal_input_embedded), dim=1)
 
 
 def create_softprompt_T5_for_conditional_generation() -> torch.nn.Module:

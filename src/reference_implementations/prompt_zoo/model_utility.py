@@ -16,8 +16,7 @@ flags.DEFINE_integer("prompt_length", 20, "length of the prompts in the input se
 def prepend_prompt(
     input_ids: torch.LongTensor, mask: torch.LongTensor, prompt_tokens: List[int]
 ) -> Tuple[torch.LongTensor, torch.LongTensor]:
-    """Prepend the input_ids with the prompt token ids after the first BOS
-    token.
+    """Prepend prompt token ids to the input_ids.
 
     - input_ids and mask are the raw inputs to t5 to be modified.
     """
@@ -30,9 +29,8 @@ def prepend_prompt(
     # prompt tokens are always valid so mask is always 1.
     prompt_mask = torch.ones((batch_size, FLAGS.prompt_length), device=mask.device)
 
-    # put prompt tokens after the first BOS token.
-    prompted_input_ids = torch.cat((input_ids[:, 0].view(batch_size, 1), prompt_tensor, input_ids[:, 1:]), dim=1)
-    # the mask on the BOS token is always 1.
+    # put prompt tokens before the input tokens.
+    prompted_input_ids = torch.cat((prompt_tensor, input_ids), dim=1)
     prompted_mask = torch.cat((prompt_mask, mask), dim=1)
     return prompted_input_ids, prompted_mask
 
