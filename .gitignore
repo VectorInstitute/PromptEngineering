@@ -136,3 +136,12 @@ launch.json
 
 #mac
 .DS_Store
+
+#venvs
+**/prompt_torch-env/**
+**/google_prompt_tuning-env/**
+**/t5x-env/**
+
+#cluster logs
+**/*.out
+**/*.err

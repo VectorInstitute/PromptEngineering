@@ -36,6 +36,8 @@ Install the virtual env with the required libraries. We install our prompt modul
 bash setup.sh OS=vcluster ENV_NAME=prompt_torch DEV=true
 ```
 
+The above will take a few moments to complete
+
 Now we can run a jupyter notebook on this gpu node. We start the notebook on the example port `8888`:
 If the port `8888` is taken, try another random port between 1024 and 65000.
 Also note the URL output by the command to be used later. (ex. http://127.0.0.1:8888/?token=7ba0ba5c3e9f5668f92518e4c5e723fea8b69aca065b4d57)
@@ -63,5 +65,7 @@ Now we can access the notebooks using our local browser. Copy the URL given by t
 (Example Token)
 http://127.0.0.1:8888/?token=7ba0ba5c3e9f5668f92518e4c5e723fea8b69aca065b4d57
 ```
+
+You should now be able to navigate to the notebooks and run them.
 
 **Don't close the local terminal windows in your personal laptop!**

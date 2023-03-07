@@ -21,7 +21,7 @@ def prepend_prompt(
 
     - input_ids and mask are the raw inputs to t5 to be modified.
     """
-    batch_size, sequence_length = input_ids.size()
+    batch_size, _ = input_ids.size()
 
     prompt_tensor = torch.tensor(prompt_tokens, device=input_ids.device)
 

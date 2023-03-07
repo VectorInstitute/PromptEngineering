@@ -32,7 +32,7 @@ if [ "${TASK}" = "semeval" ]; then
         --decoder_max_length 16 \
         --instruction_type no_instruction \
         --weight_decay_rate 0.00001 \
-        --prompt_length ${LR} \
+        --prompt_length ${LEN} \
         --t5_pretrained_model google/t5-large-lm-adapt
 
 elif [ "${TASK}" = "sst2" ]; then
@@ -52,7 +52,7 @@ elif [ "${TASK}" = "sst2" ]; then
         --max_epochs 2 \
         --training_steps 1000000 \
         --steps_per_checkpoint 10 \
-        --prompt_length ${LR} \
+        --prompt_length ${LEN} \
         --weight_decay_rate 0.00001 \
 
 fi
