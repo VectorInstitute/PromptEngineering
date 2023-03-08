@@ -7,9 +7,10 @@ github link: https://github.com/archiki/GrIPS
 
 import os
 import string
-from typing import List
+from typing import Dict, List, Tuple, Union
 
 import nltk
+import numpy as np
 from absl import flags
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.tokenize.treebank import TreebankWordDetokenizer
@@ -60,7 +61,7 @@ class GRIPSSearch(MyBaseT5):
             para_model_name = "tuner007/pegasus_paraphrase"
             # this is the tokenizer and the model for the paraphrase Pegasus.
             self.para_tokenizer = PegasusTokenizer.from_pretrained(para_model_name)
-            self.model_pool["para_model"] = PegasusForConditionalGeneration.from_pretrained(para_model_name)
+            self.para_model = PegasusForConditionalGeneration.from_pretrained(para_model_name).to(self.device)
 
         self.setup_models()
 
@@ -132,3 +133,131 @@ class GRIPSSearch(MyBaseT5):
             if phrase not in string.punctuation or phrase == ""
         ]
         return phrases
+
+    def get_response(self, input_text: str, num_return_sequences: int, num_beams: int) -> List[str]:
+        """This function generates a paraphrase version of the input_text using
+        the paraphrase model.
+
+        This is useful to support the substitution operation.
+        """
+        paraphrase_batch = self.para_tokenizer(
+            [input_text], truncation=True, padding="longest", max_length=60, return_tensors="pt"
+        ).to(self.device)
+        translated = self.para_model.generate(
+            **paraphrase_batch,
+            max_length=60,
+            num_beams=num_beams,
+            num_return_sequences=num_return_sequences,
+            temperature=1.5
+        )
+        tgt_text = self.para_tokenizer.batch_decode(translated, skip_special_tokens=True)
+        return tgt_text
+
+    def delete_phrase(self, candidate: str, phrase: str) -> str:
+        """To support the delete operation of a phrase from a candidate."""
+        if candidate.find(" " + phrase) > 0:
+            answer = candidate.replace(" " + phrase, " ")
+        elif candidate.find(phrase + " ") > 0:
+            answer = candidate.replace(phrase + " ", " ")
+        else:
+            answer = candidate.replace(phrase, "")
+        return answer
+
+    def add_phrase(self, candidate: str, phrase: str, after: str) -> str:
+        """To support the addition of a phrase after a keyword in the
+        candidate."""
+        if after == "":
+            answer = phrase + " " + candidate
+        else:
+            if candidate.find(" " + after) > 0:
+                answer = candidate.replace(" " + after, " " + after + " " + phrase)
+            elif candidate.find(after + " ") > 0:
+                answer = candidate.replace(after + " ", after + " " + phrase + " ")
+            else:
+                answer = candidate.replace(after, after + phrase)
+        return answer
+
+    def swap_phrases(self, candidate: str, phrase_1: str, phrase_2: str) -> str:
+        """Swap two phrases in the candidate."""
+        if candidate.find(" " + phrase_1 + " ") >= 0:
+            answer = candidate.replace(" " + phrase_1 + " ", " <1> ")
+        else:
+            answer = candidate.replace(phrase_1, "<1>")
+        if candidate.find(" " + phrase_2 + " ") >= 0:
+            answer = candidate.replace(" " + phrase_2 + " ", " <2> ")
+        else:
+            answer = candidate.replace(phrase_2, "<2>")
+        answer = answer.replace("<1>", phrase_2)
+        answer = answer.replace("<2>", phrase_1)
+        return answer
+
+    def substitute_phrase(self, candidate: str, phrase: str) -> str:
+        """Find a paraphrase of the 'phrase' and then replace the 'phrase' with
+        its paraphrase in the candidate."""
+        # The following beam values are suggested by the original GRIPS paper.
+        paraphrases = self.get_response(phrase, num_return_sequences=10, num_beams=10)
+        paraphrase = np.random.choice(paraphrases, 1)[0]
+        paraphrase = paraphrase.strip(".")
+        if candidate.find(" " + phrase) > 0:
+            answer = candidate.replace(" " + phrase, " " + paraphrase)
+        elif candidate.find(phrase + " ") > 0:
+            answer = candidate.replace(phrase + " ", paraphrase + " ")
+        else:
+            answer = candidate.replace(phrase, paraphrase)
+        return answer
+
+    def perform_edit(
+        self, edit: str, base: str, phrase_lookup: Dict[int, str], delete_tracker: List[str]
+    ) -> Tuple[str, List[Union[str, int]]]:
+        """Perform all possible edit operations: del, swap, sub, add."""
+        assert edit in {"del", "swap", "sub", "add"}
+        if edit == "del":
+            [i] = np.random.choice(list(phrase_lookup.keys()), 1)
+            return self.delete_phrase(base, phrase_lookup[i]), [i]
+        elif edit == "swap":
+            try:
+                [i, j] = np.random.choice(list(phrase_lookup.keys()), 2, replace=False)
+            except Exception:
+                # not enough 2 distinct elements.
+                [i, j] = np.random.choice(list(phrase_lookup.keys()), 2, replace=True)
+            return self.swap_phrases(base, phrase_lookup[i], phrase_lookup[j]), [i, j]
+        elif edit == "sub":
+            [i] = np.random.choice(list(phrase_lookup.keys()), 1)
+            return self.substitute_phrase(base, phrase_lookup[i]), [i]
+        else:
+            keys = list(phrase_lookup.keys())
+            keys.append(-1)
+            [i] = np.random.choice(keys, 1)
+            if i >= 0:
+                after = phrase_lookup[i]
+            else:
+                after = ""
+            if len(delete_tracker) == 0:
+                return base, []
+            phrase = np.random.choice(delete_tracker, 1)[0]
+            return self.add_phrase(base, phrase, after), [phrase]
+
+    def get_phrase_lookup(self, base_candidate: str) -> Dict[int, str]:
+        """Create a dictionary of potential phrases from the base_candidate and
+        store information as a dictionary based on the experiment type."""
+        assert FLAGS.level in {"phrase", "word", "sentence", "span"}
+        if FLAGS.level == "phrase":
+            phrase_lookup = {p: phrase for p, phrase in enumerate(self.get_phrases(base_candidate))}
+        elif FLAGS.level == "word":
+            words = word_tokenize(base_candidate)
+            words = [w for w in words if w not in string.punctuation or w != ""]
+            phrase_lookup = {p: phrase for p, phrase in enumerate(words)}
+        elif FLAGS.level == "sentence":
+            sentences = sent_tokenize(base_candidate)
+            phrase_lookup = {p: phrase for p, phrase in enumerate(sentences)}
+        elif FLAGS.level == "span":
+            phrases = []
+            for sentence in sent_tokenize(base_candidate):
+                spans_per_sentence = np.random.choice(range(2, 5))  # split sentence into 2, 3, 4, 5 chunks
+                spans = np.array_split(word_tokenize(sentence), spans_per_sentence)
+                spans = [self.detokenize(s) for s in spans]
+                phrases.extend(spans)
+            phrase_lookup = {p: phrase for p, phrase in enumerate(phrases)}
+        else:
+            raise ValueError()
+        return phrase_lookup
