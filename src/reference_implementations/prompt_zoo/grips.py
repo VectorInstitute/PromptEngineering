@@ -1,6 +1,7 @@
 """This module implements the GRIPS: Gradient-free, Edit-based Instruction
-Search for Prompting Large Language Models over T5 large language model.
+Search for Prompting Large Language Models over T5 Large Language Model.
 
+This code is based on the following paper and official codebase.
 paper: https://arxiv.org/pdf/2203.07281.pdf
 github link: https://github.com/archiki/GrIPS
 """
