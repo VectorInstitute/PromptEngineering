@@ -24,6 +24,22 @@ then you activate your environment in the top level of the repository as
 source google_prompt_tuning-env/bin/activate
 ```
 
+## Dataset Preparation Notes
+
+Before we can train the Prompt tuning model, we need to download the dataset into our data directory. We've already done that in a place on our cluster, but if you would like to download it locally for yourself, you can do so with 
+```
+tfds build glue --data_dir=/scratch/ssd004/scratch/username/path/to/download_dir
+```
+This download process will take quite a bit of time. The location of our pre-downloaded version of the dataset is below.
+```
+/ssd003/projects/aieng/public/prompt_engineering_datasets/google_prompt_sst2_dataset/
+```
+This path should be used to replace 
+```
+<path/to/a_data_save/dir>
+```
+in the commands below.
+
 ## Running Training
 
 Then submit the following slurm job for training prompts for binary sentiment analysis.
