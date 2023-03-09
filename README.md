@@ -64,7 +64,7 @@ You can call `setup.sh` with the `OS=vcluster` flag. This installs python in the
 bash setup.sh OS=vcluster ENV_NAME=env_name DEV=true
 ```
 
-The `setup.sh` script takes an *ENV_NAME* argument with possible values of `prompt_torch`, `t5x`, and `google_prompt_tuning`. The first value should be used for our prompt tuning implementations, while the second and third are used for running the JAX versions of prompt tuning (not currently supported).
+The `setup.sh` script takes an *ENV_NAME* argument value of `prompt_torch`. The value `prompt_torch` should be used for our `prompt_zoo`
 
 ## Using Pre-commit Hooks (for developing in this repository)
 To check your code at commit time

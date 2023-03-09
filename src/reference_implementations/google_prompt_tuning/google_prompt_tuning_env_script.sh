@@ -3,7 +3,7 @@
 set -e
 
 PROJECT_PATH=$1
-ENV_PATH="${PROJECT_PATH}/t5x-env"
+ENV_PATH="${PROJECT_PATH}/google_prompt_tuning-env"
 
 echo "-> Setting up environment at: ${ENV_PATH}"
 
@@ -20,9 +20,11 @@ export LD_LIBRARY_PATH="/scratch/ssd001/pkgs/cudnn-11.4-v8.2.4.15/lib64:/scratch
 pip install https://storage.googleapis.com/jax-releases/cuda11/jaxlib-0.4.4+cuda11.cudnn82-cp39-cp39-manylinux2014_x86_64.whl
 
 cd "${PROJECT_PATH}"
-git clone https://github.com/google-research/t5x
-cd t5x
-pip install '.[test]'
+git clone https://github.com/google-research/prompt-tuning
+cd prompt-tuning
+pip install .
+# Downgrade flax due to issue with propmt-tuning lib
+pip install flax==0.5.1
 
 # Directly print commands to run or be placed in `my_env/bin/activate`
 cat << EOF

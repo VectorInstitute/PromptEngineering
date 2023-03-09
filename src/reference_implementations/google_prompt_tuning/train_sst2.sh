@@ -21,9 +21,9 @@ source ${PROJECT_DIR}/../setup_gpu_worker.sh
 TFDS_DATA_DIR=$DATA_DIR
 MODEL_DIRECTORY=$MODEL_DIR
 
-T5X_DIR="`python3 -m src.find_module t5x`/.."
-FLAXFORMER_DIR="`python3 -m src.find_module flaxformer`/.."
-PROMPT_DIR="`python3 -m src.find_module prompt_tuning`/.."
+T5X_DIR="`python3 -m src.find_module t5x`"
+FLAXFORMER_DIR="`python3 -m src.find_module flaxformer`"
+PROMPT_DIR="`python3 -m src.find_module prompt_tuning`"
 echo "Searching for gin configs in:"
 echo "- ${T5X_DIR}"
 echo "- ${FLAXFORMER_DIR}"
@@ -42,7 +42,7 @@ python -m t5x.train \
   --gin_search_paths="${PROJECT_DIR},${T5X_DIR},${FLAXFORMER_DIR},${PROMPT_DIR}" \
   --gin_file="prompt_tuning/configs/models/t5_1_1_base_prompt.gin" \
   --gin_file="prompt_tuning/configs/prompts/from_class_labels.gin" \
-  --gin_file="prompt_tuning/configs/runs/prompt_finetune.gin" \
+  --gin_file="${PROJECT_DIR}/prompt_finetune.gin" \
   --gin.CLASS_LABELS="['positive', 'negative']" \
   --gin.MODEL_DIR="'${MODEL_DIRECTORY}'" \
   --gin.MIXTURE_OR_TASK_NAME="'taskless_glue_sst2_v200_examples'" \

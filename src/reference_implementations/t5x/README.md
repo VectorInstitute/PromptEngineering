@@ -1,15 +1,30 @@
 # Running T5x (Not Fully Supported During Prompt Engineering Lab)
 
-We support running T5x only on the vector's cluster. From the top level directory, make sure you install the cluster dependencies via the following command:
-```
-bash setup.sh OS=vcluster ENV_NAME=t5x DEV=false
-```
-*Note*: This command will take a few moments
+We support running T5x only on the vector's cluster. 
 
-First activate the venv that you installed.
+## Virtual Environment
+
+There are two options for utilizing a virtual env to run the code in this director. 
+1) You can source our pre-built environment from `/ssd003/projects/aieng/public/prompt_engineering_t5x` with the command
+```bash
+source /ssd003/projects/aieng/public/prompt_engineering_t5x/bin/activate
+```
+If you are using the pre-built environments *do not* modify it, as it will affect all users of the venv. To install your own environment that you can manipulate, follow the instructions below.
+
+2) You can create your own environment using the `src/reference_implementations/t5x/t5x_env_script.sh` script it's usage is 
+```bash
+bash <path/to/script/t5x_env_script.sh <path/to>/PromptEngineering/
+```
+where `<path/to>/PromptEngineering/` is the path to the top level of the git repository.
+
+*Note*: The command above will take a few moments to run
+
+then you activate your environment in the top level of the repository as
 ```
 source t5x-env/bin/activate
 ```
+
+## Dataset Preparation Notes
 
 Before we can train the T5x model, we need to download the dataset into our data directory. We've already done, but if you would like to download it locally for yourself, you can do so with 
 ```
@@ -25,6 +40,8 @@ This path should be used to replace
 ```
 in the commands below.
 
+## Model training commands
+
 To start training a translation model using T5x, we submit the following slurm job.  Then run the training job through the slurm scheduler with sbatch. The structure of the command is below
 ```
 
@@ -37,7 +54,6 @@ sbatch src/reference_implementations/run_multinode_2_2.slrm \
 
 For example:
 ```
-source t5x-env/bin/activate
 sbatch src/reference_implementations/run_multinode_2_2.slrm \
        src/reference_implementations/t5x/train_t5x.sh \
        ./t5x-exps-logs \
@@ -45,6 +61,8 @@ sbatch src/reference_implementations/run_multinode_2_2.slrm \
        /ssd003/projects/aieng/public/prompt_engineering_datasets/t5x_translation_dataset/
 ```
 *Note* that `snajafi` is a cluster username. Make sure that you replace that part of any paths with your own cluster username. The configuration for the t5x model is found here `src/reference_implementations/t5x/base_wmt_train.gin`. The model is trained on the `wmt_t2t_ende_v003` dataset, held by Google. It is a small English to German translation datasets.
+
+## Tensorboard
 
 Then, you can monitor the training status using `tensorboard` by specifying the directory used for saving models:
 ```

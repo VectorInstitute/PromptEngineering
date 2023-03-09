@@ -16,7 +16,7 @@ PROJECT_DIR=$( dirname -- "$0"; )
 source ${PROJECT_DIR}/../setup_gpu_worker.sh
 
 # Directory where the t5x is cloned.
-T5X_DIR="`python3 -m src.find_module t5x`"
+T5X_DIR="`python -m src.find_module t5x`"
 
 TFDS_DATA_DIR=$DATA_DIR
 MODEL_DIR=$MODEL_DIR
