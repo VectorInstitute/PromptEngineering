@@ -1,5 +1,7 @@
 # Binary Sentiment Analysis on the SST2 dataset.
-Following the [soft-prompt paper](https://aclanthology.org/2021.emnlp-main.243.pdf), I have been training the soft-prompts for the binary sentiment analysis task on the vector's cluster using the released T5x base model. This is a test that we can indeed train on the vector's t4v2 GPUs. I have been only using 4 gpus each with 16 GB of GPU RAM.
+This folder uses the Google T5x implementation of soft-prompt tuning outlined in  [soft-prompt paper](https://aclanthology.org/2021.emnlp-main.243.pdf), 
+
+This implementation trains a T5x-base model on the SST2 binary binary sentiment analysis task on Vector's cluster. We use 4 t4v2 GPUs with 16BG of GPU memory
 
 As suggested by the paper, we use the gin-config that initializes the soft-prompts using embeddings for the class labels.
 
