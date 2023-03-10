@@ -31,9 +31,9 @@ echo "- ${PROMPT_DIR}"
 echo "============================="
 
 # Remember that soft-prompt paper fine-tunes T5 on prefix LM  which is extra to T5 of huggingface.
-# Based on my presentation, I explained that T5x does extra LM adaptation step
-#  over the span reconstruction pre-training of normal T5s.
-PRETRAINED_MODEL="gs://t5-data/pretrained_models/t5x/t5_1_1_lm100k_base/checkpoint_1100000"
+# T5x does extra LM adaptation step over the span reconstruction pre-training of normal T5s.
+PRETRAINED_MODEL="/scratch/ssd004/scratch/demerson/t5_1_1_lm100k_base_checkpoint_1100000/"
+PROMPT_INIT_FILE="/scratch/ssd004/scratch/demerson/prompt_initialization/prompt.npy"
 
 # `TRAIN_STEPS` should include pre-training steps, e.g., if pre-trained ckpt
 # has 1M steps, TRAIN_STEPS = 1.1M will perform 0.1M prompt-tuning steps.
@@ -41,8 +41,9 @@ PRETRAINED_MODEL="gs://t5-data/pretrained_models/t5x/t5_1_1_lm100k_base/checkpoi
 python -m t5x.train \
   --gin_search_paths="${PROJECT_DIR},${T5X_DIR},${FLAXFORMER_DIR},${PROMPT_DIR}" \
   --gin_file="prompt_tuning/configs/models/t5_1_1_base_prompt.gin" \
-  --gin_file="prompt_tuning/configs/prompts/from_class_labels.gin" \
+  --gin_file="prompt_tuning/configs/prompts/from_class_labels_numpy.gin" \
   --gin_file="${PROJECT_DIR}/prompt_finetune.gin" \
+  --gin.EMBEDDING_FILE="'${PROMPT_INIT_FILE}'" \
   --gin.CLASS_LABELS="['positive', 'negative']" \
   --gin.MODEL_DIR="'${MODEL_DIRECTORY}'" \
   --gin.MIXTURE_OR_TASK_NAME="'taskless_glue_sst2_v200_examples'" \

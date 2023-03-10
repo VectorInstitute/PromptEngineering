@@ -25,6 +25,7 @@ cd prompt-tuning
 pip install .
 # Downgrade flax due to issue with propmt-tuning lib
 pip install flax==0.5.1
+pip install datasets
 
 # Directly print commands to run or be placed in `my_env/bin/activate`
 cat << EOF
