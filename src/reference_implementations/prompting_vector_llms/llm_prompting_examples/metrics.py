@@ -21,10 +21,10 @@ def ag_news_metrics(preds: List[str], labels: List[str], ordering: Optional[List
 
     print(f"Prediction Accuracy: {TP.sum()/(matrix.sum())}")
     print(f"Confusion Matrix with ordering {labels_order}")
-    print(confusion_matrix)
+    print(matrix)
     print("========================================================")
     for label_index, label_name in enumerate(labels_order):
         print(
-            f"Label: {label_name}, F1: {f1[label_index]}, Precision: {recall[label_index]},"
+            f"Label: {label_name}, F1: {f1[label_index]}, Precision: {recall[label_index]}, "
             f"Recall: {precision[label_index]}"
         )
