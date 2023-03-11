@@ -28,18 +28,20 @@ echo "Searching for gin configs in:"
 echo "- ${T5X_DIR}"
 echo "- ${FLAXFORMER_DIR}"
 echo "- ${PROMPT_DIR}"
+echo "${LD_LIBRARY_PATH}"
+echo "${PATH}"
 echo "============================="
 
 
 # The trained checkpoint.
-PRETRAINED_MODEL="gs://t5-data/pretrained_models/t5x/t5_1_1_lm100k_base/checkpoint_1100000"
+PRETRAINED_MODEL="/scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tuning-exps/model/checkpoint_1150000"
 # Best prompt file based on train accuracy.
 PROMPT_FILE="/scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tuning-exps/model/numpy_checkpoints/checkpoint_1140000/encoder.prompt.prompt.prompt"
 
 python3 -m src.reference_implementations.google_prompt_tuning.eval \
     --gin_search_paths="${PROJECT_DIR},${T5X_DIR},${FLAXFORMER_DIR},${PROMPT_DIR}" \
     --gin_file="prompt_tuning/configs/models/t5_1_1_base_prompt.gin" \
-    --gin_file="prompt_tuning/configs/runs/prompt_eval.gin" \
+    --gin_file="${PROJECT_DIR}/prompt_eval.gin" \
     --gin.EVAL_OUTPUT_DIR="'${MODEL_DIRECTORY}'" \
     --gin.MIXTURE_OR_TASK_NAME="'example_binary_sentiment_analysis'" \
     --gin.MIXTURE_OR_TASK_MODULE="'src.reference_implementations.google_prompt_tuning.sentiment_task'" \

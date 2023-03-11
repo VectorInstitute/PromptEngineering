@@ -37,8 +37,8 @@ infer_eval/utils.DatasetConfig:
   use_cached = False
 
 train_script.train:
-  eval_period = 100
-  eval_steps = 100
+  eval_period = 200
+  eval_steps = 50
   random_seed = 0
   use_hardware_rng = True
   infer_eval_dataset_cfg = @infer_eval/utils.DatasetConfig()

@@ -2,20 +2,48 @@
 
 The following lines outline the steps to train the google's soft-prompt code based on t5x for the binary sentiment analysis task on the vector's cluster.
 
-Make sure you install the cluster dependencies via the following command:
+## Virtual Environment
+
+There are two options for utilizing a virtual env to run the code in this director.
+1) You can source our pre-built environment from `/ssd003/projects/aieng/public/prompt_engineering_google_prompt_tuning` with the command
 ```bash
-bash setup.sh OS=vcluster ENV_NAME=google_prompt_tuning DEV=true
+source /ssd003/projects/aieng/public/prompt_engineering_google_prompt_tuning/bin/activate
 ```
+If you are using the pre-built environments *do not* modify it, as it will affect all users of the venv. To install your own environment that you can manipulate, follow the instructions below.
+
+2) You can create your own environment using the `src/reference_implementations/google_prompt_tuning/google_prompt_tuning_env_script.sh` script it's usage is
+```bash
+bash <path/to/google_prompt_tuning_env_script.sh <path/to>/PromptEngineering/
+```
+where `<path/to>/PromptEngineering/` is the path to the top level of the git repository.
+
 *Note*: The command above will take a few moments to run
 
-Source the environment with
-
+then you activate your environment in the top level of the repository as
 ```bash
 source google_prompt_tuning-env/bin/activate
 ```
 
-Then submit the following slurm job for training prompts for binary sentiment analysis.
+## Dataset Preparation Notes
+
+Before we can train the Prompt tuning model, we need to download the dataset into our data directory. We've already done that in a place on our cluster, but if you would like to download it locally for yourself, you can do so with
 ```
+tfds build glue --data_dir=/scratch/ssd004/scratch/username/path/to/download_dir
+```
+This download process will take quite a bit of time. The location of our pre-downloaded version of the dataset is below.
+```
+/ssd003/projects/aieng/public/prompt_engineering_datasets/google_prompt_sst2_dataset/
+```
+This path should be used to replace
+```
+<path/to/a_data_save/dir>
+```
+in the commands below.
+
+## Running Training
+
+Then submit the following slurm job for training prompts for binary sentiment analysis.
+```bash
 sbatch src/reference_implementations/run_multinode_2_2.slrm \
        <path/to/a_t5x_run_script.sh> \
        <path/to/a_t5x_log/dir> \
@@ -24,13 +52,15 @@ sbatch src/reference_implementations/run_multinode_2_2.slrm \
 ```
 
 For example:
-```
+```bash
 sbatch src/reference_implementations/run_multinode_2_2.slrm \
        src/reference_implementations/google_prompt_tuning/train_sst2.sh \
        ./google-prompt-tuning-exps-logs \
        /scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tuning-exps/model \
        /scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tuning-exps/data
 ```
+
+## Tensorboard
 
 Then, you can monitor the training status using `tensorboard` by specifying the directory used for saving models:
 ```
@@ -39,11 +69,12 @@ tensorboard --logdir=/scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tun
 
 *Note* that `snajafi` is a cluster username. Make sure that you replace that part of any paths with your own cluster username.
 
-Inference:
+## Running Inference
+
+*NOTE*: In order to perfrom inference, you must change `PROMPT_FILE` in `src/reference_implementations/google_prompt_tuning/infer_sst2.sh` to a proper checkpoint that you would like to load.
 
 The following commands read the input file `src/reference_implementations/google_prompt_tuning/resources/example_input_sentences.csv` and store the predictions at `/scratch/ssd004/scratch/snajafi/data_temp/google-prompt-tuning-exps/model/inference_eval/`:
-```
-source google_prompt_tuning-env/bin/activate
+```bash
 sbatch src/reference_implementations/run_multinode_2_2.slrm \
        src/reference_implementations/google_prompt_tuning/infer_sst2.sh \
        ./google-prompt-tuning-infer-exps-logs \
