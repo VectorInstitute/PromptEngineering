@@ -6,12 +6,12 @@ This folder houses training scripts to run various experiemnts in `src/reference
 
 The two larger scale scripts for running experiments are `run_sst2_sentiment_experiments.sh` and `run_sentiment_experiments_gradient_search.sh`
 
-*NOTE*: Before either is run you must activate your environment. If you are using our pre-built environment run 
+*NOTE*: Before either is run you must activate your environment. If you are using our pre-built environment run
 
 ```bash
 source /ssd003/projects/aieng/public/prompt_engineering/bin/activate
 ```
-if you are using one you created locally run 
+if you are using one you created locally run
 ```bash
 source prompt_torch-env/bin/activate
 ```

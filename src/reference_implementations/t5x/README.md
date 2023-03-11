@@ -11,7 +11,7 @@ First activate the venv that you installed.
 source t5x-env/bin/activate
 ```
 
-Before we can train the T5x model, we need to download the dataset into our data directory. We've already done, but if you would like to download it locally for yourself, you can do so with 
+Before we can train the T5x model, we need to download the dataset into our data directory. We've already done, but if you would like to download it locally for yourself, you can do so with
 ```
 tfds build wmt_t2t_translate --data_dir=/scratch/ssd004/scratch/username/path/to/download_dir
 ```
@@ -19,7 +19,7 @@ This download process will take quite a bit of time. The location of our pre-dow
 ```
 /ssd003/projects/aieng/public/prompt_engineering_datasets/t5x_translation_dataset/
 ```
-This path should be used to replace 
+This path should be used to replace
 ```
 <path/to/a_data_save/dir>
 ```
@@ -55,4 +55,3 @@ The tensorboard command will finish and stall in the terminal you're working wit
 ```bash
 ssh username@v.vectorinstitute.ai -L 6006:localhost:6006
 ```
-
