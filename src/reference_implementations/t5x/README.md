@@ -1,17 +1,17 @@
 # Running T5x (Not Fully Supported During Prompt Engineering Lab)
 
-We support running T5x only on the vector's cluster. 
+We support running T5x only on the vector's cluster.
 
 ## Virtual Environment
 
-There are two options for utilizing a virtual env to run the code in this director. 
+There are two options for utilizing a virtual env to run the code in this director.
 1) You can source our pre-built environment from `/ssd003/projects/aieng/public/prompt_engineering_t5x` with the command
 ```bash
 source /ssd003/projects/aieng/public/prompt_engineering_t5x/bin/activate
 ```
 If you are using the pre-built environments *do not* modify it, as it will affect all users of the venv. To install your own environment that you can manipulate, follow the instructions below.
 
-2) You can create your own environment using the `src/reference_implementations/t5x/t5x_env_script.sh` script it's usage is 
+2) You can create your own environment using the `src/reference_implementations/t5x/t5x_env_script.sh` script it's usage is
 ```bash
 bash <path/to/script/t5x_env_script.sh <path/to>/PromptEngineering/
 ```
@@ -26,7 +26,7 @@ source t5x-env/bin/activate
 
 ## Dataset Preparation Notes
 
-Before we can train the T5x model, we need to download the dataset into our data directory. We've already done that in a place on our cluster, but if you would like to download it locally for yourself, you can do so with 
+Before we can train the T5x model, we need to download the dataset into our data directory. We've already done that in a place on our cluster, but if you would like to download it locally for yourself, you can do so with
 ```
 tfds build wmt_t2t_translate --data_dir=/scratch/ssd004/scratch/username/path/to/download_dir
 ```
@@ -34,7 +34,7 @@ This download process will take quite a bit of time. The location of our pre-dow
 ```
 /ssd003/projects/aieng/public/prompt_engineering_datasets/t5x_translation_dataset/
 ```
-This path should be used to replace 
+This path should be used to replace
 ```
 <path/to/a_data_save/dir>
 ```
@@ -73,4 +73,3 @@ The tensorboard command will finish and stall in the terminal you're working wit
 ```bash
 ssh username@v.vectorinstitute.ai -L 6006:localhost:6006
 ```
-

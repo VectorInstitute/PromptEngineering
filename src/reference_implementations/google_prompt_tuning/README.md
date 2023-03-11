@@ -4,14 +4,14 @@ The following lines outline the steps to train the google's soft-prompt code bas
 
 ## Virtual Environment
 
-There are two options for utilizing a virtual env to run the code in this director. 
+There are two options for utilizing a virtual env to run the code in this director.
 1) You can source our pre-built environment from `/ssd003/projects/aieng/public/prompt_engineering_google_prompt_tuning` with the command
 ```bash
 source /ssd003/projects/aieng/public/prompt_engineering_google_prompt_tuning/bin/activate
 ```
 If you are using the pre-built environments *do not* modify it, as it will affect all users of the venv. To install your own environment that you can manipulate, follow the instructions below.
 
-2) You can create your own environment using the `src/reference_implementations/google_prompt_tuning/google_prompt_tuning_env_script.sh` script it's usage is 
+2) You can create your own environment using the `src/reference_implementations/google_prompt_tuning/google_prompt_tuning_env_script.sh` script it's usage is
 ```bash
 bash <path/to/google_prompt_tuning_env_script.sh <path/to>/PromptEngineering/
 ```
@@ -26,7 +26,7 @@ source google_prompt_tuning-env/bin/activate
 
 ## Dataset Preparation Notes
 
-Before we can train the Prompt tuning model, we need to download the dataset into our data directory. We've already done that in a place on our cluster, but if you would like to download it locally for yourself, you can do so with 
+Before we can train the Prompt tuning model, we need to download the dataset into our data directory. We've already done that in a place on our cluster, but if you would like to download it locally for yourself, you can do so with
 ```
 tfds build glue --data_dir=/scratch/ssd004/scratch/username/path/to/download_dir
 ```
@@ -34,7 +34,7 @@ This download process will take quite a bit of time. The location of our pre-dow
 ```
 /ssd003/projects/aieng/public/prompt_engineering_datasets/google_prompt_sst2_dataset/
 ```
-This path should be used to replace 
+This path should be used to replace
 ```
 <path/to/a_data_save/dir>
 ```

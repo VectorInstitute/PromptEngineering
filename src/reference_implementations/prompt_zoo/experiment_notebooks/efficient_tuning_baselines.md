@@ -23,7 +23,7 @@
 
 <b>We are training these baselines on the semeval-2018 sentiment dataset for up to 30 epochs. We will use the vector's GPU cluster and the slurm scheduler to submit four GPU jobs to train these models. For this experiment, we don't need to login to a specific GPU node and we can submit the jobs from the login nodes on the vector vaughan cluster.</b>
 
-# Virtual Environment Setup 
+# Virtual Environment Setup
 You have two options.
 
 1) If you want to use our pre-built environment to run experiments, simply run
