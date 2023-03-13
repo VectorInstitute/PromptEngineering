@@ -71,14 +71,18 @@ def template_data(
     """
     if instruction_type == "qa":
         instruction = "what would be the sentiment of the sentence?"
+        print(f"Prompt has the form: question: {instruction} context: input_text")
         sentences = [f"question: {instruction} context: {sent}" for sent in sentences]
     elif instruction_type == "instruction_at_start":
         instruction = "Generate the sentiment of the next sentence."
+        print(f"Prompt has the form: {instruction} input_text")
         sentences = [f"{instruction} {sent}" for sent in sentences]
     elif instruction_type == "no_instruction":
+        print("No instruction used, just input_text")
         sentences = sentences
     elif instruction_type == "instruction_at_end":
         instruction = "Generate the sentiment of the previous sentence."
+        print(f"Prompt has the form: input_text {instruction}")
         sentences = [f"{sent} {instruction}" for sent in sentences]
 
     if repeat_input:

@@ -30,7 +30,7 @@ flags.DEFINE_string("dev_file", "/tmp/dev.csv", "the path/name of the dev file."
 flags.DEFINE_string("test_file", "/tmp/test.csv", "the path/name of the test file.")
 flags.DEFINE_string("task_name", "semeval_3_class_sentiment", "the name of the downstream nlp task.")
 flags.DEFINE_string("train_file", "/tmp/train.csv", "the path/name of the train file.")
-flags.DEFINE_string("instruction_type", "qa", "The intruction type to format the input sentences.")
+flags.DEFINE_string("instruction_type", "qa", "The instruction type to format the input sentences.")
 
 
 def start_predicting(model: MyBaseT5, dataloader: torch.utils.data.DataLoader, prediction_file: str) -> None:

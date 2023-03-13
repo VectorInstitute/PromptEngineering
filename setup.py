@@ -32,7 +32,7 @@ setup(
     long_description=README,
     classifiers=["Programming Language :: Python :: 3.8"],
     keywords="NLP, Machine Learning",
-    author="David Emerson, Saeed Najafi",
+    author="David Emerson, Saeed Najafi, Jacob Tunqi Tian, Akshita Gupta",
     author_email="david.emerson@vectorinstitute.ai, saeed.najafi@vectorinstitute.ai",
     license="MIT",
     packages=find_packages(exclude=["docs", "tests"]),

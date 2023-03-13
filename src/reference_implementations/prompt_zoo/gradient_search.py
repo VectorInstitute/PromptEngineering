@@ -16,7 +16,7 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_integer("top_k", 20, "Number of candidate tokens to replace the prompt token.")
 flags.DEFINE_integer("beam_size", 20, "Number of prompt templates to consider for beam search.")
-flags.DEFINE_integer(
+flags.DEFINE_string(
     "gradient_search_initial_prompt",
     "Generate the sentiment of the next sentence.",
     "An initial instruction to append to the start of the sentence.",

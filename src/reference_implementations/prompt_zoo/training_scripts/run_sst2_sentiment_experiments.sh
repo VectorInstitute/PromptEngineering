@@ -18,11 +18,11 @@ do
         mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/${exp}
         mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/${exp}/${rate}
         sbatch src/reference_implementations/run_singlenode_prompt.slrm \
-            src/reference_implementations/prompt_zoo/finetuning_sentiment.sh \
+            src/reference_implementations/prompt_zoo/training_scripts/finetuning_sentiment.sh \
             ./torch-prompt-tuning-exps-logs \
             ${exp} \
-            sst2
-            /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/${exp}/${rate}
+            sst2 \
+            /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/${exp}/${rate} \
             ${rate}
     done
 done
@@ -40,12 +40,12 @@ do
         mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/${exp}
         mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/${exp}/${rate}
         sbatch src/reference_implementations/run_singlenode_prompt.slrm \
-            src/reference_implementations/prompt_zoo/soft_prompt_sentiment.sh \
+            src/reference_implementations/prompt_zoo/training_scripts/soft_prompt_sentiment.sh \
             ./torch-prompt-tuning-exps-logs \
             ${exp} \
             sst2 \
             /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/${exp}/${rate} \
             ${rate} \
-            100
+            50
     done
 done

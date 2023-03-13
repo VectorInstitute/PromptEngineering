@@ -18,7 +18,7 @@ mkdir -p ${sst2_path}
 
 # send job for semeval
 sbatch  src/reference_implementations/run_singlenode_prompt.slrm \
-        src/reference_implementations/prompt_zoo/gradient_search_sentiment.sh \
+        src/reference_implementations/prompt_zoo/training_scripts/gradient_search_sentiment.sh \
         ./torch-prompt-tuning-exps-logs \
         gradient_search \
         semeval \
@@ -26,7 +26,7 @@ sbatch  src/reference_implementations/run_singlenode_prompt.slrm \
 
 # send job for sst2
 sbatch  src/reference_implementations/run_singlenode_prompt.slrm \
-        src/reference_implementations/prompt_zoo/gradient_search_sentiment.sh \
+        src/reference_implementations/prompt_zoo/training_scripts/gradient_search_sentiment.sh \
         ./torch-prompt-tuning-exps-logs \
         gradient_search \
         sst2 \

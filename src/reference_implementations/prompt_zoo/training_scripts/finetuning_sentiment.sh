@@ -12,7 +12,7 @@ done
 PROJECT_DIR=$( dirname -- "$0"; )
 
 # We source to keep the internal env variables defined.
-source ${PROJECT_DIR}/../setup_gpu_worker.sh
+source ${PROJECT_DIR}/../../setup_gpu_worker.sh
 
 if [ "${TASK}" = "semeval" ]; then
     python -m src.reference_implementations.prompt_zoo.trainer \
@@ -20,8 +20,8 @@ if [ "${TASK}" = "semeval" ]; then
         --eval_batch_size 128 \
         --mode train \
         --task_name ${TASK} \
-        --train_file ${PROJECT_DIR}/../../../resources/datasets/2018-Valence-oc-En-train.txt \
-        --dev_file ${PROJECT_DIR}/../../../resources/datasets/2018-Valence-oc-En-dev.txt \
+        --train_file ${PROJECT_DIR}/../../../../resources/datasets/2018-Valence-oc-En-train.txt \
+        --dev_file ${PROJECT_DIR}/../../../../resources/datasets/2018-Valence-oc-En-dev.txt \
         --t5_exp_type ${EXP_TYPE} \
         --model_path ${MODEL_PATH} \
         --max_epochs 30 \
@@ -32,12 +32,11 @@ if [ "${TASK}" = "semeval" ]; then
         --decoder_max_length 16 \
         --instruction_type no_instruction \
         --weight_decay_rate 0.00001 \
-        --prompt_length ${LR} \
         --t5_pretrained_model google/t5-large-lm-adapt
 
 elif [ "${TASK}" = "sst2" ]; then
     python -m src.reference_implementations.prompt_zoo.trainer \
-        --train_batch_size 16 \
+        --train_batch_size 32 \
         --eval_batch_size 128 \
         --mode train \
         --task_name ${TASK} \
@@ -50,9 +49,9 @@ elif [ "${TASK}" = "sst2" ]; then
         --instruction_type no_instruction \
         --t5_pretrained_model google/t5-large-lm-adapt \
         --max_epochs 2 \
-        --training_steps 1000000 \
+        --training_steps 8000 \
+        --learning_rate ${LR} \
         --steps_per_checkpoint 10 \
-        --prompt_length ${LR} \
         --weight_decay_rate 0.00001 \
 
 fi
