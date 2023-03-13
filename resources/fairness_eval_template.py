@@ -1,10 +1,14 @@
 from typing import List, Iterable, Tuple, Dict, Literal
+import os
 from tqdm.auto import tqdm
 
 TEST_FILE_PATH = "sentiment_fairness_tests.tsv"
 PREDICTION_FILE_PATH = "predictions.tsv"  # Append results to this file.
+MODEL = "roberta-base"
+DATASET = "TweetEval"  # Labeled task-specific dataset
+NUM_PARAMS = 0.125  # billions
 RUN_ID = "example_run_a"
-BATCH_SIZE = 128
+BATCH_SIZE = 8
 
 """
 Initialize model here.
@@ -42,15 +46,29 @@ PredictedLabel = int
 Category = str
 Group = str
 TestText = str
+Model = str
 RunID = str
+Dataset = str
+NumParams = float
 TestEntry = Tuple[TrueLabel, Category, Group, TestText]
-OutputEntry = Tuple[PredictedLabel, TrueLabel, Category, Group, TestText, RunID]
+OutputEntry = Tuple[
+    PredictedLabel,
+    TrueLabel,
+    Category,
+    Group,
+    TestText,
+    Model,
+    RunID,
+    Dataset,
+    NumParams,
+]
 
 tests: List[TestEntry] = []
 
 with open(TEST_FILE_PATH, "r") as template_file:
     for line in template_file.readlines():
         test_entry = tuple(line.rstrip().split("\t"))
+        assert len(test_entry) > 1, "Test input must be tab-delimited."
         tests.append(test_entry)  # type: ignore
 
 
@@ -66,11 +84,39 @@ for test_entry in tqdm(tests):
         predictions = get_predictions_batched(text_batch)
 
         for prediction, test_entry in zip(predictions, batch):
-            output_entry = (prediction, *test_entry, RUN_ID)
+            output_entry = (prediction, *test_entry, MODEL, RUN_ID, DATASET, NUM_PARAMS)
             output.append(output_entry)
 
         batch = []
         text_batch = []
+
+# Handle tailing entries.
+if len(batch) > 0:
+    predictions = get_predictions_batched(text_batch)
+
+    for prediction, test_entry in zip(predictions, batch):
+        output_entry = (prediction, *test_entry, MODEL, RUN_ID, DATASET, NUM_PARAMS)
+        output.append(output_entry)
+
+if not os.path.exists(PREDICTION_FILE_PATH):
+    header_row = (
+        "\t".join(
+            [
+                "y_true",
+                "y_pred",
+                "category",
+                "group",
+                "text",
+                "model",
+                "run_id",
+                "dataset",
+                "num_params",
+            ]
+        )
+        + "\n"
+    )
+    with open(PREDICTION_FILE_PATH, "w") as prediction_file:
+        prediction_file.write(header_row)
 
 # Append to the output file instead of overwriting.
 with open(PREDICTION_FILE_PATH, "a") as prediction_file:
