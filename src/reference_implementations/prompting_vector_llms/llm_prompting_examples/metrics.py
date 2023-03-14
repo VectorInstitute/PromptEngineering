@@ -8,7 +8,9 @@ def map_ag_news_int_labels(raw_labels: List[str], int_to_string_map: Dict[int, s
     return [int_to_string_map[int(raw_label)] for raw_label in raw_labels]
 
 
-def ag_news_metrics(preds: List[str], labels: List[str], ordering: Optional[List[str]] = None) -> None:
+def report_metrics(preds: List[str], labels: List[str], ordering: Optional[List[str]] = None) -> None:
+    # The label ordering just fixes the order of the labels in the confusion matrix. The default is the labels
+    # associated with the AG News dataset.
     labels_order = ordering if ordering else ["world", "sports", "business", "science"]
     matrix = confusion_matrix(preds, labels, labels=labels_order)
     FP = matrix.sum(axis=0) - np.diag(matrix)
