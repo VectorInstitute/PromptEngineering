@@ -2,7 +2,7 @@ from typing import List, Iterable, Tuple, Dict, Literal
 import os
 from tqdm.auto import tqdm
 
-TEST_FILE_PATH = "sentiment_fairness_tests.tsv"
+TEST_FILE_PATH = "datasets/sentiment_fairness_tests.tsv"
 PREDICTION_FILE_PATH = "predictions.tsv"  # Append results to this file.
 MODEL = "roberta-base"
 DATASET = "TweetEval"  # Labeled task-specific dataset
