@@ -19,7 +19,7 @@ BATCH_SIZE = 8
 # Example: fine-tuned RoBERTa model via HuggingFace pipeline
 
 # HuggingFace pipeline combining model and tokenizer.
-pipe = pipeline("text-classification", model="cardiffnlp/twitter-roberta-base-sentiment")
+sentiment_analysis_pipeline = pipeline("text-classification", model="cardiffnlp/twitter-roberta-base-sentiment")
 label_lookup = {
     "LABEL_0": 0,  # Negative
     "LABEL_1": 1,  # Neutral
@@ -27,14 +27,21 @@ label_lookup = {
 }  # Maps string labels to integers.
 
 
-def get_predictions_batched(input_texts: List[str]) -> Iterable[int]:  # type: ignore
+def get_predictions_batched(input_texts: List[str]) -> Iterable[int]:
     """
-    Your Code Here.
+    This function applies the ML model to predict the sentiment of the input texts.
+    The input is a list of sentences, and this function is supposed to return
+    a list/array of integer labels.
 
-    This function takes in a list ("batch") of sentences and return
-    an iterable of integers (a list, an array, etc.)
+    Note that 0 is for negative emotions, 1 is for neutral, and 2 is for positive.
+
+    As an example, the implementation below returns the predictions from a fine-tuned
+    model loaded from the HuggingFace hub.
+
+    You may want to modify this function to evaluate the fairness other
+    models, APIs, and prompt-based sentiment analysis approaches.
     """
-    model_output: List[Dict[Literal["label"], str]] = pipe(input_texts)  # type: ignore
+    model_output: List[Dict[Literal["label"], str]] = sentiment_analysis_pipeline(input_texts)  # type: ignore
     # [{"label": "LABEL_0", "score": 0.7}, {"label": "LABEL_0", "score": 0.8}]
 
     predictions = [label_lookup[prediction["label"]] for prediction in model_output]
@@ -78,23 +85,9 @@ batch: List[TestEntry] = []
 text_batch: List[str] = []
 output: List[OutputEntry] = []
 
-for test_entry in tqdm(tests):
-    batch.append(test_entry)
-    text_batch.append(test_entry[-1])
-
-    if len(batch) == BATCH_SIZE:
-        predictions = get_predictions_batched(text_batch)
-
-        for prediction, test_entry in zip(predictions, batch):
-            label, attribute, group, text = test_entry
-            output_entry = (prediction, label, attribute, group, text, MODEL, RUN_ID, DATASET, NUM_PARAMS)
-            output.append(output_entry)
-
-        batch = []
-        text_batch = []
-
-# Handle tailing entries.
-if len(batch) > 0:
+test_batches = [tests[x : x + BATCH_SIZE] for x in range(0, len(tests), BATCH_SIZE)]
+for batch in tqdm(test_batches):
+    text_batch = [test_case[-1] for test_case in batch]  # Extract texts from the batch.
     predictions = get_predictions_batched(text_batch)
 
     for prediction, test_entry in zip(predictions, batch):
@@ -102,6 +95,7 @@ if len(batch) > 0:
         output_entry = (prediction, label, attribute, group, text, MODEL, RUN_ID, DATASET, NUM_PARAMS)
         output.append(output_entry)
 
+# If the prediction file doesn't exist, we create a new one and append the tsv header row.
 if not os.path.exists(PREDICTION_FILE_PATH):
     header_row = "\t".join(
         [
