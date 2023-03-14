@@ -8,13 +8,12 @@ from src.reference_implementations.prompt_zoo.data_utility import read_semeval_s
 
 
 def sentiment_metric(gold_file: str, prediction_file: str, task_name: str) -> float:
-    """Compute the classification accuracy for sentiment
-    classification."""
+    """Compute the classification accuracy for sentiment classification."""
 
     if task_name == "semeval":
-        rawdata = read_semeval_sentiment_file(gold_file, repeat_input=False, with_instructions=False)
+        rawdata = read_semeval_sentiment_file(gold_file, instruction_type="None", repeat_input=False)
     elif task_name == "sst2":
-        rawdata = read_sst2_sentiment_file(gold_file, repeat_input=False, with_instructions=False)
+        rawdata = read_sst2_sentiment_file(gold_file, instruction_type="None", repeat_input=False)
     else:
         raise Exception(f"this {task_name} is not supported!")
 
@@ -45,14 +44,14 @@ def sentiment_metric(gold_file: str, prediction_file: str, task_name: str) -> fl
 
 
 def classifier_sentiment_metric(gold_file: str, prediction_file: str, task_name: str) -> float:
-    """Compute the classification accuracy for sentiment classification
-    where we have classifier on top of the T5 encoder compared to generation of
-    the classes in the decoder."""
+    """Compute the classification accuracy for sentiment classification where
+    we have classifier on top of the T5 encoder compared to generation of the
+    classes in the decoder."""
 
     if task_name == "semeval":
-        rawdata = read_semeval_sentiment_file(gold_file, repeat_input=False, with_instructions=False)
+        rawdata = read_semeval_sentiment_file(gold_file, instruction_type="None", repeat_input=False)
     elif task_name == "sst2":
-        rawdata = read_sst2_sentiment_file(gold_file, repeat_input=False, with_instructions=False)
+        rawdata = read_sst2_sentiment_file(gold_file, instruction_type="None", repeat_input=False)
     else:
         raise Exception(f"this {task_name} is not supported!")
 

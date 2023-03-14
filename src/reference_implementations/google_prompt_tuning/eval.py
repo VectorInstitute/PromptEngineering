@@ -231,7 +231,6 @@ def evaluate(
     if fallback_init_rng is not None:
         fallback_init_rng = jax.random.PRNGKey(fallback_init_rng)
     for train_state in train_state_initializer.from_checkpoints([restore_checkpoint_cfg], init_rng=fallback_init_rng):
-
         # ----------------------------------------------------------------------------
         # Main evaluation loop
         # ----------------------------------------------------------------------------
