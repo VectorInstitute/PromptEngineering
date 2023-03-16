@@ -37,3 +37,17 @@ This notebook implements an example of performing question answering based on a 
 ### Translation
 
 The notebook is constructed to provide a proof of concept in translation through prompting of OPT. OPT is __not__ trained on a multilingual dataset, but has been shown to be able to perform some translations. This notebook demonstrates these capabilities in zero- and few-shot settings. However, the model isn't particularly strong, as measured by the bleu scores on a small sample from the NMT14 fr-en test set.
+
+## Ensembling Example
+
+In the folder `prompt_ensembling` is an example of how one might use prompt ensembling to improve the accuracy an LLMs performance on a downstream task. The idea is to combine prompts in order to ask the model to perform a task in multiple ways, hopefully producing better performance by asking the same question in multiple ways.
+
+The notebook considers the Balanced Choice of Plausible Alternatives (CoPA) task, which is a harder version of the original CoPA task. We work with a small sample of the dataset and perform few-shot prompting of the vector LLMs. The task, in short, is, given a context and a premise of either cause or effect, the model must choose between two distinct sentences to determine which is the logical following sentence. An example is:
+
+From the following choices,
+1) The author faded into obscurity.
+2) It was adapted into a movie.
+
+and an effect premise, which logically follows the sentence "The book became a huge failure." The answer is "The author faded into obscurity."
+
+We consider vote ensembling, averaging of label probabilities, and "bootstrap" ensembles. Then we determine whether the accuracy is improved after ensembling. In addition, we experiment with two separate scoring mechanisms for model responses. The first is Rouge scores for generated labels. The second is phrase likelihood as estimated by the model logits.
