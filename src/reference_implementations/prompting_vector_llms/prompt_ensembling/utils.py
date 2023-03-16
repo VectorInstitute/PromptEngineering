@@ -18,6 +18,11 @@ def split_prompts_into_batches(prompts: List[str], batch_size: int = 10) -> List
     return [prompts[x : x + batch_size] for x in range(0, len(prompts), batch_size)]
 
 
+#########################################################
+# Generation of first type of prompts
+#########################################################
+
+
 def create_first_prompt_label(first_choice: str, second_choice: str, label: int) -> str:
     return first_choice if label == 0 else second_choice
 
@@ -40,7 +45,7 @@ def create_first_prompt(
 ) -> str:
     prompt = "Choose the sentence that best completes the phrase\n\n"
     for demo_premise, demo_label, demo_phrase, demo_first_choice, demo_second_choice in demonstrations:
-        # demo_first_choice = demo_first_choice.lower()
+        demo_first_choice = demo_first_choice.lower()
         demo_second_choice = demo_second_choice.lower()
         demo_label_str = create_first_prompt_label(demo_first_choice, demo_second_choice, demo_label)
         demo_phrase = demo_phrase.rstrip(".")
@@ -53,6 +58,11 @@ def create_first_prompt(
     phrase = phrase.rstrip(".")
     data_point_prompt = structure_first_prompt_string(first_choice, second_choice, phrase, premise_phrase)
     return f"{prompt}{data_point_prompt} "
+
+
+#########################################################
+# Generation of second type of prompts
+#########################################################
 
 
 def create_second_prompt_label(first_choice: str, second_choice: str, label: int) -> str:
