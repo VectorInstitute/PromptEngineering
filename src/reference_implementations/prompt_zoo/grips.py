@@ -7,11 +7,14 @@ github link: https://github.com/archiki/GrIPS
 """
 
 import os
+import pickle
 import string
-from typing import Dict, List, Tuple, Union
+from dataclasses import dataclass
+from typing import Dict, Iterator, List, Tuple, Union
 
 import nltk
 import numpy as np
+import torch
 from absl import flags
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.tokenize.treebank import TreebankWordDetokenizer
@@ -30,6 +33,25 @@ flags.DEFINE_string("meta-name", default="search.txt", help="file name to store 
 flags.DEFINE_integer("patience", default=2, help="Type in the max patience P (counter)")
 flags.DEFINE_integer("num-candidates", default=5, help="Number of candidates in each iteration (m)")
 flags.DEFINE_integer("num-iter", default=10, help="Max number of search iterations")
+flags.DEFINE_string(
+    "grips_initial_prompt",
+    "Generate the sentiment of the next sentence.",
+    "An initial instruction to append to the start of the sentence.",
+)
+
+
+@dataclass
+class GripsPromptTemplate:
+    """A dataclass to define the prompt template with two attributes:
+
+    1 - tokens: a list of token indices from the vocabulary table.
+        tokens have size prompt_length.
+    2 - score: the final balanced accuracy given this prompt template
+                across a search dataset.
+    """
+
+    tokens: List[int]
+    score: float
 
 
 class GRIPSSearch(MyBaseT5):
@@ -64,7 +86,82 @@ class GRIPSSearch(MyBaseT5):
             self.para_tokenizer = PegasusTokenizer.from_pretrained(para_model_name)
             self.para_model = PegasusForConditionalGeneration.from_pretrained(para_model_name).to(self.device)
 
+        # initialize the base candidate into a prompt template.
+        self.define_candidate(FLAGS.grips_initial_prompt)
+
         self.setup_models()
+
+    def define_candidate(self, base_candidate: str) -> None:
+        """Define the prompt template based on the given base candidate."""
+        instruction_ids = self.tokenizer(base_candidate, add_special_tokens=False)["input_ids"]
+        FLAGS.prompt_length = len(instruction_ids)
+        self.current_candidate = GripsPromptTemplate(tokens=instruction_ids, score=-float("inf"))
+
+    def update_candidate(self, candidate: str) -> None:
+        """Update the prompt template based on the given candidate."""
+        instruction_ids = self.tokenizer(candidate, add_special_tokens=False)["input_ids"]
+        FLAGS.prompt_length = len(instruction_ids)
+        self.current_candidate.tokens = instruction_ids
+        self.current_candidate.score = -float("inf")
+
+    def load_from_checkpoint(self) -> None:
+        """Load the optimized prompt template from the specified checkpoint
+        name and update the internal candidate."""
+        m_path = FLAGS.model_path
+        ckp_name = FLAGS.checkpoint
+        try:
+            with open(os.path.join(m_path, f"{ckp_name}.pkl"), "rb") as inp:
+                self.current_candidate = pickle.load(inp)
+        except Exception as e:
+            raise Exception("Could not load the checkpoint due to error:{}".format(e))
+
+    def save(self) -> None:
+        """Save the optimized prompt template to the model_path for the
+        specified checkpoint name."""
+        m_path = FLAGS.model_path
+        checkpoint_name = FLAGS.checkpoint
+        if not os.path.exists(m_path):
+            os.makedirs(m_path)
+
+        with open(os.path.join(m_path, f"{checkpoint_name}.pkl"), "wb") as outp:
+            pickle.dump(self.current_candidate, outp, pickle.HIGHEST_PROTOCOL)
+
+    def score_templates(
+        self, batch: torch.utils.data.Dataset, prompt_templates: List[GripsPromptTemplate]
+    ) -> torch.Tensor:
+        """Run a forward computation over the batch for each prompt templates
+        and compute the log probability over the batch for each prompt
+        template.
+        """
+        batch_size, _ = batch["input_ids"].size()
+        prompt_lists = [template.tokens for template in prompt_templates]
+        class_log_ps = self.forward_pass(batch, train=False, prompt_lists=prompt_lists)
+
+        template_scores = class_log_ps.view(batch_size, len(prompt_templates))
+        return template_scores
+
+    def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, Union[str, float]]]:
+        """The main prediction loop for a given candidate over a batch from the search set."""
+        class_log_ps = self.score_templates(batch, [self.current_candidate])
+        # mean across the prompt templates.
+        # for grips, we only evaluate one canidate prompt template at a time, so the mean doesn't have an effect.
+        class_log_ps = class_log_ps.mean(dim=1)
+        class_log_ps = class_log_ps.cpu().detach().numpy()
+
+        # not efficient, but let's pair potential class along the prediction scores.
+        # all transformer special tokens will be removed.
+        # same labels have been repeated once per template in beam.
+        potentials_str = self.tokenizer.batch_decode(batch["labels"], skip_special_tokens=True)
+        prompt_str = self.tokenizer.batch_decode(self.current_candidate.tokens, skip_special_tokens=True)
+        print("evaluating batch with prompt template:", prompt_str)
+        for index, potential_class in enumerate(potentials_str):
+            output_row = {
+                "potential_class": potential_class,
+                "prediction_score": class_log_ps[index],
+                "prompt_str": prompt_str,
+                "gold_class": batch["gold_classes"][index],
+            }
+            yield output_row
 
     def detokenize(self, tokens: List[str]) -> str:
         """constructs the string back from the nltk tokenizer."""
@@ -149,7 +246,7 @@ class GRIPSSearch(MyBaseT5):
             max_length=60,
             num_beams=num_beams,
             num_return_sequences=num_return_sequences,
-            temperature=1.5
+            temperature=1.5,
         )
         tgt_text = self.para_tokenizer.batch_decode(translated, skip_special_tokens=True)
         return tgt_text

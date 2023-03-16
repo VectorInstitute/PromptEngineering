@@ -25,6 +25,7 @@ class SentimentRawData:
     inputs: List[str]
     outputs: List[str]
     class_indices: List[int]
+    gold_outputs: List[str]
 
 
 def white_space_fix(text: str) -> str:
@@ -92,18 +93,21 @@ def template_data(
         inputs = []
         outputs = []
         class_indices = []
-        for sent in sentences:
+        gold_outputs = []
+        for idx, sent in enumerate(sentences):
             for label, index in class_to_id.items():
                 inputs.append(f"{sent} </s>")
                 outputs.append(f"{label} </s>")
+                gold_outputs.append(white_space_fix(labels[idx]))
                 class_indices.append(index)
-        return SentimentRawData(inputs=inputs, outputs=outputs, class_indices=class_indices)
+        return SentimentRawData(inputs=inputs, outputs=outputs, class_indices=class_indices, gold_outputs=gold_outputs)
 
     # add end of sequence token:
     inputs = [f"{sent} </s>" for sent in sentences]
     outputs = [f"{label} </s>" for label in labels]
     class_indices = [class_to_id[label] for label in labels]
-    return SentimentRawData(inputs=inputs, outputs=outputs, class_indices=class_indices)
+
+    return SentimentRawData(inputs=inputs, outputs=outputs, class_indices=class_indices, gold_outputs=labels)
 
 
 def read_semeval_sentiment_file(file_path: str, instruction_type: str, repeat_input: bool = False) -> SentimentRawData:
@@ -158,8 +162,14 @@ class SentimentDataset(Dataset):
 
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
         """Return the elements for example index 'idx' as a dictionary with
-        tensor values."""
-        return {key: torch.tensor(val[idx]) for key, val in self.data.items()}
+        tensor values if they are not strings."""
+        ret = {}
+        for key, val in self.data.items():
+            if isinstance(val[idx], str):
+                ret[key] = val[idx]
+            else:
+                ret[key] = torch.tensor(val[idx])
+        return ret
 
     def __len__(self) -> int:
         """Return the length of the data."""
@@ -205,6 +215,7 @@ def create_sentiment_dataset(
         "labels": output_encodings.input_ids,
         "target_attention_mask": output_encodings.attention_mask,
         "class_indices": rawdata.class_indices,
+        "gold_classes": rawdata.gold_outputs,
     }
 
     if shuffle:

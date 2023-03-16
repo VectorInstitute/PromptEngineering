@@ -18,7 +18,11 @@ from torch.utils.tensorboard import SummaryWriter
 from src.reference_implementations.prompt_zoo.classifier_over_t5 import ClassifierT5
 from src.reference_implementations.prompt_zoo.data_utility import create_sentiment_dataset
 from src.reference_implementations.prompt_zoo.gradient_search import SearchT5
-from src.reference_implementations.prompt_zoo.metrics import classifier_sentiment_metric, sentiment_metric
+from src.reference_implementations.prompt_zoo.metrics import (
+    classifier_sentiment_metric,
+    grips_sentiment_metric,
+    sentiment_metric,
+)
 from src.reference_implementations.prompt_zoo.prompted_t5 import FineTuneT5, MyBaseT5
 
 FLAGS = flags.FLAGS
@@ -48,6 +52,24 @@ def start_predicting(model: MyBaseT5, dataloader: torch.utils.data.DataLoader, p
                     header_written = True
                 writer.writerow(list(ret_row.values()))
     return
+
+
+def grips_score(model: MyBaseT5, batch: torch.utils.data.Dataset, prediction_file: str) -> float:
+    """Predict over the search batch using the current prompt template and then
+    return the balanced accuracy + entropy used in the GRIPS paper."""
+
+    # save prediction in a file.
+    with io.open(prediction_file, mode="w", encoding="utf-8") as out_fp:
+        writer = csv.writer(out_fp, quotechar='"', quoting=csv.QUOTE_ALL)
+        header_written = False
+        for ret_row in model.predict(batch):
+            if not header_written:
+                headers = ret_row.keys()
+                writer.writerow(headers)
+                header_written = True
+            writer.writerow(list(ret_row.values()))
+
+    return grips_sentiment_metric(prediction_file)
 
 
 def start_training(model: MyBaseT5, dataloader: torch.utils.data.DataLoader) -> Iterator[Tuple[int, float]]:
