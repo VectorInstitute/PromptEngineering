@@ -13,9 +13,11 @@ TEST_FILE_PATH = (
     "src/reference_implementations/fairness_measurement/resources/czarnowska_templates/sentiment_fairness_tests.tsv"
 )
 # Append results to this file.
-PREDICTION_FILE_PATH = "src/reference_implementations/fairness_measurement/resources/predictions/opt_predictions_1.tsv"
+PREDICTION_FILE_PATH = (
+    "src/reference_implementations/fairness_measurement/resources/predictions/opt_6_7_predictions.tsv"
+)
 MODEL = "opt-6_7b"
-DATASET = "TweetEval"  # Labeled task-specific dataset
+DATASET = "SST5"  # Labeled task-specific dataset
 NUM_PARAMS = 6.7  # billions
 RUN_ID = "run_1"
 BATCH_SIZE = 10
@@ -36,6 +38,9 @@ while model.state != "ACTIVE":
 last_layer_name = model.module_names[-1]
 last_layer_name
 
+model = None
+last_layer_name = ""
+
 short_generation_config = {"max_tokens": 4, "top_k": 4, "top_p": 3, "rep_penalty": 1.2, "temperature": 1.0}
 
 label_lookup = {
@@ -53,17 +58,18 @@ opt_tokenizer = AutoTokenizer.from_pretrained("facebook/opt-350m")
 
 def create_demonstrations() -> str:
     path = "src/reference_implementations/fairness_measurement/opt_czarnoska_analysis/resources/processed_sst5.tsv"
-    sampled_df = pd.read_csv(path).sample(number_of_demonstrations)
+    sampled_df = pd.read_csv(path, sep="\t", header=0).sample(number_of_demonstrations)
     texts = sampled_df["Text"].tolist()
-    valences = sampled_df["Valence"].tolist()
+    valences = sampled_df["Valence"].apply(lambda x: int(x)).tolist()
     demonstrations = "Classify the sentiment of the text.\n\n"
     for text, valence in zip(texts, valences):
-        demonstrations = f"{demonstrations}{text} The sentiment is {reverse_label_lookup[valence]}.\n\n"
+        demonstrations = f"{demonstrations}Text: {text} The sentiment is {reverse_label_lookup[valence]}.\n\n"
+    print(demonstrations)
     return demonstrations
 
 
 def create_prompt_for_text(text: str, demonstrations: str) -> str:
-    return f"{demonstrations}{text} The sentiment is"
+    return f"{demonstrations}Text: {text} The sentiment is"
 
 
 def create_prompts_for_batch(input_texts: List[str], demonstrations: str) -> List[str]:
@@ -144,7 +150,9 @@ def get_label_token_ids(
     tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast], prompt_template: str, label_words: List[str]
 ) -> List[int]:
     # Need to consider the token ids of our labels in the context of the prompt, as they may be different in context.
-    tokenized_inputs = tokenizer([f"{prompt_template} {label_word}" for label_word in label_words])["input_ids"]
+    tokenized_inputs = tokenizer(
+        [f"{prompt_template} {label_word}" for label_word in label_words], return_tensors="pt"
+    )["input_ids"]
     label_token_ids = tokenized_inputs[:, -1]
     return label_token_ids
 
