@@ -51,3 +51,7 @@ From the following choices,
 and an effect premise, which logically follows the sentence "The book became a huge failure." The answer is "The author faded into obscurity."
 
 We consider vote ensembling, averaging of label probabilities, and "bootstrap" ensembles. Then we determine whether the accuracy is improved after ensembling. In addition, we experiment with two separate scoring mechanisms for model responses. The first is Rouge scores for generated labels. The second is phrase likelihood as estimated by the model logits.
+
+## Can we transfer gradient optimized prompts to OPT?
+
+In the folder `transfering_gradient_optimized_prompts`, we consider whether the gradient optimized prompts that we found during discrete prompt optimization through gradient based search for the T5 model are transferrable to the OPT 6.7B model for sentiment analysis. This model is larger than T5, but has a different tokenizer and a different architecture. T5 has an encoder-decoder coupling, while OPT is decoder-only.
