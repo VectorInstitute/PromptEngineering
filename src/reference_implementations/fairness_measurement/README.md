@@ -62,3 +62,5 @@ By default, this script will append predictions and info about the model to `PRE
 Open the Jupyter notebook `fairness_measurement/group-fairness-plots.ipynb` to load the predictions and interactively evaluate the bias of each model.
 
 You do not need a GPU for this notebook. However, you might need to install additional packages for plotting. Refer to the notebook for more details. 
+
+Note that the notebook is capable of visualizing confidence intervals. However, to see the intervals, you will need to run Step 1 at least twice with the same `MODEL`, `DATASET`, `NUM_PARAMS`, but different `RUN_ID` values. Otherwise, the CI widths in the notebook will be NaN and no confidence interval will be plotted.
