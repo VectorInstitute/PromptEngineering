@@ -17,7 +17,7 @@ gpt2_tokenizer.pad_token = gpt2_tokenizer.eos_token
 pad_token_id = gpt2_tokenizer.encode(gpt2_tokenizer.eos_token)[0]
 
 train_dataloader, val_dataloader, test_dataloader = construct_ag_news_dataloaders(
-    batch_size=32, train_split_ratio=0.8, tokenizer=gpt2_tokenizer
+    batch_size=8, train_split_ratio=0.8, tokenizer=gpt2_tokenizer
 )
 
 device = "cuda" if cuda.is_available() else "cpu"

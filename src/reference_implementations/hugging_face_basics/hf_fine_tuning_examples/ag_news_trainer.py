@@ -31,7 +31,16 @@ def infer(
 
             # forward pass
             outputs = model(ids, mask)
-            total_loss += loss_function(outputs, targets).item()
+            if type(outputs) in {SequenceClassifierOutput, SequenceClassifierOutputWithPast}:
+                # For a SequenceClassifierOutput object, we want logits which are of shape (batch size, 4)
+                loss = loss_function(outputs.logits, targets)
+                pred_label = torch.argmax(outputs.logits, dim=1)
+            else:
+                # calculate loss for batch
+                loss = loss_function(outputs, targets)
+                pred_label = torch.argmax(outputs, dim=1)
+
+            total_loss += loss.item()
             pred_label = torch.argmax(outputs.data, dim=1)
             n_correct += calcuate_accuracy(pred_label, targets)
             n_total += targets.size(0)
@@ -90,7 +99,7 @@ def train(
             n_total += targets.size(0)
 
             if batch_number % n_steps_per_report == 0 and batch_number > 1:
-                print(f"Completed batch number: {batch} of {train_batches}")
+                print(f"Completed batch number: {batch_number} of {train_batches}")
                 print(f"Training Loss over last {n_steps_per_report} steps: {total_steps_loss/n_steps_per_report}")
                 print(f"Training Accuracy over last {n_steps_per_report} steps: {(n_correct*100)/n_total}%")
                 val_accuracy, val_loss = infer(model, loss_func, val_dataloader, device)

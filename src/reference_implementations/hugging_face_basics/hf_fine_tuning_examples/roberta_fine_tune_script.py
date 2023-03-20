@@ -13,7 +13,7 @@ from src.reference_implementations.hugging_face_basics.hf_fine_tuning_examples.r
 
 roberta_tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
 train_dataloader, val_dataloader, test_dataloader = construct_ag_news_dataloaders(
-    batch_size=32, train_split_ratio=0.8, tokenizer=roberta_tokenizer
+    batch_size=8, train_split_ratio=0.8, tokenizer=roberta_tokenizer
 )
 
 device = "cuda" if cuda.is_available() else "cpu"
