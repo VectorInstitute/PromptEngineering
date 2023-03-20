@@ -50,8 +50,11 @@ NUM_PARAMS = 0.125  # billions
 RUN_ID = "example_run_a"  # E.g., distinguishes between different random seeds.
 ```
 
-On a GPU machine, go to the root folder of this project (`PromptEngineering`) and run the fairness evaluation script:
+On a GPU machine, go to the root folder of this project (`PromptEngineering`). Create a virtual environment and run the fairness evaluation script:
 ```bash
+python3 -m venv env
+source env/bin/activate
+
 python3 -m pip install -U transformers tqdm
 python3 src/reference_implementations/fairness_measurement/fairness_eval_template.py
 ```
