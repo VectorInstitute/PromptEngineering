@@ -18,9 +18,12 @@ def infer(
     model.eval()
     n_correct = 0
     n_total = 0
+    total_loss = 0.0
+    n_batches = 0
     # disable gradient calculations
     with torch.no_grad():
         for _, batch in enumerate(dataloader):
+            n_batches += 1
             # send the batch components to proper deviceX
             ids = batch["input_ids"].to(device, dtype=torch.long)
             mask = batch["attention_mask"].to(device, dtype=torch.long)
@@ -28,11 +31,13 @@ def infer(
 
             # forward pass
             outputs = model(ids, mask)
-            loss = loss_function(outputs, targets)
+            total_loss += loss_function(outputs, targets).item()
             pred_label = torch.argmax(outputs.data, dim=1)
             n_correct += calcuate_accuracy(pred_label, targets)
             n_total += targets.size(0)
-    return n_correct * 100 / n_total, loss.item()
+    # Return the accuracy over the entire validation set
+    # and the average loss per batch (to match training loss calculaiton)
+    return n_correct * 100 / n_total, total_loss / n_batches
 
 
 def train(
@@ -43,20 +48,19 @@ def train(
     device: str,
     n_epochs: int = 1,
 ) -> None:
-    # move model to the GPU (if available)
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.0001, weight_decay=0.0001)
     n_steps_per_report = 100
+    # move model to the GPU (if available)
     model.to(device)
-    total_epoch_loss = 0.0
-
-    n_correct = 0
-    n_total = 0
-
     model.train()
+
     for epoch_number in range(n_epochs):
         print(f"Starting Epoch {epoch_number}")
         total_epoch_loss = 0.0
         total_steps_loss = 0.0
+        n_correct = 0
+        n_total = 0
+
         train_batches = len(train_dataloader)
         for batch_number, batch in enumerate(train_dataloader):
             # send the batch components to proper device
@@ -105,5 +109,5 @@ def train(
         print("------------------------------------------------")
         print(f"Training Loss Epoch: {epoch_loss}")
         print(f"Validation Loss: {val_loss}")
-        print(f"Final validation accuracy: {val_accuracy}")
+        print(f"Validation accuracy: {val_accuracy}")
         print("------------------------------------------------")

@@ -6,7 +6,9 @@ The folder `hf_fine_tuning_examples` contains a few basic examples of using Hugg
 
 1) Fine-tuning a pre-trained RoBERTa-base model for the AG news text classification task.
 2) Fine-tuning a pre-trained GPT2 model for the AG news text classification task.
-3) Performing inference on a summarization task with a pre-trained T5 model from the model hub and measuring performance on a benchmark.
+3) Performing inference on a summarization task with a pre-trained T5 model from the model hub and measuring performance on a benchmark dataset.
+
+There are notebooks for running the training in (1) and (2) and for performing the inference and measurements in (3). These notebooks have self-contained pip installs at the beginning. However, there are also python scripts for launching training on the cluster through a slurm script, should you want to do so. However, there isn't any venv setup here. Simply created your own venv using the pip installs from the notebooks if you would like to run them as scripts.
 
 
 ### NLP Metrics Examples

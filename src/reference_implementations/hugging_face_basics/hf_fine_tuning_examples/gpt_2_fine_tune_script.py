@@ -23,9 +23,10 @@ train_dataloader, val_dataloader, test_dataloader = construct_ag_news_dataloader
 device = "cuda" if cuda.is_available() else "cpu"
 print(f"Detected Device {device}")
 # We'll provide two options. First we create our own model on top of the vanilla RoBERTa model. The second is to use
-# HuggingFace's RobertaForSequenceClassification class, which essentially does the same thing.
+# HuggingFace's GPT2ForSequenceClassification class, which essentially does the same thing.
 use_hf_sequence_classification = True
 gpt2_model_config = GPT2Config.from_pretrained(pretrained_model_name_or_path="gpt2", num_labels=4)
+# The pad_token_id is used to determine when a sequence of inputs ends.
 gpt2_model_config.pad_token_id = pad_token_id
 gpt2_classifier_model = (
     GPT2ForSequenceClassification.from_pretrained("gpt2", config=gpt2_model_config)
