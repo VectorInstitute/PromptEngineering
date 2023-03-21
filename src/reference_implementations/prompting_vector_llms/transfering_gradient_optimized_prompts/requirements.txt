@@ -50,6 +50,7 @@ pyzmq==25.0.1
 regex==2022.10.31
 requests==2.28.2
 responses==0.18.0
+sentencepiece==0.1.97
 setuptools==65.6.3
 six==1.16.0
 stack-data==0.6.2
