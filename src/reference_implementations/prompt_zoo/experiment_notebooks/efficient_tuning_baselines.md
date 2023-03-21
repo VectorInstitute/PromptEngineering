@@ -23,15 +23,21 @@
 
 <b>We are training these baselines on the semeval-2018 sentiment dataset for up to 30 epochs. We will use the vector's GPU cluster and the slurm scheduler to submit four GPU jobs to train these models. For this experiment, we don't need to login to a specific GPU node and we can submit the jobs from the login nodes on the vector vaughan cluster.</b>
 
-# Installing the virtual env
-To run the experiments, we need to install the `prompt_torch` virtual environment on the vector cluster:
+# Virtual Environment Setup
+You have two options.
+
+1) If you want to use our pre-built environment to run experiments, simply run
+```bash
+source /ssd003/projects/aieng/public/prompt_engineering/bin/activate
+```
+If you are using the pre-built environments *do not* modify it, as it will affect all users of the venv.
+
+2) You can build your own venv that you are free to modify by running the commands below. We install our prompt module in the development mode so if we change code, the env gets updated with our changes.
 ```bash
 bash setup.sh OS=vcluster ENV_NAME=prompt_torch DEV=true
 ```
-
 *Note*: If the env already exists in your repository you need not run the setup again. Just source it as instructed below.
-
-Then activate the `prompt_torch` environment to launch the training jobs.
+then activate the environment.
 
 *Note*: This assumes that your are at the top directory. If you are not, you should manipulate the directory to point to the environment. All jobs should also be run from the top directory.
 ```bash

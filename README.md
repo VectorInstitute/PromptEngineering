@@ -18,7 +18,7 @@ Automatic Prompt Tuning Methods are implemented under `src/reference_implementat
 There are also several alternatives to prompt optimization implemented, including full model tuning and partial fine-tuning.
 
 For more information about using and running the prompt tuning experiments using the T5 language model, please see the corresponding .md file.
-[README.md](/src/reference_implementations/prompt_zoo/README.md) describes the steps to install the package and access gpu in the vector's cluster for the experiments around different prompt techniques.
+[README.md](/src/reference_implementations/prompt_zoo/README.md) describes the steps to setup the environment and access gpus in the vector's cluster for the experiments around different prompt techniques.
 
 ## Prompting OPT-175B, Galactica, or Other Large Language Models On the Cluster
 
@@ -32,22 +32,39 @@ These reference implementations reside in `src/reference_implementations/measuri
 
 This folder contains implementations for measuring fairness for models that have been fine-tuning or prompted to complete a sentiment classification task. There is also an implementation of measuring fairness for LLMs like OPT-175B or Galactica accessed on Vector's cluster.
 
+## Launching an interactive session on a GPU node
+
+From any of the v-login nodes, run the following. This will reserve an A40 GPU and provide you a terminal to run commands on that node.
+
+```bash
+srun --gres=gpu:1 -c 8 --mem 16G -p a40 --pty bash
+```
+
 ## Installing dependencies
+
+*Note*: The following instructions are for anyone who would like to create there own python virtual environment to run experiments. If you would just like to run the code you can use one of our pre-built virtual environents by simply running, for example,
+
+```bash
+source /ssd003/projects/aieng/public/prompt_engineering/bin/activate
+```
+The above environment is for the `prompt_zoo` examples. Other required environments are discussed in the relevant folders.
+
+If you are using the pre-built environments *do not* modify it, as it will affect all users of the venv. To install your own environment that you can manipulate, follow the instructions below.
 
 ### Virtualenv installing on macOS
 
 If you wish to install the package in macOS for local development, you should call the following script to install `python3.9` on macOS and then setup the virtual env for the module you want to install. This approach only installs the ML libraries (`pytorch`, `tensorflow`, `jax`) for the CPU. If you also want to install the package in the editable mode with all the development requirements, you should use the flag `DEV=true` when you run the script, otherwise use the flag `DEV=false`.
-```
+```bash
 bash setup.sh OS=mac ENV_NAME=env_name DEV=true
 ```
 
 ### Virtualenv installing on Vector's Cluster
 You can call `setup.sh` with the `OS=vcluster` flag. This installs python in the linux cluster of Vector and installs the ML libraries for the GPU cards.
-```
+```bash
 bash setup.sh OS=vcluster ENV_NAME=env_name DEV=true
 ```
 
-The `setup.sh` script takes an *ENV_NAME* argument with possible values of `prompt_torch`, `t5x`, and `google_prompt_tuning`. The first value should be used for our prompt tuning implementations, while the second and third are used for running the JAX versions of prompt tuning (not currently supported).
+The `setup.sh` script takes an *ENV_NAME* argument value of `prompt_torch`. The value `prompt_torch` should be used for our `prompt_zoo`
 
 ## Using Pre-commit Hooks (for developing in this repository)
 To check your code at commit time
@@ -59,3 +76,11 @@ You can also get pre-commit to fix your code
 ```
 pre-commit run
 ```
+
+## A note on disk space
+
+Many of the experiments in this respository will end up writing to your scratch directory. An example path is:
+```
+/scratch/ssd004/scratch/snajafi/
+```
+where `snajafi` is replaced with your cluster username. This directory has a maximum capacity of 50GB. If you run multiple hyperparameter sweeps, you may fill this directory with model checkpoints. If this directory fills, it may interrupt your jobs or cause them to fail. Please be cognizant of the space and clean up old runs if you begin to fill the directory.
