@@ -4,22 +4,33 @@ from typing import Dict, Iterable, List, Literal, Tuple
 from tqdm.auto import tqdm
 from transformers import pipeline
 
+# Path to sentiment fairness test cases
 TEST_FILE_PATH = (
     "src/reference_implementations/fairness_measurement/resources/czarnowska_templates/sentiment_fairness_tests.tsv"
 )
-# Append results to this file.
+
+# Append formatted predictions to this file.
 PREDICTION_FILE_PATH = "src/reference_implementations/fairness_measurement/resources/predictions/predictions.tsv"
-MODEL = "roberta-base"
-DATASET = "TweetEval"  # Labeled task-specific dataset
-NUM_PARAMS = 0.125  # billions
-RUN_ID = "example_run_a"
+
+# Batch size.
 BATCH_SIZE = 8
+
+# HuggingFace Model to load for this demo.
+# Feel free to delete this line if you replaced the fine-tuned RoBERTa model with
+# LLM + prompt-tuning.
+DEMO_HF_MODEL = "cardiffnlp/twitter-roberta-base-sentiment"
+
+# Data entries below are used only for plotting the fairness diagrams.
+MODEL = "RoBERTa-base fine-tuned"
+DATASET = "TweetEval"  # Name of the labelled task-specific dataset
+NUM_PARAMS = 0.125  # billions
+RUN_ID = "example_run_a"  # E.g., distinguishes between different random seeds.
 
 # Initialize model here.
 # Example: fine-tuned RoBERTa model via HuggingFace pipeline
 
 # HuggingFace pipeline combining model and tokenizer.
-sentiment_analysis_pipeline = pipeline("text-classification", model="cardiffnlp/twitter-roberta-base-sentiment")
+sentiment_analysis_pipeline = pipeline("text-classification", model=DEMO_HF_MODEL)
 label_lookup = {
     "LABEL_0": 0,  # Negative
     "LABEL_1": 1,  # Neutral
@@ -78,7 +89,7 @@ with open(TEST_FILE_PATH, "r") as template_file:
         label_str, attribute, group, text = tuple(line.rstrip().split("\t"))
         # convert the label string to an int
         label = int(label_str)
-        tests.append((label, attribute, group, text))
+        tests.append((label, attribute, group, text))  # type: ignore
 
 
 batch: List[TestEntry] = []
@@ -93,7 +104,7 @@ for batch in tqdm(test_batches):
     for prediction, test_entry in zip(predictions, batch):
         label, attribute, group, text = test_entry
         output_entry = (prediction, label, attribute, group, text, MODEL, RUN_ID, DATASET, NUM_PARAMS)
-        output.append(output_entry)
+        output.append(output_entry)  # type: ignore
 
 # If the prediction file doesn't exist, we create a new one and append the tsv header row.
 if not os.path.exists(PREDICTION_FILE_PATH):
