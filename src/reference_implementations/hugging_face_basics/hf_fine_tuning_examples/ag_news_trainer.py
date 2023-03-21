@@ -41,7 +41,7 @@ def infer(
                 pred_label = torch.argmax(outputs, dim=1)
 
             total_loss += loss.item()
-            pred_label = torch.argmax(outputs.data, dim=1)
+            pred_label = torch.argmax(outputs, dim=1)
             n_correct += calcuate_accuracy(pred_label, targets)
             n_total += targets.size(0)
     # Return the accuracy over the entire validation set
