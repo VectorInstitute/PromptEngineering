@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -11,7 +11,11 @@ def calcuate_accuracy(preds: torch.Tensor, targets: torch.Tensor) -> int:
 
 
 def infer(
-    model: nn.Module, loss_function: torch.nn.Module, dataloader: torch.utils.data.DataLoader, device: str
+    model: nn.Module,
+    loss_function: torch.nn.Module,
+    dataloader: torch.utils.data.DataLoader,
+    device: str,
+    max_batches: Optional[int] = None,
 ) -> Tuple[float, float]:
     model.to(device)
     # set model to eval mode (disable dropout etc.)
@@ -23,7 +27,9 @@ def infer(
     # disable gradient calculations
     with torch.no_grad():
         for _, batch in enumerate(dataloader):
-            n_batches += 1
+            # Used to simply consider a sample of the evaluation set if desired
+            if max_batches is not None and n_batches > max_batches:
+                break
             # send the batch components to proper deviceX
             ids = batch["input_ids"].to(device, dtype=torch.long)
             mask = batch["attention_mask"].to(device, dtype=torch.long)
@@ -43,6 +49,7 @@ def infer(
             total_loss += loss.item()
             n_correct += calcuate_accuracy(pred_label, targets)
             n_total += targets.size(0)
+            n_batches += 1
     # Return the accuracy over the entire validation set
     # and the average loss per batch (to match training loss calculaiton)
     return n_correct * 100 / n_total, total_loss / n_batches
@@ -55,14 +62,18 @@ def train(
     loss_func: nn.Module,
     device: str,
     n_epochs: int = 1,
+    n_training_steps: int = 300,
 ) -> None:
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.0001, weight_decay=0.0001)
     n_steps_per_report = 100
     # move model to the GPU (if available)
     model.to(device)
     model.train()
+    total_training_steps = 0
 
     for epoch_number in range(n_epochs):
+        if total_training_steps > n_training_steps:
+            break
         print(f"Starting Epoch {epoch_number}")
         total_epoch_loss = 0.0
         total_steps_loss = 0.0
@@ -71,6 +82,8 @@ def train(
 
         train_batches = len(train_dataloader)
         for batch_number, batch in enumerate(train_dataloader):
+            if total_training_steps > n_training_steps:
+                break
             # send the batch components to proper device
             # ids has shape (batch size, input length = 512)
             ids = batch["input_ids"].to(device, dtype=torch.long)
@@ -101,7 +114,8 @@ def train(
                 print(f"Completed batch number: {batch_number} of {train_batches}")
                 print(f"Training Loss over last {n_steps_per_report} steps: {total_steps_loss/n_steps_per_report}")
                 print(f"Training Accuracy over last {n_steps_per_report} steps: {(n_correct*100)/n_total}%")
-                val_accuracy, val_loss = infer(model, loss_func, val_dataloader, device)
+                # We will only validate over a sample of the validation set for speed.
+                val_accuracy, val_loss = infer(model, loss_func, val_dataloader, device, max_batches=50)
                 print(f"Validation Loss over last {n_steps_per_report} steps: {val_loss}")
                 print(f"Validation Accuracy over last {n_steps_per_report} steps: {val_accuracy}%")
                 n_correct = 0
@@ -111,6 +125,8 @@ def train(
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+
+            total_training_steps += 1
 
         epoch_loss = total_epoch_loss / len(train_dataloader)
         val_accuracy, val_loss = infer(model, loss_func, val_dataloader, device)

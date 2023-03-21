@@ -35,9 +35,12 @@ gpt2_classifier_model = (
 )
 loss_function = nn.CrossEntropyLoss()
 n_training_epochs = 1
+n_training_steps = 300
 
 print("Begin Model Training...")
-train(gpt2_classifier_model, train_dataloader, val_dataloader, loss_function, device, n_training_epochs)
+train(
+    gpt2_classifier_model, train_dataloader, val_dataloader, loss_function, device, n_training_epochs, n_training_steps
+)
 print("Training Complete")
 
 print("Saving model...")
