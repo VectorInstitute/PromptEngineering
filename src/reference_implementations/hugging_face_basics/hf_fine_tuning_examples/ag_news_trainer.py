@@ -116,8 +116,8 @@ def train(
                 print(f"Training Accuracy over last {n_steps_per_report} steps: {(n_correct*100)/n_total}%")
                 # We will only validate over a sample of the validation set for speed.
                 val_accuracy, val_loss = infer(model, loss_func, val_dataloader, device, max_batches=50)
-                print(f"Validation Loss over last {n_steps_per_report} steps: {val_loss}")
-                print(f"Validation Accuracy over last {n_steps_per_report} steps: {val_accuracy}%")
+                print(f"Validation Loss: {val_loss}")
+                print(f"Validation Accuracy: {val_accuracy}%")
                 n_correct = 0
                 n_total = 0
                 total_steps_loss = 0.0
