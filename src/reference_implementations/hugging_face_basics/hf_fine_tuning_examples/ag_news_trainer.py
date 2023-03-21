@@ -36,7 +36,7 @@ def infer(
             targets = batch["label"].to(device, dtype=torch.long)
 
             # forward pass
-            outputs = model(ids, mask)
+            outputs = model(input_ids=ids, attention_mask=mask)
             if type(outputs) in {SequenceClassifierOutput, SequenceClassifierOutputWithPast}:
                 # For a SequenceClassifierOutput object, we want logits which are of shape (batch size, 4)
                 loss = loss_function(outputs.logits, targets)
