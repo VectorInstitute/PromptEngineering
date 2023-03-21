@@ -52,5 +52,7 @@ roberta_classifier_model = torch.load(output_model_file)
 print("Model loaded.")
 
 print("Evaluating model on test set...")
-infer(roberta_classifier_model, loss_function, test_dataloader, device)
+test_accuracy, test_loss = infer(roberta_classifier_model, loss_function, test_dataloader, device)
+print(f"Test Loss: {test_loss}")
+print(f"Test Accuracy: {test_accuracy}%")
 print("Model evaluated.")

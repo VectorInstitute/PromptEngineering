@@ -111,7 +111,7 @@ def train(
             n_total += targets.size(0)
 
             if batch_number % n_steps_per_report == 0 and batch_number > 1:
-                print(f"Completed batch number: {batch_number} of {train_batches}")
+                print(f"Completed batch number: {batch_number} of {train_batches} in loader")
                 print(f"Training Loss over last {n_steps_per_report} steps: {total_steps_loss/n_steps_per_report}")
                 print(f"Training Accuracy over last {n_steps_per_report} steps: {(n_correct*100)/n_total}%")
                 # We will only validate over a sample of the validation set for speed.
@@ -128,7 +128,8 @@ def train(
 
             total_training_steps += 1
 
-        epoch_loss = total_epoch_loss / len(train_dataloader)
+        epoch_loss = total_epoch_loss / total_training_steps
+        # Loss and Accuracy computed over whole validation set.
         val_accuracy, val_loss = infer(model, loss_func, val_dataloader, device)
         print("------------------------------------------------")
         print(f"Training Loss Epoch: {epoch_loss}")
