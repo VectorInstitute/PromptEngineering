@@ -70,7 +70,8 @@ def classifier_sentiment_metric(gold_file: str, prediction_file: str, task_name:
 
 
 def grips_sentiment_metric(prediction_file: str) -> float:
-    """Compute the balanced accuracy + entropy for sentiment classification used in grips."""
+    """Compute the balanced accuracy + entropy for sentiment classification
+    used in grips."""
     # pick the class with the highest score among the possible class labels!
     df = pd.read_csv(prediction_file, delimiter=",")
     gold_labels = [label.strip() for label in df["gold_class"].tolist()]

@@ -6,11 +6,13 @@ paper: https://arxiv.org/pdf/2203.07281.pdf
 github link: https://github.com/archiki/GrIPS
 """
 
+import csv
+import io
 import os
 import pickle
 import string
 from dataclasses import dataclass
-from typing import Dict, Iterator, List, Tuple, Union
+from typing import Any, Dict, Iterator, List, Tuple, Union
 
 import nltk
 import numpy as np
@@ -21,18 +23,16 @@ from nltk.tokenize.treebank import TreebankWordDetokenizer
 from supar import Parser
 from transformers import PegasusForConditionalGeneration, PegasusTokenizer, T5ForConditionalGeneration, T5Tokenizer
 
+from src.reference_implementations.prompt_zoo.metrics import grips_sentiment_metric
 from src.reference_implementations.prompt_zoo.prompted_t5 import MyBaseT5
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string("instruction_mode", default="Instruction Only", help="Type mode of instructions/prompts")
-flags.DEFINE_integer("num-compose", default=1, help="Number of edits composed to get one candidate")
+flags.DEFINE_integer("num_compose", default=1, help="Number of edits composed to get one candidate")
 flags.DEFINE_string("level", default="phrase", help="level at which edit operations occur")
-flags.DEFINE_string("meta-dir", default="grips_logs/", help="folder location to store metadata of search")
-flags.DEFINE_string("meta-name", default="search.txt", help="file name to store metadata of search")
-flags.DEFINE_integer("patience", default=2, help="Type in the max patience P (counter)")
-flags.DEFINE_integer("num-candidates", default=5, help="Number of candidates in each iteration (m)")
-flags.DEFINE_integer("num-iter", default=10, help="Max number of search iterations")
+flags.DEFINE_string("meta_dir", default="grips_logs/", help="folder location to store metadata of search")
+flags.DEFINE_string("meta_name", default="search.txt", help="file name to store metadata of search")
+flags.DEFINE_integer("num_candidates", default=5, help="Number of candidates in each iteration (m)")
 flags.DEFINE_string(
     "grips_initial_prompt",
     "Generate the sentiment of the next sentence.",
@@ -86,23 +86,38 @@ class GRIPSSearch(MyBaseT5):
             self.para_tokenizer = PegasusTokenizer.from_pretrained(para_model_name)
             self.para_model = PegasusForConditionalGeneration.from_pretrained(para_model_name).to(self.device)
 
-        # initialize the base candidate into a prompt template.
-        self.define_candidate(FLAGS.grips_initial_prompt)
-
         self.setup_models()
 
-    def define_candidate(self, base_candidate: str) -> None:
+        if FLAGS.mode == "train":
+            # initialize the base candidate into a prompt template.
+            self.run_pre_train_loop(FLAGS.grips_initial_prompt)
+
+    def run_pre_train_loop(self, base_instruction: str) -> None:
         """Define the prompt template based on the given base candidate."""
-        instruction_ids = self.tokenizer(base_candidate, add_special_tokens=False)["input_ids"]
+        base_candidate = self.detokenize(word_tokenize(base_instruction))
+        assert word_tokenize(base_candidate) == word_tokenize(base_instruction)
+
+        self.current_candidate = base_candidate
+        self.original_candidate = base_candidate
+
+        instruction_ids = self.tokenizer(self.current_candidate, add_special_tokens=False)["input_ids"]
         FLAGS.prompt_length = len(instruction_ids)
-        self.current_candidate = GripsPromptTemplate(tokens=instruction_ids, score=-float("inf"))
+
+        self.current_candidate_template = GripsPromptTemplate(tokens=instruction_ids, score=-float("inf"))
+        self.operations_tracker: List[Any] = []
+        self.meta_file.write(f"Base Candidate:\t {self.current_candidate} \n")
+        self.meta_file.write(f"Base Score:\t {str(self.current_candidate_template.score)} \n")
+        self.meta_file.write("\n")
+        self.delete_tracker: List[Any] = []
+        self.patience_counter = 1
 
     def update_candidate(self, candidate: str) -> None:
         """Update the prompt template based on the given candidate."""
         instruction_ids = self.tokenizer(candidate, add_special_tokens=False)["input_ids"]
         FLAGS.prompt_length = len(instruction_ids)
-        self.current_candidate.tokens = instruction_ids
-        self.current_candidate.score = -float("inf")
+        self.current_candidate = candidate
+        self.current_candidate_template.tokens = instruction_ids
+        self.current_candidate_template.score = -float("inf")
 
     def load_from_checkpoint(self) -> None:
         """Load the optimized prompt template from the specified checkpoint
@@ -111,7 +126,13 @@ class GRIPSSearch(MyBaseT5):
         ckp_name = FLAGS.checkpoint
         try:
             with open(os.path.join(m_path, f"{ckp_name}.pkl"), "rb") as inp:
-                self.current_candidate = pickle.load(inp)
+                self.current_candidate_template = pickle.load(inp)
+                FLAGS.prompt_length = len(self.current_candidate_template.tokens)
+                self.current_candidate = self.tokenizer.batch_decode(
+                    self.current_candidate_template.tokens, skip_special_tokens=True
+                )
+                self.current_candidate = self.detokenize(word_tokenize(self.current_candidate))
+
         except Exception as e:
             raise Exception("Could not load the checkpoint due to error:{}".format(e))
 
@@ -124,15 +145,14 @@ class GRIPSSearch(MyBaseT5):
             os.makedirs(m_path)
 
         with open(os.path.join(m_path, f"{checkpoint_name}.pkl"), "wb") as outp:
-            pickle.dump(self.current_candidate, outp, pickle.HIGHEST_PROTOCOL)
+            pickle.dump(self.current_candidate_template, outp, pickle.HIGHEST_PROTOCOL)
 
     def score_templates(
         self, batch: torch.utils.data.Dataset, prompt_templates: List[GripsPromptTemplate]
     ) -> torch.Tensor:
         """Run a forward computation over the batch for each prompt templates
         and compute the log probability over the batch for each prompt
-        template.
-        """
+        template."""
         batch_size, _ = batch["input_ids"].size()
         prompt_lists = [template.tokens for template in prompt_templates]
         class_log_ps = self.forward_pass(batch, train=False, prompt_lists=prompt_lists)
@@ -141,8 +161,9 @@ class GRIPSSearch(MyBaseT5):
         return template_scores
 
     def predict(self, batch: torch.utils.data.Dataset) -> Iterator[Dict[str, Union[str, float]]]:
-        """The main prediction loop for a given candidate over a batch from the search set."""
-        class_log_ps = self.score_templates(batch, [self.current_candidate])
+        """The main prediction loop for a given candidate over a batch from the
+        search set."""
+        class_log_ps = self.score_templates(batch, [self.current_candidate_template])
         # mean across the prompt templates.
         # for grips, we only evaluate one canidate prompt template at a time, so the mean doesn't have an effect.
         class_log_ps = class_log_ps.mean(dim=1)
@@ -152,7 +173,7 @@ class GRIPSSearch(MyBaseT5):
         # all transformer special tokens will be removed.
         # same labels have been repeated once per template in beam.
         potentials_str = self.tokenizer.batch_decode(batch["labels"], skip_special_tokens=True)
-        prompt_str = self.tokenizer.batch_decode(self.current_candidate.tokens, skip_special_tokens=True)
+        prompt_str = self.tokenizer.batch_decode(self.current_candidate_template.tokens, skip_special_tokens=True)
         print("evaluating batch with prompt template:", prompt_str)
         for index, potential_class in enumerate(potentials_str):
             output_row = {
@@ -162,6 +183,131 @@ class GRIPSSearch(MyBaseT5):
                 "gold_class": batch["gold_classes"][index],
             }
             yield output_row
+
+    def grips_score(self, batch: torch.utils.data.Dataset, prediction_file: str) -> float:
+        """Predict over the search batch using the current prompt template and
+        then return the balanced accuracy + entropy used in the GRIPS paper."""
+
+        # save prediction in a file.
+        with io.open(prediction_file, mode="w", encoding="utf-8") as out_fp:
+            writer = csv.writer(out_fp, quotechar='"', quoting=csv.QUOTE_ALL)
+            header_written = False
+            for ret_row in self.predict(batch):
+                if not header_written:
+                    headers = ret_row.keys()
+                    writer.writerow(headers)
+                    header_written = True
+                writer.writerow(list(ret_row.values()))
+
+        return grips_sentiment_metric(prediction_file)
+
+    def train(self, batch: torch.utils.data.Dataset) -> Dict[str, float]:
+        """The train loop for grips method."""
+        # we need to compute the score of the current candidate on the current search set.
+        self.current_candidate_template.score = self.grips_score(batch, prediction_file="grips_temp_scores.csv")
+        base_score = self.current_candidate_template.score
+
+        deleted = {}
+        added = {}
+        phrase_lookup = self.get_phrase_lookup(self.current_candidate)
+        if self.current_candidate == self.original_candidate:
+            for p in phrase_lookup.values():
+                print(p)
+        if self.use_add:
+            if len(self.delete_tracker):
+                if "add" not in self.edit_operations:
+                    self.edit_operations.append("add")
+            else:
+                if "add" in self.edit_operations:
+                    self.edit_operations.remove("add")
+        if FLAGS.num_compose == 1:
+            edits = np.random.choice(self.edit_operations, FLAGS.num_candidates)
+        else:
+            edits = []
+            for n in range(FLAGS.num_candidates):
+                edits.append(np.random.choice(self.edit_operations, FLAGS.num_compose))
+
+        print("edits:", edits)
+
+        # generate candidates
+        candidates = []
+        for edit in edits:
+            if isinstance(edit, str):
+                self.meta_file.write(f"Performing edit:\t {edit} \n")
+                candidate, indices = self.perform_edit(
+                    edit, self.current_candidate, phrase_lookup, self.delete_tracker
+                )
+                self.meta_file.write(f"Generated candidate:\t {candidate} \n")
+                candidates.append(candidate)
+                if edit == "del":
+                    deleted[candidate] = [phrase_lookup[indices[0]]]
+                if edit == "add":
+                    if len(indices):
+                        added[candidate] = indices
+            else:
+                self.meta_file.write(f"Performing edit:\t {' '.join(edit)} \n")
+                old_candidate = self.current_candidate
+                composed_deletes = []
+                composed_adds = []
+                for op in edit:
+                    phrase_lookup = self.get_phrase_lookup(old_candidate)
+                    new_candidate, indices = self.perform_edit(op, old_candidate, phrase_lookup, self.delete_tracker)
+                    if op == "del":
+                        composed_deletes.append(phrase_lookup[indices[0]])
+                    if op == "add":
+                        if len(indices):
+                            composed_adds.append(indices[0])
+                    old_candidate = new_candidate
+                self.meta_file.write(f"Generated candidate:\t {new_candidate} \n")
+                candidates.append(new_candidate)
+                if "del" in edit:
+                    deleted[new_candidate] = composed_deletes
+                if "add" in edit and len(composed_adds) > 0:
+                    added[new_candidate] = composed_adds
+
+        scores = []
+        current_candidate_temp = self.current_candidate
+        for c, candidate in enumerate(candidates):
+            # update the current candidate and compute its score.
+            self.update_candidate(candidate)
+            candidate_score = self.grips_score(batch, prediction_file="grips_temp_scores.csv")
+            self.current_candidate_template.score = candidate_score
+            scores.append(candidate_score)
+            self.meta_file.write(f"Score for Candidate {str(c)} : \t {str(candidate_score)} \n")
+
+        best_idx = np.argmax(scores)
+        best_score = scores[best_idx]
+        if best_score > base_score:
+            new_candidate = candidates[best_idx]
+            self.operations_tracker.append(edits[best_idx])
+            self.meta_file.write("New Candidate Found \n")
+            self.meta_file.write(f"New Candidate Index:\t {str(best_idx)} \n")
+            self.meta_file.write(f"New Candidate:\t {new_candidate} \n")
+            self.meta_file.write(f"New Candidate Score:\t {str(best_score)} \n")
+            try:
+                self.meta_file.write(f"New Candidate Edit:\t {edits[best_idx]} \n")
+            except Exception:
+                self.meta_file.write(f"New Candidate Edit:\t {' '.join(edits[best_idx])} \n")
+
+            print("New Candidate: ", new_candidate)
+            if new_candidate in added.keys():
+                print("Notice! Prev tracker: ", self.delete_tracker)
+                for chunk in added[new_candidate]:
+                    try:
+                        self.delete_tracker.remove(chunk)
+                    except Exception:
+                        pass
+                print("Notice! New tracker: ", self.delete_tracker)
+            if new_candidate in deleted.keys():
+                self.delete_tracker.extend(deleted[new_candidate])
+            self.update_candidate(self.detokenize(word_tokenize(new_candidate)))
+            self.current_candidate_template.score = best_score
+            return {"loss_value": 100.00 - best_score}
+
+        else:
+            self.update_candidate(current_candidate_temp)
+            self.current_candidate_template.score = base_score
+            return {"loss_value": 100.00 - base_score}
 
     def detokenize(self, tokens: List[str]) -> str:
         """constructs the string back from the nltk tokenizer."""
@@ -306,7 +452,7 @@ class GRIPSSearch(MyBaseT5):
 
     def perform_edit(
         self, edit: str, base: str, phrase_lookup: Dict[int, str], delete_tracker: List[str]
-    ) -> Tuple[str, List[Union[str, int]]]:
+    ) -> Tuple[str, List[int]]:
         """Perform all possible edit operations: del, swap, sub, add."""
         assert edit in {"del", "swap", "sub", "add"}
         if edit == "del":
