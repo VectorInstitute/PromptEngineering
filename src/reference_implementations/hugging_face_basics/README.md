@@ -19,7 +19,7 @@ python -m venv <name_of_venv>
 source <name_of_venv>/bin/activate
 pip install transformers datasets torch
 ```
-2) Run the script on a GPU after logging into the cluster
+2) Run the python script on a GPU after logging into the cluster. Make sure you run the sbatch command from the top directory.
 ```bash
 sbatch src/reference_implementations/run_singlenode_prompt.slrm \
 src/reference_implementations/hugging_face_basics/training_script/finetuning_roberta.sh \
