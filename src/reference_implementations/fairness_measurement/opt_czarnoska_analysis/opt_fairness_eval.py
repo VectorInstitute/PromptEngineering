@@ -14,11 +14,11 @@ TEST_FILE_PATH = (
 )
 # Append results to this file.
 PREDICTION_FILE_PATH = (
-    "src/reference_implementations/fairness_measurement/resources/predictions/opt_6_7_predictions.tsv"
+    "src/reference_implementations/fairness_measurement/resources/predictions/opt_175_predictions.tsv"
 )
-MODEL = "opt-6_7b"
+MODEL = "opt-175b"
 DATASET = "SST5"  # Labeled task-specific dataset
-NUM_PARAMS = 6.7  # billions
+NUM_PARAMS = 175.0  # billions
 RUN_ID = "run_1"
 BATCH_SIZE = 10
 
@@ -27,7 +27,8 @@ BATCH_SIZE = 10
 
 # HuggingFace pipeline combining model and tokenizer.
 client = lingua.Client(gateway_host="llm.cluster.local", gateway_port=3001)
-model = client.load_model("OPT-6.7B")
+print(f"Models Status: {client.model_instances}")
+model = client.load_model("OPT-175B")
 # If this model is not actively running, it will get launched in the background.
 # In this case, wait until it moves into an "ACTIVE" state before proceeding.
 while model.state != "ACTIVE":
@@ -38,10 +39,7 @@ while model.state != "ACTIVE":
 last_layer_name = model.module_names[-1]
 last_layer_name
 
-model = None
-last_layer_name = ""
-
-short_generation_config = {"max_tokens": 4, "top_k": 4, "top_p": 3, "rep_penalty": 1.2, "temperature": 1.0}
+short_generation_config = {"max_tokens": 2, "top_k": 4, "top_p": 3, "rep_penalty": 1.2, "temperature": 1.0}
 
 label_lookup = {
     "negative": 0,  # Negative
@@ -64,7 +62,10 @@ def create_demonstrations() -> str:
     demonstrations = "Classify the sentiment of the text.\n\n"
     for text, valence in zip(texts, valences):
         demonstrations = f"{demonstrations}Text: {text} The sentiment is {reverse_label_lookup[valence]}.\n\n"
+    print("Example of demonstrations")
+    print("---------------------------------------------------------------------")
     print(demonstrations)
+    print("---------------------------------------------------------------------")
     return demonstrations
 
 
@@ -143,7 +144,6 @@ with open(TEST_FILE_PATH, "r") as template_file:
 
 batch: List[TestEntry] = []
 text_batch: List[str] = []
-output: List[OutputEntry] = []
 
 
 def get_label_token_ids(
@@ -162,15 +162,6 @@ demonstrations = create_demonstrations()
 label_token_ids = get_label_token_ids(
     opt_tokenizer, create_prompt_for_text("Dummy sentence.", demonstrations), ["negative", "neutral", "positive"]
 )
-
-for batch in tqdm(test_batches):
-    text_batch = [test_case[-1] for test_case in batch]  # Extract texts from the batch.
-    predictions = get_predictions_batched(text_batch, demonstrations, label_token_ids)
-
-    for prediction, test_entry in zip(predictions, batch):
-        label, attribute, group, text = test_entry
-        output_entry = (prediction, label, attribute, group, text, MODEL, RUN_ID, DATASET, NUM_PARAMS)
-        output.append(output_entry)
 
 # If the prediction file doesn't exist, we create a new one and append the tsv header row.
 if not os.path.exists(PREDICTION_FILE_PATH):
@@ -193,10 +184,21 @@ if not os.path.exists(PREDICTION_FILE_PATH):
 
 # Append to the output file instead of overwriting.
 with open(PREDICTION_FILE_PATH, "a") as prediction_file:
-    output_lines = []
-    for output_entry in output:
-        output_lines.append(
-            "\t".join(map(str, output_entry)) + "\n"
-        )  # Convert integers to string before concatenating.
+    for batch in tqdm(test_batches):
+        output: List[OutputEntry] = []
+        text_batch = [test_case[-1] for test_case in batch]  # Extract texts from the batch.
+        predictions = get_predictions_batched(text_batch, demonstrations, label_token_ids)
 
-    prediction_file.writelines(output_lines)
+        for prediction, test_entry in zip(predictions, batch):
+            label, attribute, group, text = test_entry
+            output_entry = (prediction, label, attribute, group, text, MODEL, RUN_ID, DATASET, NUM_PARAMS)
+            output.append(output_entry)
+
+        output_lines = []
+        for output_entry in output:
+            output_lines.append(
+                "\t".join(map(str, output_entry)) + "\n"
+            )  # Convert integers to string before concatenating.
+
+        prediction_file.writelines(output_lines)
+        prediction_file.flush()
