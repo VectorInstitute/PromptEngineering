@@ -9,13 +9,11 @@ import torch.nn as nn
 from tqdm.auto import tqdm
 from transformers import AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizerFast
 
-TEST_FILE_PATH = (
-    "src/reference_implementations/fairness_measurement/resources/czarnowska_templates/sentiment_fairness_tests.tsv"
-)
+PATH_STUB = "src/reference_implementations/fairness_measurement/resources"
+TEST_FILE_PATH = f"{PATH_STUB}/czarnowska_templates/sentiment_fairness_tests_subset.tsv"
 # Append results to this file.
-PREDICTION_FILE_PATH = (
-    "src/reference_implementations/fairness_measurement/resources/predictions/opt_175_predictions.tsv"
-)
+PREDICTION_FILE_PATH = f"{PATH_STUB}/predictions/opt_175_predictions.tsv"
+
 MODEL = "opt-175b"
 DATASET = "SST5"  # Labeled task-specific dataset
 NUM_PARAMS = 175.0  # billions
