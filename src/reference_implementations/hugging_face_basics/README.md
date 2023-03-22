@@ -21,9 +21,9 @@ pip install transformers datasets torch
 ```
 2) Run the python script on a GPU after logging into the cluster. Make sure you run the sbatch command from the top directory.
 ```bash
-sbatch src/reference_implementations/run_singlenode_prompt.slrm \
-src/reference_implementations/hugging_face_basics/training_script/finetuning_roberta.sh \
-./hf_fine_tuning_logs
+sbatch src/reference_implementations/run_singlenode_fine_tune.slrm \
+    src/reference_implementations/hugging_face_basics/training_script/finetuning_roberta.sh \
+    ./hf_fine_tuning_logs
 ```
 
 ### NLP Metrics Examples
