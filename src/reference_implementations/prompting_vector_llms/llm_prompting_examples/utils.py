@@ -6,7 +6,7 @@ from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
 
 
 def get_label_token_ids(
-    tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast], prompt_template: str, label_words: List[int]
+    tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast], prompt_template: str, label_words: List[str]
 ) -> List[int]:
     # Need to consider the token ids of our labels in the context of the prompt, as they may be different in context.
     tokenized_inputs = tokenizer(

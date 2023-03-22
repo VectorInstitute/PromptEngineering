@@ -146,3 +146,7 @@ settings.json
 #cluster logs
 **/*.out
 **/*.err
+
+**/resources/predictions/**
+**/fairness_measurement/stats/**
+**/plot.png
