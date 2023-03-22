@@ -28,9 +28,15 @@ This folder houses notebooks and implementations of prompting large language mod
 
 ## Fairness in language models
 
-These reference implementations reside in `src/reference_implementations/measuring_fairness/`
+These reference implementations reside in `src/reference_implementations/fairness_measurement/`
 
 This folder contains implementations for measuring fairness for models that have been fine-tuning or prompted to complete a sentiment classification task. There is also an implementation of measuring fairness for LLMs like OPT-175B or Galactica accessed on Vector's cluster.
+
+## Hugging Face Basics
+
+These reference implmenetations are in `src/reference_implementations/hugging_face_basics/`.
+
+The reference implementations here are of two kinds. The first is a couple of examples of using HuggingFace for basic ML tasks. The second is a discussion of some important metrics associated with NLP.
 
 ## Launching an interactive session on a GPU node
 
