@@ -10,6 +10,10 @@ Sample Review:
 
 Label: Negative
 
+### Pickle Files
+
+As part of the repository, we have included two sets of pkl files with precomputed activations for OPT-175 in the `resources` folder. The files not containing `with_prompts` are those computed without preconditioning the language model with instruction and 5-shot demonstration prompts, while the files with that string correspond to activations obtained using those components. It takes quite a while to compute OPT-175 activations. So computing your own will take some patients. Alternatively you can experiment with OPT6.7 for faster activation production.
+
 ### VENV Installation
 
 Each of the notebooks in this folder require certain dependencies. If you're running the notebooks on the cluster, simply select `prompt_engineering` from the available kernels and you should be good to go.
