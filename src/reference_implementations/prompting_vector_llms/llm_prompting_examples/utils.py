@@ -25,7 +25,7 @@ def get_label_with_highest_likelihood(
     int_to_label_map: Dict[int, str],
     right_shift: bool = False,
 ) -> str:
-    # The activations we can about are the last token (corresponding to our label token) and the values for our label
+    # The activations we care about are the last token (corresponding to our label token) and the values for our label
     #  vocabulary
     label_activations = layer_matrix[-1][label_token_ids].float()
     softmax = nn.Softmax(dim=0)
