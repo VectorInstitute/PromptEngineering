@@ -39,6 +39,8 @@ flags.DEFINE_string(
     "An initial instruction to append to the start of the sentence.",
 )
 
+nltk.download("punkt")
+
 
 @dataclass
 class GripsPromptTemplate:
@@ -95,12 +97,13 @@ class GRIPSSearch(MyBaseT5):
     def run_pre_train_loop(self, base_instruction: str) -> None:
         """Define the prompt template based on the given base candidate."""
         base_candidate = self.detokenize(word_tokenize(base_instruction))
-        assert word_tokenize(base_candidate) == word_tokenize(base_instruction)
 
         self.current_candidate = base_candidate
         self.original_candidate = base_candidate
 
         instruction_ids = self.tokenizer(self.current_candidate, add_special_tokens=False)["input_ids"]
+
+        # dynamically adjust the prompt length given the current instruction.
         FLAGS.prompt_length = len(instruction_ids)
 
         self.current_candidate_template = GripsPromptTemplate(tokens=instruction_ids, score=-float("inf"))
@@ -109,13 +112,15 @@ class GRIPSSearch(MyBaseT5):
         self.meta_file.write(f"Base Score:\t {str(self.current_candidate_template.score)} \n")
         self.meta_file.write("\n")
         self.delete_tracker: List[Any] = []
-        self.patience_counter = 1
 
     def update_candidate(self, candidate: str) -> None:
         """Update the prompt template based on the given candidate."""
-        instruction_ids = self.tokenizer(candidate, add_special_tokens=False)["input_ids"]
+        base_candidate = self.detokenize(word_tokenize(candidate))
+        assert word_tokenize(base_candidate) == word_tokenize(candidate)
+
+        instruction_ids = self.tokenizer(base_candidate, add_special_tokens=False)["input_ids"]
         FLAGS.prompt_length = len(instruction_ids)
-        self.current_candidate = candidate
+        self.current_candidate = base_candidate
         self.current_candidate_template.tokens = instruction_ids
         self.current_candidate_template.score = -float("inf")
 
@@ -155,6 +160,9 @@ class GRIPSSearch(MyBaseT5):
         template."""
         batch_size, _ = batch["input_ids"].size()
         prompt_lists = [template.tokens for template in prompt_templates]
+
+        # for grips, we always use the backbone LM for inference.
+        # no need to compute gradients: train=False.
         class_log_ps = self.forward_pass(batch, train=False, prompt_lists=prompt_lists)
 
         template_scores = class_log_ps.view(batch_size, len(prompt_templates))
@@ -165,7 +173,7 @@ class GRIPSSearch(MyBaseT5):
         search set."""
         class_log_ps = self.score_templates(batch, [self.current_candidate_template])
         # mean across the prompt templates.
-        # for grips, we only evaluate one canidate prompt template at a time, so the mean doesn't have an effect.
+        # for grips, we only evaluate one candidate prompt template at a time, so the mean doesn't have an effect.
         class_log_ps = class_log_ps.mean(dim=1)
         class_log_ps = class_log_ps.cpu().detach().numpy()
 
@@ -203,6 +211,7 @@ class GRIPSSearch(MyBaseT5):
 
     def train(self, batch: torch.utils.data.Dataset) -> Dict[str, float]:
         """The train loop for grips method."""
+
         # we need to compute the score of the current candidate on the current search set.
         self.current_candidate_template.score = self.grips_score(batch, prediction_file="grips_temp_scores.csv")
         base_score = self.current_candidate_template.score
@@ -267,14 +276,15 @@ class GRIPSSearch(MyBaseT5):
 
         scores = []
         current_candidate_temp = self.current_candidate
-        for c, candidate in enumerate(candidates):
+        for c_idx, candidate in enumerate(candidates):
             # update the current candidate and compute its score.
             self.update_candidate(candidate)
             candidate_score = self.grips_score(batch, prediction_file="grips_temp_scores.csv")
             self.current_candidate_template.score = candidate_score
             scores.append(candidate_score)
-            self.meta_file.write(f"Score for Candidate {str(c)} : \t {str(candidate_score)} \n")
+            self.meta_file.write(f"Score for Candidate {str(c_idx)} : \t {str(candidate_score)} \n")
 
+        # find the best new candidate if possible.
         best_idx = np.argmax(scores)
         best_score = scores[best_idx]
         if best_score > base_score:
@@ -300,11 +310,14 @@ class GRIPSSearch(MyBaseT5):
                 print("Notice! New tracker: ", self.delete_tracker)
             if new_candidate in deleted.keys():
                 self.delete_tracker.extend(deleted[new_candidate])
+
+            # update the current candidate with best new_candidate.
             self.update_candidate(self.detokenize(word_tokenize(new_candidate)))
             self.current_candidate_template.score = best_score
             return {"loss_value": 100.00 - best_score}
 
         else:
+            # no new best candidate found.
             self.update_candidate(current_candidate_temp)
             self.current_candidate_template.score = base_score
             return {"loss_value": 100.00 - base_score}

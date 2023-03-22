@@ -1,0 +1,2 @@
+Base Candidate:	 Generate the sentiment of the next sentence.
+Base Score:	 -inf

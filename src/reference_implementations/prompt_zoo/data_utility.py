@@ -1,6 +1,7 @@
 """This module implements the functions for preprocessing the data files into
 pytorch datasets."""
 
+import random
 from dataclasses import dataclass
 from typing import Dict, List, Union
 
@@ -120,6 +121,15 @@ def read_semeval_sentiment_file(file_path: str, instruction_type: str, repeat_in
     tweets = [white_space_fix(tweet) for tweet in df["Tweet"].tolist()]
     sentiments = [preprocess_semeval_sentiment(sent) for sent in df["Intensity Class"].tolist()]
 
+    if "train" in file_path.lower():
+        # also shuffle dataset here.
+        # required for grips experiments.
+        # optional for other experiments as the dataloader will shuffle the dataset.
+        # for grips, we like to keep the repeated inputs together, therefore we shuffle before
+        # creating the repeated rows. the dataloader shuffle for the grips experiment is False.
+        random.shuffle(tweets)
+        random.shuffle(sentiments)
+
     # the test data may have examples for some of the labels.
     assert set(sentiments).issubset({"positive", "negative", "neutral"})
     return template_data(class_to_id, tweets, sentiments, instruction_type, repeat_input)
@@ -146,6 +156,15 @@ def read_sst2_sentiment_file(split_name: str, instruction_type: str, repeat_inpu
     for row in new_dataset:
         sentences.append(row["sentence"])
         labels.append(row["sentiment"])
+
+    if split_name == "train":
+        # also shuffle dataset here.
+        # required for grips experiments.
+        # optional for other experiments as the dataloader will shuffle the dataset.
+        # for grips, we like to keep the repeated inputs together, therefore we shuffle before
+        # creating the repeated rows. the dataloader shuffle for the grips experiment is False.
+        random.shuffle(labels)
+        random.shuffle(sentences)
 
     # the test data may only have examples with one label.
     assert set(labels).issubset({"positive", "negative"})
@@ -217,6 +236,10 @@ def create_sentiment_dataset(
         "class_indices": rawdata.class_indices,
         "gold_classes": rawdata.gold_outputs,
     }
+
+    if FLAGS.t5_exp_type == "grips":
+        # repeat batch size since we are going to read the repeated inputs.
+        FLAGS.eval_batch_size = len(set(rawdata.gold_outputs)) * FLAGS.eval_batch_size
 
     if shuffle:
         # this is training phase.

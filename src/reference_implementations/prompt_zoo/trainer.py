@@ -156,14 +156,27 @@ def launch_test_or_train() -> None:
             model = GRIPSSearch()
         else:
             model = FineTuneT5()
-        train_dataloader = create_sentiment_dataset(
-            tokenizer=model.tokenizer,
-            file_name=FLAGS.train_file,
-            task_name=FLAGS.task_name,
-            shuffle=True,
-            instruction_type=FLAGS.instruction_type,
-            repeat_input=False,
-        )
+        if FLAGS.t5_exp_type == "grips":
+            # For grips, we use train dataset as the search set and compute the balanced accuracy.
+            # we should repeat the input for prediction and with shuffle false to
+            # keep repeated inputs next to each other.
+            train_dataloader = create_sentiment_dataset(
+                tokenizer=model.tokenizer,
+                file_name=FLAGS.train_file,
+                task_name=FLAGS.task_name,
+                shuffle=False,
+                instruction_type=FLAGS.instruction_type,
+                repeat_input=True,
+            )
+        else:
+            train_dataloader = create_sentiment_dataset(
+                tokenizer=model.tokenizer,
+                file_name=FLAGS.train_file,
+                task_name=FLAGS.task_name,
+                shuffle=True,
+                instruction_type=FLAGS.instruction_type,
+                repeat_input=False,
+            )
         eval_dataloader = create_sentiment_dataset(
             tokenizer=model.tokenizer,
             file_name=FLAGS.dev_file,
