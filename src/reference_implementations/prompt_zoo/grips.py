@@ -261,6 +261,8 @@ class GRIPSSearch(MyBaseT5):
                 for op in edit:
                     phrase_lookup = self.get_phrase_lookup(old_candidate)
                     new_candidate, indices = self.perform_edit(op, old_candidate, phrase_lookup, self.delete_tracker)
+                    if len(new_candidate.split()) < 3:
+                        continue
                     if op == "del":
                         composed_deletes.append(phrase_lookup[indices[0]])
                     if op == "add":
