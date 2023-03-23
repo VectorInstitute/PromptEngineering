@@ -36,6 +36,10 @@ This notebook implements an example of performing question answering based on a 
 
 The notebook is constructed to provide a proof of concept in translation through prompting of OPT. OPT is __not__ trained on a multilingual dataset, but has been shown to be able to perform some translations. This notebook demonstrates these capabilities in zero- and few-shot settings. However, the model isn't particularly strong, as measured by the bleu scores on a small sample from the NMT14 fr-en test set.
 
+## Activation Fine-tuning
+
+The folder `activation_fine_tuning` considers extracting intermedate layer activations for the OPT models and training a minimal classifier (in this case a 2-layer MLP) to perform a downstream task with high accuracy. The experiment is described in much greater detail in the `activation_fine_tuning/README.md`. The results are quite interesting and motivate prompting as a means of substantially increasing sampling efficiency in this regime.
+
 ## Ensembling Example
 
 In the folder `prompt_ensembling` is an example of how one might use prompt ensembling to improve the accuracy an LLMs performance on a downstream task. The idea is to combine prompts in order to ask the model to perform a task in multiple ways, hopefully producing better performance by asking the same question in multiple ways.
