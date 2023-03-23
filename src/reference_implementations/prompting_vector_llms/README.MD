@@ -8,8 +8,6 @@ __NOTE__: Due to their size, and depending on the size sequence input, the large
 2) OPT-6.7B: One of the moderate generative models in the OPT family. It does not have as significant generalization capabilties but is much faster to respond and can handle larger requests.
 3) Galactica-120B: This model shares the same architecture as OPT but a different underlying training corpus. During training many academic and scientific texts were also included.
 
-
-
 ## LLM Prompting Examples
 
 This folder gathers a number of example demonstrations of LLM prompting. There are four notebooks considering different tasks. The notebooks explore the effects of manual prompt optimization, varying instruction prompts, zero- and few-shot performance. The tasks considered are:
