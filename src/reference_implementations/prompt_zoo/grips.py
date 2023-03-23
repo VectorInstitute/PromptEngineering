@@ -35,7 +35,7 @@ flags.DEFINE_string("meta_name", default="search.txt", help="file name to store 
 flags.DEFINE_integer("num_candidates", default=5, help="Number of candidates in each iteration (m)")
 flags.DEFINE_string(
     "grips_initial_prompt",
-    "Generate the sentiment of the next sentence.",
+    "In this task, your job is to generate the sentiment of the next sentence in the output.",
     "An initial instruction to append to the start of the sentence.",
 )
 
@@ -88,11 +88,10 @@ class GRIPSSearch(MyBaseT5):
             self.para_tokenizer = PegasusTokenizer.from_pretrained(para_model_name)
             self.para_model = PegasusForConditionalGeneration.from_pretrained(para_model_name).to(self.device)
 
-        self.setup_models()
+        # initialize the base candidate into a prompt template.
+        self.run_pre_train_loop(FLAGS.grips_initial_prompt)
 
-        if FLAGS.mode == "train":
-            # initialize the base candidate into a prompt template.
-            self.run_pre_train_loop(FLAGS.grips_initial_prompt)
+        self.setup_models()
 
     def run_pre_train_loop(self, base_instruction: str) -> None:
         """Define the prompt template based on the given base candidate."""
@@ -133,9 +132,8 @@ class GRIPSSearch(MyBaseT5):
             with open(os.path.join(m_path, f"{ckp_name}.pkl"), "rb") as inp:
                 self.current_candidate_template = pickle.load(inp)
                 FLAGS.prompt_length = len(self.current_candidate_template.tokens)
-                self.current_candidate = self.tokenizer.batch_decode(
-                    self.current_candidate_template.tokens, skip_special_tokens=True
-                )
+                tokens = self.tokenizer.batch_decode(self.current_candidate_template.tokens, skip_special_tokens=True)
+                self.current_candidate = " ".join(tokens[0])
                 self.current_candidate = self.detokenize(word_tokenize(self.current_candidate))
 
         except Exception as e:
@@ -210,7 +208,7 @@ class GRIPSSearch(MyBaseT5):
         return grips_sentiment_metric(prediction_file)
 
     def train(self, batch: torch.utils.data.Dataset) -> Dict[str, float]:
-        """The train loop for grips method."""
+        """The train loop for grips method over search set given by batch."""
 
         # we need to compute the score of the current candidate on the current search set.
         self.current_candidate_template.score = self.grips_score(batch, prediction_file="grips_temp_scores.csv")
@@ -246,6 +244,9 @@ class GRIPSSearch(MyBaseT5):
                 candidate, indices = self.perform_edit(
                     edit, self.current_candidate, phrase_lookup, self.delete_tracker
                 )
+                if len(candidate.split()) < 3:
+                    # ignore too short candidates
+                    continue
                 self.meta_file.write(f"Generated candidate:\t {candidate} \n")
                 candidates.append(candidate)
                 if edit == "del":
@@ -262,6 +263,7 @@ class GRIPSSearch(MyBaseT5):
                     phrase_lookup = self.get_phrase_lookup(old_candidate)
                     new_candidate, indices = self.perform_edit(op, old_candidate, phrase_lookup, self.delete_tracker)
                     if len(new_candidate.split()) < 3:
+                        # ignore too short candidates resulting from multiple delete edits.
                         continue
                     if op == "del":
                         composed_deletes.append(phrase_lookup[indices[0]])
@@ -287,42 +289,42 @@ class GRIPSSearch(MyBaseT5):
             self.meta_file.write(f"Score for Candidate {str(c_idx)} : \t {str(candidate_score)} \n")
 
         # find the best new candidate if possible.
-        best_idx = np.argmax(scores)
-        best_score = scores[best_idx]
-        if best_score > base_score:
-            new_candidate = candidates[best_idx]
-            self.operations_tracker.append(edits[best_idx])
-            self.meta_file.write("New Candidate Found \n")
-            self.meta_file.write(f"New Candidate Index:\t {str(best_idx)} \n")
-            self.meta_file.write(f"New Candidate:\t {new_candidate} \n")
-            self.meta_file.write(f"New Candidate Score:\t {str(best_score)} \n")
-            try:
-                self.meta_file.write(f"New Candidate Edit:\t {edits[best_idx]} \n")
-            except Exception:
-                self.meta_file.write(f"New Candidate Edit:\t {' '.join(edits[best_idx])} \n")
+        if scores:
+            best_idx = np.argmax(scores)
+            best_score = scores[best_idx]
+            if best_score > base_score:
+                new_candidate = candidates[best_idx]
+                self.operations_tracker.append(edits[best_idx])
+                self.meta_file.write("\n New Candidate Found \n")
+                self.meta_file.write(f"New Candidate Index:\t {str(best_idx)} \n")
+                self.meta_file.write(f"New Candidate:\t {new_candidate} \n")
+                self.meta_file.write(f"New Candidate Score:\t {str(best_score)} \n")
+                try:
+                    self.meta_file.write(f"New Candidate Edit:\t {edits[best_idx]} \n")
+                except Exception:
+                    self.meta_file.write(f"New Candidate Edit:\t {' '.join(edits[best_idx])} \n")
 
-            print("New Candidate: ", new_candidate)
-            if new_candidate in added.keys():
-                print("Notice! Prev tracker: ", self.delete_tracker)
-                for chunk in added[new_candidate]:
-                    try:
-                        self.delete_tracker.remove(chunk)
-                    except Exception:
-                        pass
-                print("Notice! New tracker: ", self.delete_tracker)
-            if new_candidate in deleted.keys():
-                self.delete_tracker.extend(deleted[new_candidate])
+                print("New Candidate: ", new_candidate)
+                if new_candidate in added.keys():
+                    print("Notice! Prev tracker: ", self.delete_tracker)
+                    for chunk in added[new_candidate]:
+                        try:
+                            self.delete_tracker.remove(chunk)
+                        except Exception:
+                            pass
+                    print("Notice! New tracker: ", self.delete_tracker)
+                if new_candidate in deleted.keys():
+                    self.delete_tracker.extend(deleted[new_candidate])
 
-            # update the current candidate with best new_candidate.
-            self.update_candidate(self.detokenize(word_tokenize(new_candidate)))
-            self.current_candidate_template.score = best_score
-            return {"loss_value": 100.00 - best_score}
+                # update the current candidate with best new_candidate.
+                self.update_candidate(self.detokenize(word_tokenize(new_candidate)))
+                self.current_candidate_template.score = best_score
+                return {"loss_value": 100.00 - best_score}
 
-        else:
-            # no new best candidate found.
-            self.update_candidate(current_candidate_temp)
-            self.current_candidate_template.score = base_score
-            return {"loss_value": 100.00 - base_score}
+        # no new best candidate found.
+        self.update_candidate(current_candidate_temp)
+        self.current_candidate_template.score = base_score
+        return {"loss_value": 100.00 - base_score}
 
     def detokenize(self, tokens: List[str]) -> str:
         """constructs the string back from the nltk tokenizer."""

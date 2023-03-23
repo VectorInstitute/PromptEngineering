@@ -77,6 +77,16 @@ def train_model(
         while epoch < FLAGS.max_epochs and global_step < FLAGS.training_steps:
             print("\nEpoch:{0}\n".format(epoch))
             epoch_loss = []
+
+            # run prediction on the dev data to adjust the best_score.
+            start_predicting(model, eval_dataloader, eval_file)
+            score = metric(FLAGS.dev_file, eval_file, FLAGS.task_name)  # type: ignore
+            writer.add_scalar("Score/dev", score, global_step)
+            if score > best_score:
+                best_score = score
+                # default checkpoint name is "best_step".
+                model.save()
+
             for step, loss in start_training(model, train_dataloader):
                 global_step += 1
                 total_loss.append(loss)
@@ -157,9 +167,9 @@ def launch_test_or_train() -> None:
         else:
             model = FineTuneT5()
         if FLAGS.t5_exp_type == "grips":
-            # For grips, we use train dataset as the search set and compute the balanced accuracy.
-            # we should repeat the input for prediction and with shuffle false to
-            # keep repeated inputs next to each other.
+            # For grips, we use train dataset as the search set and compute the balanced accuracy on it.
+            # we should repeat the input for prediction and with set shuffle false to
+            # keep the repeated inputs next to each other.
             train_dataloader = create_sentiment_dataset(
                 tokenizer=model.tokenizer,
                 file_name=FLAGS.train_file,
@@ -169,6 +179,8 @@ def launch_test_or_train() -> None:
                 repeat_input=True,
             )
         else:
+            # for other experiments, we don't repeat the inputs as the loss will be
+            # calculated based on the gold output.
             train_dataloader = create_sentiment_dataset(
                 tokenizer=model.tokenizer,
                 file_name=FLAGS.train_file,
