@@ -114,6 +114,9 @@ class GRIPSSearch(MyBaseT5):
 
     def update_candidate(self, candidate: str) -> None:
         """Update the prompt template based on the given candidate."""
+        # https://www.nltk.org/api/nltk.tokenize.html
+        # nltk tokenize can detect puctuation and separate on those.
+        # $2.5 -> [$, 2.5]
         base_candidate = self.detokenize(word_tokenize(candidate))
         assert word_tokenize(base_candidate) == word_tokenize(candidate)
 
@@ -132,8 +135,9 @@ class GRIPSSearch(MyBaseT5):
             with open(os.path.join(m_path, f"{ckp_name}.pkl"), "rb") as inp:
                 self.current_candidate_template = pickle.load(inp)
                 FLAGS.prompt_length = len(self.current_candidate_template.tokens)
-                tokens = self.tokenizer.batch_decode(self.current_candidate_template.tokens, skip_special_tokens=True)
-                self.current_candidate = " ".join(tokens[0])
+                self.current_candidate = self.tokenizer.decode(
+                    self.current_candidate_template.tokens, skip_special_tokens=True
+                )
                 self.current_candidate = self.detokenize(word_tokenize(self.current_candidate))
 
         except Exception as e:
@@ -214,17 +218,24 @@ class GRIPSSearch(MyBaseT5):
         self.current_candidate_template.score = self.grips_score(batch, prediction_file="grips_temp_scores.csv")
         base_score = self.current_candidate_template.score
 
-        deleted = {}
-        added = {}
+        # keeping track of what value phrases got deleted to create the key candidate.
+        deleted: Dict[str, List[str]] = {}
+
+        # keeping track of what value indices from the delete_tracker got added to create the key candidate.
+        added: Dict[str, List[int]] = {}
+
         phrase_lookup = self.get_phrase_lookup(self.current_candidate)
         if self.current_candidate == self.original_candidate:
             for p in phrase_lookup.values():
                 print(p)
         if self.use_add:
             if len(self.delete_tracker):
+                # if initially we had add, but then add got deleted from potential edits,
+                # consider the add operation again only if we have previously deleted a token.
                 if "add" not in self.edit_operations:
                     self.edit_operations.append("add")
             else:
+                # if previously we have not deleted anything, we cannot have the add operation in this iteration.
                 if "add" in self.edit_operations:
                     self.edit_operations.remove("add")
         if FLAGS.num_compose == 1:
@@ -250,9 +261,11 @@ class GRIPSSearch(MyBaseT5):
                 self.meta_file.write(f"Generated candidate:\t {candidate} \n")
                 candidates.append(candidate)
                 if edit == "del":
+                    # keep track of the deleted token resulting in "candidate".
                     deleted[candidate] = [phrase_lookup[indices[0]]]
                 if edit == "add":
                     if len(indices):
+                        # keep track of the added token from the delete tracker that created the new candidate.
                         added[candidate] = indices
             else:
                 self.meta_file.write(f"Performing edit:\t {' '.join(edit)} \n")
@@ -307,17 +320,21 @@ class GRIPSSearch(MyBaseT5):
                 print("New Candidate: ", new_candidate)
                 if new_candidate in added.keys():
                     print("Notice! Prev tracker: ", self.delete_tracker)
-                    for chunk in added[new_candidate]:
+                    # update the delete_tracker if the new candidate is resulting from adding a token
+                    # from the delete_tracker.
+                    for token_index in added[new_candidate]:
                         try:
-                            self.delete_tracker.remove(chunk)
+                            self.delete_tracker.pop(token_index)
                         except Exception:
                             pass
                     print("Notice! New tracker: ", self.delete_tracker)
                 if new_candidate in deleted.keys():
+                    # if the new candidate is from deleting a token, then update the delete_tracker
+                    # with new delete tokens for future add operations.
                     self.delete_tracker.extend(deleted[new_candidate])
 
                 # update the current candidate with best new_candidate.
-                self.update_candidate(self.detokenize(word_tokenize(new_candidate)))
+                self.update_candidate(new_candidate)
                 self.current_candidate_template.score = best_score
                 return {"loss_value": 100.00 - best_score}
 
@@ -486,17 +503,26 @@ class GRIPSSearch(MyBaseT5):
             [i] = np.random.choice(list(phrase_lookup.keys()), 1)
             return self.substitute_phrase(base, phrase_lookup[i]), [i]
         else:
+            # for add operation.
+            # we first need to pick a phrase and then add one of the deleted tokens
+            # after this phrase we picked as "after".
             keys = list(phrase_lookup.keys())
             keys.append(-1)
             [i] = np.random.choice(keys, 1)
             if i >= 0:
                 after = phrase_lookup[i]
             else:
+                # if the sampled i is -1, then we will add to the start of the candidate.
                 after = ""
+
             if len(delete_tracker) == 0:
+                # if we have not deleted any phrase previously, then we skip the add operation.
                 return base, []
-            phrase = np.random.choice(delete_tracker, 1)[0]
-            return self.add_phrase(base, phrase, after), [phrase]
+
+            [i] = np.random.choice(len(delete_tracker), 1)
+
+            # i is the index in the delete_tracker.
+            return self.add_phrase(base, delete_tracker[i], after), [i]
 
     def get_phrase_lookup(self, base_candidate: str) -> Dict[int, str]:
         """Create a dictionary of potential phrases from the base_candidate and

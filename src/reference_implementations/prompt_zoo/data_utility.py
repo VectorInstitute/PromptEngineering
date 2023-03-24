@@ -99,7 +99,7 @@ def template_data(
             for label, index in class_to_id.items():
                 inputs.append(f"{sent} </s>")
                 outputs.append(f"{label} </s>")
-                gold_outputs.append(white_space_fix(labels[idx]))
+                gold_outputs.append(labels[idx])
                 class_indices.append(index)
         return SentimentRawData(inputs=inputs, outputs=outputs, class_indices=class_indices, gold_outputs=gold_outputs)
 
@@ -179,10 +179,10 @@ class SentimentDataset(Dataset):
         """store the reference to the tokenized data."""
         self.data = data
 
-    def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
+    def __getitem__(self, idx: int) -> Dict[str, Union[str, torch.Tensor]]:
         """Return the elements for example index 'idx' as a dictionary with
         tensor values if they are not strings."""
-        ret = {}
+        ret: Dict[str, Union[str, torch.Tensor]] = {}
         for key, val in self.data.items():
             if isinstance(val[idx], str):
                 ret[key] = val[idx]
