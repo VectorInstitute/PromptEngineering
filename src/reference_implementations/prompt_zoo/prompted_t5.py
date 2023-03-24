@@ -67,15 +67,15 @@ class MyBaseT5(torch.nn.Module):
         self.loss_func = self.loss_func.to(self.device)
 
         if FLAGS.mode == "train":
-            if FLAGS.t5_exp_type != "gradient_search":
+            if FLAGS.t5_exp_type not in ["gradient_search", "grips"]:
                 # create optimizer only for training.
                 # based on the experiment type, setup the optimizer.
                 self.optimizer = optimizer_definer[FLAGS.t5_exp_type](self.model_pool)
             else:
-                # gradient_search does not require optimizer.
+                # gradient_search and GRIPS does not require optimizer.
                 pass
         elif FLAGS.mode in ["test", "inference", "eval"]:
-            # load from the given checkpoint.
+            # load from the given checkpoint, whether load model or the searched prompt.
             self.load_from_checkpoint()
         elif FLAGS.mode in ["no_finetune_test"]:
             # just rely on the pre-trained T5 or default prompt template

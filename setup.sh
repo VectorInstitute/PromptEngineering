@@ -71,7 +71,7 @@ function install_prompt_package () {
 
 function install_reference_methods () {
 	if [ "$ENV_NAME" = "prompt_torch" ]; then
-		pip install transformers datasets sentencepiece
+		pip install transformers datasets sentencepiece nltk supar
 	fi
 
 }

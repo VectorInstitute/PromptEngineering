@@ -55,7 +55,7 @@ def modify_inputs_outputs(batch: torch.utils.data.Dataset, prompt_lists: Optiona
         batch["modified_target_attention_mask"] = batch["target_attention_mask"]
         batch["modified_labels"] = batch["labels"]
 
-    elif FLAGS.t5_exp_type == "gradient_search" and prompt_lists:
+    elif FLAGS.t5_exp_type in ["gradient_search", "grips"] and prompt_lists:
         input_ids_stack = []
         input_mask_stack = []
         num_prompts = len(prompt_lists)
