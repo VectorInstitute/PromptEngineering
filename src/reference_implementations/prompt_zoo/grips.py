@@ -265,7 +265,8 @@ class GRIPSSearch(MyBaseT5):
                     deleted[candidate] = [phrase_lookup[indices[0]]]
                 if edit == "add":
                     if len(indices):
-                        # keep track of the added token from the delete tracker that created the new candidate.
+                        # keep track of the index of the added token from the delete tracker
+                        # that created the new candidate.
                         added[candidate] = indices
             else:
                 self.meta_file.write(f"Performing edit:\t {' '.join(edit)} \n")
@@ -512,14 +513,14 @@ class GRIPSSearch(MyBaseT5):
             if i >= 0:
                 after = phrase_lookup[i]
             else:
-                # if the sampled i is -1, then we will add to the start of the candidate.
+                # if the sampled i is -1, then we will add to the start of the base.
                 after = ""
 
             if len(delete_tracker) == 0:
                 # if we have not deleted any phrase previously, then we skip the add operation.
                 return base, []
 
-            [i] = np.random.choice(len(delete_tracker), 1)
+            [i] = np.random.choice(range(len(delete_tracker)), 1)
 
             # i is the index in the delete_tracker.
             return self.add_phrase(base, delete_tracker[i], after), [i]
