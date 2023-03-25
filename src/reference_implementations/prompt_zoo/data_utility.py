@@ -1,6 +1,7 @@
 """This module implements the functions for preprocessing the data files into
 pytorch datasets."""
 
+import random
 from dataclasses import dataclass
 from typing import Dict, List, Union
 
@@ -25,6 +26,7 @@ class SentimentRawData:
     inputs: List[str]
     outputs: List[str]
     class_indices: List[int]
+    gold_outputs: List[str]
 
 
 def white_space_fix(text: str) -> str:
@@ -92,18 +94,21 @@ def template_data(
         inputs = []
         outputs = []
         class_indices = []
-        for sent in sentences:
+        gold_outputs = []
+        for idx, sent in enumerate(sentences):
             for label, index in class_to_id.items():
                 inputs.append(f"{sent} </s>")
                 outputs.append(f"{label} </s>")
+                gold_outputs.append(labels[idx])
                 class_indices.append(index)
-        return SentimentRawData(inputs=inputs, outputs=outputs, class_indices=class_indices)
+        return SentimentRawData(inputs=inputs, outputs=outputs, class_indices=class_indices, gold_outputs=gold_outputs)
 
     # add end of sequence token:
     inputs = [f"{sent} </s>" for sent in sentences]
     outputs = [f"{label} </s>" for label in labels]
     class_indices = [class_to_id[label] for label in labels]
-    return SentimentRawData(inputs=inputs, outputs=outputs, class_indices=class_indices)
+
+    return SentimentRawData(inputs=inputs, outputs=outputs, class_indices=class_indices, gold_outputs=labels)
 
 
 def read_semeval_sentiment_file(file_path: str, instruction_type: str, repeat_input: bool = False) -> SentimentRawData:
@@ -115,6 +120,15 @@ def read_semeval_sentiment_file(file_path: str, instruction_type: str, repeat_in
     class_to_id = {"negative": 0, "neutral": 1, "positive": 2}
     tweets = [white_space_fix(tweet) for tweet in df["Tweet"].tolist()]
     sentiments = [preprocess_semeval_sentiment(sent) for sent in df["Intensity Class"].tolist()]
+
+    if "train" in file_path.lower():
+        # also shuffle dataset here.
+        # required for grips experiments.
+        # optional for other experiments as the dataloader will shuffle the dataset.
+        # for grips, we like to keep the repeated inputs together, therefore we shuffle before
+        # creating the repeated rows. the dataloader shuffle for the grips experiment is set to False.
+        random.shuffle(tweets)
+        random.shuffle(sentiments)
 
     # the test data may have examples for some of the labels.
     assert set(sentiments).issubset({"positive", "negative", "neutral"})
@@ -143,6 +157,15 @@ def read_sst2_sentiment_file(split_name: str, instruction_type: str, repeat_inpu
         sentences.append(row["sentence"])
         labels.append(row["sentiment"])
 
+    if split_name == "train":
+        # also shuffle dataset here.
+        # required for grips experiments.
+        # optional for other experiments as the dataloader will shuffle the dataset.
+        # for grips, we like to keep the repeated inputs together, therefore we shuffle before
+        # creating the repeated rows. the dataloader shuffle for the grips experiment is set to False.
+        random.shuffle(labels)
+        random.shuffle(sentences)
+
     # the test data may only have examples with one label.
     assert set(labels).issubset({"positive", "negative"})
     return template_data(class_to_id, sentences, labels, instruction_type, repeat_input)
@@ -156,10 +179,16 @@ class SentimentDataset(Dataset):
         """store the reference to the tokenized data."""
         self.data = data
 
-    def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
+    def __getitem__(self, idx: int) -> Dict[str, Union[str, torch.Tensor]]:
         """Return the elements for example index 'idx' as a dictionary with
-        tensor values."""
-        return {key: torch.tensor(val[idx]) for key, val in self.data.items()}
+        tensor values if they are not strings."""
+        ret: Dict[str, Union[str, torch.Tensor]] = {}
+        for key, val in self.data.items():
+            if isinstance(val[idx], str):
+                ret[key] = val[idx]
+            else:
+                ret[key] = torch.tensor(val[idx])
+        return ret
 
     def __len__(self) -> int:
         """Return the length of the data."""
@@ -205,7 +234,12 @@ def create_sentiment_dataset(
         "labels": output_encodings.input_ids,
         "target_attention_mask": output_encodings.attention_mask,
         "class_indices": rawdata.class_indices,
+        "gold_classes": rawdata.gold_outputs,
     }
+
+    if FLAGS.t5_exp_type == "grips":
+        # repeat batch size since we are going to read the repeated inputs.
+        FLAGS.eval_batch_size = len(set(rawdata.gold_outputs)) * FLAGS.eval_batch_size
 
     if shuffle:
         # this is training phase.
