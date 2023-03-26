@@ -2,7 +2,7 @@ import os
 import time
 from typing import List, Tuple, Union
 
-import lingua
+import kscope
 import pandas as pd
 import torch
 import torch.nn as nn
@@ -24,7 +24,7 @@ BATCH_SIZE = 10
 # Example: fine-tuned RoBERTa model via HuggingFace pipeline
 
 # HuggingFace pipeline combining model and tokenizer.
-client = lingua.Client(gateway_host="llm.cluster.local", gateway_port=3001)
+client = kscope.Client(gateway_host="llm.cluster.local", gateway_port=3001)
 print(f"Models Status: {client.model_instances}")
 model = client.load_model("OPT-6.7B")
 # If this model is not actively running, it will get launched in the background.
@@ -189,7 +189,7 @@ with open(PREDICTION_FILE_PATH, "a") as prediction_file:
 
         for prediction, test_entry in zip(predictions, batch):
             label, attribute, group, text = test_entry
-            output_entry = (prediction, label, attribute, group, text, MODEL, RUN_ID, DATASET, NUM_PARAMS)
+            output_entry = (label, prediction, attribute, group, text, MODEL, RUN_ID, DATASET, NUM_PARAMS)
             output.append(output_entry)
 
         output_lines = []
