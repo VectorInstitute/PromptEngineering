@@ -14,13 +14,12 @@ def make_train_val_datasets(dataset: datasets.Dataset, split_ratio: float) -> Tu
     original_length = len(dataset)
     train_length = math.floor(original_length * split_ratio)
     lengths = [train_length, original_length - train_length]
-    torch.manual_seed(0)
     return torch.utils.data.random_split(dataset, lengths)
 
 
 def construct_dataloaders(
     batch_size: int,
-    train_split_ratio: float,
+    train_split_ratio: float,  # This value is used only the dataset is missing a "validation" split.
     tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast],
     dataset_name: str,
 ) -> Tuple[DataLoader, DataLoader, DataLoader]:
