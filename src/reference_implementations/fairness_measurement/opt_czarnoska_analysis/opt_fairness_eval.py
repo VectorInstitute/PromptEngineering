@@ -9,6 +9,28 @@ import torch.nn as nn
 from tqdm.auto import tqdm
 from transformers import AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizerFast
 
+TrueLabel = int
+PredictedLabel = int
+Category = str
+Group = str
+TestText = str
+Model = str
+RunID = str
+Dataset = str
+NumParams = float
+TestEntry = Tuple[TrueLabel, Category, Group, TestText]
+OutputEntry = Tuple[
+    PredictedLabel,
+    TrueLabel,
+    Category,
+    Group,
+    TestText,
+    Model,
+    RunID,
+    Dataset,
+    NumParams,
+]
+
 PATH_STUB = "src/reference_implementations/fairness_measurement/resources"
 TEST_FILE_PATH = f"{PATH_STUB}/czarnowska_templates/sentiment_fairness_tests.tsv"
 # Append results to this file.
@@ -19,9 +41,6 @@ DATASET = "SST5"  # Labeled task-specific dataset
 NUM_PARAMS = 6.7  # billions
 RUN_ID = "run_1"
 BATCH_SIZE = 10
-
-# Initialize model here.
-# Example: fine-tuned RoBERTa model via HuggingFace pipeline
 
 # HuggingFace pipeline combining model and tokenizer.
 client = kscope.Client(gateway_host="llm.cluster.local", gateway_port=3001)
@@ -107,28 +126,6 @@ def get_predictions_batched(input_texts: List[str], demonstrations: str, label_t
     assert len(predicted_labels) == len(input_texts)
     return predicted_labels
 
-
-TrueLabel = int
-PredictedLabel = int
-Category = str
-Group = str
-TestText = str
-Model = str
-RunID = str
-Dataset = str
-NumParams = float
-TestEntry = Tuple[TrueLabel, Category, Group, TestText]
-OutputEntry = Tuple[
-    PredictedLabel,
-    TrueLabel,
-    Category,
-    Group,
-    TestText,
-    Model,
-    RunID,
-    Dataset,
-    NumParams,
-]
 
 tests: List[TestEntry] = []
 
