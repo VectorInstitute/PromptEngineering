@@ -10,13 +10,13 @@ from tqdm.auto import tqdm
 from transformers import AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizerFast
 
 PATH_STUB = "src/reference_implementations/fairness_measurement/resources"
-TEST_FILE_PATH = f"{PATH_STUB}/czarnowska_templates/sentiment_fairness_tests_subset.tsv"
+TEST_FILE_PATH = f"{PATH_STUB}/czarnowska_templates/sentiment_fairness_tests.tsv"
 # Append results to this file.
-PREDICTION_FILE_PATH = f"{PATH_STUB}/predictions/opt_175_predictions.tsv"
+PREDICTION_FILE_PATH = f"{PATH_STUB}/predictions/opt_6_7_predictions.tsv"
 
-MODEL = "opt-175b"
+MODEL = "opt-6.7b"
 DATASET = "SST5"  # Labeled task-specific dataset
-NUM_PARAMS = 175.0  # billions
+NUM_PARAMS = 6.7  # billions
 RUN_ID = "run_1"
 BATCH_SIZE = 10
 
@@ -26,7 +26,7 @@ BATCH_SIZE = 10
 # HuggingFace pipeline combining model and tokenizer.
 client = kscope.Client(gateway_host="llm.cluster.local", gateway_port=3001)
 print(f"Models Status: {client.model_instances}")
-model = client.load_model("OPT-175B")
+model = client.load_model("OPT-6.7B")
 # If this model is not actively running, it will get launched in the background.
 # In this case, wait until it moves into an "ACTIVE" state before proceeding.
 while model.state != "ACTIVE":
@@ -189,7 +189,7 @@ with open(PREDICTION_FILE_PATH, "a") as prediction_file:
 
         for prediction, test_entry in zip(predictions, batch):
             label, attribute, group, text = test_entry
-            output_entry = (prediction, label, attribute, group, text, MODEL, RUN_ID, DATASET, NUM_PARAMS)
+            output_entry = (label, prediction, attribute, group, text, MODEL, RUN_ID, DATASET, NUM_PARAMS)
             output.append(output_entry)
 
         output_lines = []

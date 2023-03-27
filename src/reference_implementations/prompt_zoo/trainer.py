@@ -18,6 +18,7 @@ from torch.utils.tensorboard import SummaryWriter
 from src.reference_implementations.prompt_zoo.classifier_over_t5 import ClassifierT5
 from src.reference_implementations.prompt_zoo.data_utility import create_sentiment_dataset
 from src.reference_implementations.prompt_zoo.gradient_search import SearchT5
+from src.reference_implementations.prompt_zoo.grips import GRIPSSearch
 from src.reference_implementations.prompt_zoo.metrics import classifier_sentiment_metric, sentiment_metric
 from src.reference_implementations.prompt_zoo.prompted_t5 import FineTuneT5, MyBaseT5
 
@@ -76,6 +77,16 @@ def train_model(
         while epoch < FLAGS.max_epochs and global_step < FLAGS.training_steps:
             print("\nEpoch:{0}\n".format(epoch))
             epoch_loss = []
+
+            # run prediction on the dev data to adjust the best_score.
+            start_predicting(model, eval_dataloader, eval_file)
+            score = metric(FLAGS.dev_file, eval_file, FLAGS.task_name)  # type: ignore
+            writer.add_scalar("Score/dev", score, global_step)
+            if score > best_score:
+                best_score = score
+                # default checkpoint name is "best_step".
+                model.save()
+
             for step, loss in start_training(model, train_dataloader):
                 global_step += 1
                 total_loss.append(loss)
@@ -94,7 +105,7 @@ def train_model(
                         best_score = score
                         # default checkpoint name is "best_step".
                         model.save()
-                    elif score < best_score and FLAGS.t5_exp_type == "gradient_search":
+                    elif score < best_score and FLAGS.t5_exp_type in ["gradient_search", "grips"]:
                         # re-load the best previous template searched so far!
                         # the previous templates was not good!
                         model.load_from_checkpoint()
@@ -113,7 +124,7 @@ def train_model(
             if score > best_score:
                 best_score = score
                 model.save()
-            elif score < best_score and FLAGS.t5_exp_type == "gradient_search":
+            elif score < best_score and FLAGS.t5_exp_type in ["gradient_search", "grips"]:
                 # re-load the best previous template searched so far!
                 # the previous templates was not good!
                 model.load_from_checkpoint()
@@ -151,16 +162,33 @@ def launch_test_or_train() -> None:
     if FLAGS.mode == "train":
         if FLAGS.t5_exp_type == "gradient_search":
             model = SearchT5()
+        elif FLAGS.t5_exp_type == "grips":
+            model = GRIPSSearch()
         else:
             model = FineTuneT5()
-        train_dataloader = create_sentiment_dataset(
-            tokenizer=model.tokenizer,
-            file_name=FLAGS.train_file,
-            task_name=FLAGS.task_name,
-            shuffle=True,
-            instruction_type=FLAGS.instruction_type,
-            repeat_input=False,
-        )
+        if FLAGS.t5_exp_type == "grips":
+            # For grips, we use train dataset as the search set and compute the balanced accuracy on it.
+            # we should repeat the input for prediction and with set shuffle false to
+            # keep the repeated inputs next to each other.
+            train_dataloader = create_sentiment_dataset(
+                tokenizer=model.tokenizer,
+                file_name=FLAGS.train_file,
+                task_name=FLAGS.task_name,
+                shuffle=False,
+                instruction_type=FLAGS.instruction_type,
+                repeat_input=True,
+            )
+        else:
+            # for other experiments, we don't repeat the inputs as the loss will be
+            # calculated based on the gold output.
+            train_dataloader = create_sentiment_dataset(
+                tokenizer=model.tokenizer,
+                file_name=FLAGS.train_file,
+                task_name=FLAGS.task_name,
+                shuffle=True,
+                instruction_type=FLAGS.instruction_type,
+                repeat_input=False,
+            )
         eval_dataloader = create_sentiment_dataset(
             tokenizer=model.tokenizer,
             file_name=FLAGS.dev_file,
@@ -175,6 +203,8 @@ def launch_test_or_train() -> None:
     elif FLAGS.mode in ["test", "inference", "no_finetune_test"]:
         if FLAGS.t5_exp_type == "gradient_search":
             model = SearchT5()
+        elif FLAGS.t5_exp_type == "grips":
+            model = GRIPSSearch()
         else:
             model = FineTuneT5()
         test_dataloader = create_sentiment_dataset(
@@ -247,6 +277,7 @@ def main(argv: Any) -> None:
         "input_finetune",
         "output_finetune",
         "gradient_search",
+        "grips",
     ]:
         launch_test_or_train()
     elif FLAGS.t5_exp_type == "no_finetune":

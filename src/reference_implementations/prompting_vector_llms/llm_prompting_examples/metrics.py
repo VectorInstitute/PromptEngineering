@@ -12,7 +12,7 @@ def report_metrics(preds: List[str], labels: List[str], ordering: Optional[List[
     # The label ordering just fixes the order of the labels in the confusion matrix. The default is the labels
     # associated with the AG News dataset.
     labels_order = ordering if ordering else ["world", "sports", "business", "science"]
-    matrix = confusion_matrix(preds, labels, labels=labels_order)
+    matrix = confusion_matrix(labels, preds, labels=labels_order)
     FP = matrix.sum(axis=0) - np.diag(matrix)
     FN = matrix.sum(axis=1) - np.diag(matrix)
     TP = np.diag(matrix)
