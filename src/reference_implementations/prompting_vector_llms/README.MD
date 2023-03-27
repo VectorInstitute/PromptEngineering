@@ -8,8 +8,6 @@ __NOTE__: Due to their size, and depending on the size sequence input, the large
 2) OPT-6.7B: One of the moderate generative models in the OPT family. It does not have as significant generalization capabilties but is much faster to respond and can handle larger requests.
 3) Galactica-120B: This model shares the same architecture as OPT but a different underlying training corpus. During training many academic and scientific texts were also included.
 
-
-
 ## LLM Prompting Examples
 
 This folder gathers a number of example demonstrations of LLM prompting. There are four notebooks considering different tasks. The notebooks explore the effects of manual prompt optimization, varying instruction prompts, zero- and few-shot performance. The tasks considered are:
@@ -37,6 +35,10 @@ This notebook implements an example of performing question answering based on a 
 ### Translation
 
 The notebook is constructed to provide a proof of concept in translation through prompting of OPT. OPT is __not__ trained on a multilingual dataset, but has been shown to be able to perform some translations. This notebook demonstrates these capabilities in zero- and few-shot settings. However, the model isn't particularly strong, as measured by the bleu scores on a small sample from the NMT14 fr-en test set.
+
+## Activation Fine-tuning
+
+The folder `activation_fine_tuning` considers extracting intermedate layer activations for the OPT models and training a minimal classifier (in this case a 2-layer MLP) to perform a downstream task with high accuracy. The experiment is described in much greater detail in the `activation_fine_tuning/README.md`. The results are quite interesting and motivate prompting as a means of substantially increasing sampling efficiency in this regime.
 
 ## Ensembling Example
 

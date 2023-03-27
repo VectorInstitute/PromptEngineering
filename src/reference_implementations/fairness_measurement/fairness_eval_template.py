@@ -103,7 +103,7 @@ for batch in tqdm(test_batches):
 
     for prediction, test_entry in zip(predictions, batch):
         label, attribute, group, text = test_entry
-        output_entry = (prediction, label, attribute, group, text, MODEL, RUN_ID, DATASET, NUM_PARAMS)
+        output_entry = (label, prediction, attribute, group, text, MODEL, RUN_ID, DATASET, NUM_PARAMS)
         output.append(output_entry)  # type: ignore
 
 # If the prediction file doesn't exist, we create a new one and append the tsv header row.

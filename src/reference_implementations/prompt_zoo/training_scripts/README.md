@@ -9,7 +9,7 @@ The two larger scale scripts for running experiments are `run_sst2_sentiment_exp
 *NOTE*: Before either is run you must activate your environment. If you are using our pre-built environment run
 
 ```bash
-source /ssd003/projects/aieng/public/prompt_engineering/bin/activate
+source /ssd003/projects/aieng/public/prompt_zoo/bin/activate
 ```
 if you are using one you created locally run
 ```bash

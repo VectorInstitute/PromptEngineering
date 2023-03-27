@@ -35,7 +35,7 @@ cd PromptEngineering
 
 1) If you want to use our pre-built environment to run experiments, simply run
 ```bash
-source /ssd003/projects/aieng/public/prompt_engineering/bin/activate
+source /ssd003/projects/aieng/public/prompt_zoo/bin/activate
 ```
 If you are using the pre-built environments *do not* modify it, as it will affect all users of the venv.
 

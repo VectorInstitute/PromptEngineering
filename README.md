@@ -51,7 +51,7 @@ srun --gres=gpu:1 -c 8 --mem 16G -p a40 --pty bash
 *Note*: The following instructions are for anyone who would like to create there own python virtual environment to run experiments. If you would just like to run the code you can use one of our pre-built virtual environments by simply running, for example,
 
 ```bash
-source /ssd003/projects/aieng/public/prompt_engineering/bin/activate
+source /ssd003/projects/aieng/public/prompt_zoo/bin/activate
 ```
 The above environment is for the `prompt_zoo` examples. Other required environments are discussed in the relevant folders.
 
