@@ -3,24 +3,20 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:4
-#SBATCH --cpus-per-task=32
+#SBATCH --cpus-per-task=16
 #SBATCH --mem=0
 #SBATCH --partition=a40
-#SBATCH --qos=llm
+#SBATCH --qos=normal
 #SBATCH --output=prompt_llama_job_%x_%j.out
 #SBATCH --error=prompt_llama_job_%x_%j.err
-
-# Exit if any line fails
-set -e
 
 echo "###############################"
 echo "######## SBATCH SCRIPT ########"
 echo "###############################"
 
 # Setup dirs
-TARGET_FOLDER=$1
+TARGET_FOLDER=$1	# Path to LLaMA ckpt weights
 ROOT_DIR=$(pwd)
-ROOT_DIR="/ssd005/projects/llm/llama"
 LOG_DIR="${ROOT_DIR}/logs"
 ENV_DIR="${ROOT_DIR}/llama_env"
 
@@ -33,20 +29,20 @@ HEAD_NODE_IP=$(srun --nodes=1 --ntasks=1 -w "${HEAD_NODE}" hostname --ip-address
 # Redirected stdout + stderror filepaths
 OUTFILE="${LOG_DIR}/output-%j-%t.out"
 
-# Script to run with args
+# Worker script to run with args
 WORKER_SETUP_SCRIPT="${ROOT_DIR}/worker_script.sh"
 PORT=42069
 MODEL_SIZE="30B"
 
 ## `torchrun` args
-NNODES=1
-WORKERS_PER_NODE=4
+NNODES="${SLURM_JOB_NUM_NODES}"
+WORKERS_PER_NODE="${SLURM_GPUS_ON_NODE}"
 RDVZ_ID=6969
 RDVZ_BACKEND="c10d"
 RDVZ_ENDPOINT="${HEAD_NODE_IP}:${PORT}"
 
-## Python script args
-PYTHON_SCRIPT="${ROOT_DIR}/llama/llama/example.py"
+## Python llama script args
+PYTHON_SCRIPT="${ROOT_DIR}/llama/example.py"
 MAX_BATCH_SIZE=8
 MAX_SEQ_LEN=256
 CKPT_DIR="${TARGET_FOLDER}/${MODEL_SIZE}"
@@ -58,7 +54,6 @@ export NCCL_IB_DISABLE=1
 export NCCL_DEBUG=INFO
 
 # Print environment and other variables
-echo "SLURM_JOB_NUM_NODES=${SLURM_JOB_NUM_NODES}"
 echo "HEAD_NODE=${HEAD_NODE}"
 echo "HEAD_NODE_IP=${HEAD_NODE_IP}"
 echo "OUTFILE=${OUTFILE}"
@@ -78,11 +73,17 @@ echo "TOKENIZER_PATH=${TOKENIZER_PATH}"
 
 read -r -d '' cmd << EOF
 bash ${WORKER_SETUP_SCRIPT} \
-${HEAD_NODE_IP} \
-${TARGET_FOLDER} \
 ${WORKERS_PER_NODE} \
-${MODEL_SIZE} \
-${ENV_DIR}
+${ENV_DIR} \
+${NNODES} \
+${MAX_BATCH_SIZE} \
+${MAX_SEQ_LEN} \
+${PYTHON_SCRIPT} \
+${CKPT_DIR} \
+${TOKENIZER_PATH} \
+${RDVZ_ID} \
+${RDVZ_BACKEND} \
+${RDVZ_ENDPOINT}
 EOF
 
 echo "Running command:"
