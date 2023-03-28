@@ -18,11 +18,12 @@ You can change the prompts used for inference by going into the
 add or remove prompt strings. You can also extend this file to generate these
 prompts in any way you choose.
 
-# Multi-node use case
+## Multi-node use case
 If you would like to run the largest version of LLaMA, then this section will
 tell you how to do so. You'll first have to change `launch_slurm.slrm`:
 `#SBATCH --nodes=2`
 `MODEL_SIZE="65B"`
+
 WARNING: The multi-node use case functions if you follow this section, but
 LLaMA-65B is not rigoursly tested. Feel free to reach out to your technical
 facilitator with any problems you may encounter.
