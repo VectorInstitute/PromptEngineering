@@ -10,14 +10,15 @@ __NOTE__: Due to their size, and depending on the size sequence input, the large
 
 ## LLM Prompting Examples
 
-This folder gathers a number of example demonstrations of LLM prompting. There are four notebooks considering different tasks. The notebooks explore the effects of manual prompt optimization, varying instruction prompts, zero- and few-shot performance. The tasks considered are:
+This folder gathers a number of example demonstrations of LLM prompting. There are five notebooks considering different tasks. The notebooks explore the effects of manual prompt optimization, varying instruction prompts, zero- and few-shot performance. The tasks considered are:
 
 1) Summarization
 2) Classification
 3) BoolQ (booling question answering)
 4) Basic Translation (French -> English)
+5) Aspect-Based Sentiment Analysis
 
-The notebooks are loosely ordered, in the sense that they build somewhat on each other. The rough ordering follows the enumeration above. That is, `Summarization`, `Classification`, `BoolQ`, and `Translation`
+The notebooks are loosely ordered, in the sense that they build somewhat on each other. The rough ordering follows the enumeration above. That is, `Summarization`, `Classification`, `BoolQ`, `Translation`, and `ABSA`
 
 ### Summarization
 
@@ -36,6 +37,9 @@ This notebook implements an example of performing question answering based on a 
 
 The notebook is constructed to provide a proof of concept in translation through prompting of OPT. OPT is __not__ trained on a multilingual dataset, but has been shown to be able to perform some translations. This notebook demonstrates these capabilities in zero- and few-shot settings. However, the model isn't particularly strong, as measured by the bleu scores on a small sample from the NMT14 fr-en test set.
 
+### Aspect-Based Sentiment Analysis
+
+The notebook considers the task of assigning sentiments ( positive, negative, or neutral) towards certain aspects of the input. Here the aspect term denotes the specific text that explicitly appears in the given text. The notebook shows results on a small subset of the dataset with customer reviews of laptops. Zero-shot and Few-shot tasks are also explored in this notebook.
 ## Activation Fine-tuning
 
 The folder `activation_fine_tuning` considers extracting intermedate layer activations for the OPT models and training a minimal classifier (in this case a 2-layer MLP) to perform a downstream task with high accuracy. The experiment is described in much greater detail in the `activation_fine_tuning/README.md`. The results are quite interesting and motivate prompting as a means of substantially increasing sampling efficiency in this regime.
