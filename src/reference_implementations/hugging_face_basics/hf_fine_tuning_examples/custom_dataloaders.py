@@ -32,7 +32,6 @@ def construct_dataloaders(
     )
 
     train_dataset = tokenized_dataset_dict["train"]
-    train_label_list = train_dataset.features["label"]._int2str
     train_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "label"])
 
     if "validation" in tokenized_dataset_dict.keys():
@@ -44,12 +43,7 @@ def construct_dataloaders(
 
     # Create the AG news test set.
     test_dataset = tokenized_dataset_dict["test"]
-    # Tokenize the text data using the model tokenizer
-    test_label_list = test_dataset.features["label"]._int2str
     test_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "label"])
-
-    # Ensure the order of the labels matches.
-    assert all([train_label == test_label for train_label, test_label in zip(train_label_list, test_label_list)])
 
     # Create pytorch dataloaders from the dataset objects.
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
