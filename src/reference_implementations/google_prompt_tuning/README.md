@@ -1,5 +1,13 @@
 # Using google-prompt-tuning (Not Fully Supported During Prompt Engineering Lab)
 
+# WARNING
+
+__The current implementations of Google Prompt-Tuning and T5X are at odds with each other and no longer work together. We have filed a bug report with the repository, but until it is fixed the code here will simply serve as an example that doesn't fully run. Luckily, we have our own PyTorch implemnetation in `prompt_zoo`!__
+
+For the interested reader, Flax has removed optim in favor of optax in its newest versions above 0.5.3. This means that in order to run the code in this repository, one needs to downgrade below Flax 0.6. However, if you do that with Jax 0.4.5 or even with Jax 0.3.25 + jax.config.update('jax_array', True), the code cannot save a model checkpoint due to msgpack being unable to serialize the jax arrays.
+
+## Introduction
+
 The following lines outline the steps to train the google's soft-prompt code based on t5x for the binary sentiment analysis task on the vector's cluster.
 
 ## Virtual Environment

@@ -4,14 +4,9 @@ We support running T5x only on the vector's cluster.
 
 ## Virtual Environment
 
-There are two options for utilizing a virtual env to run the code in this director.
-1) You can source our pre-built environment from `/ssd003/projects/aieng/public/prompt_engineering_t5x` with the command
-```bash
-source /ssd003/projects/aieng/public/prompt_engineering_t5x/bin/activate
-```
-If you are using the pre-built environments *do not* modify it, as it will affect all users of the venv. To install your own environment that you can manipulate, follow the instructions below.
+To install your own environment that you can manipulate, follow the instructions below.
 
-2) You can create your own environment using the `src/reference_implementations/t5x/t5x_env_script.sh` script it's usage is
+You can create your own environment using the `src/reference_implementations/t5x/t5x_env_script.sh` script it's usage is
 ```bash
 bash <path/to/script/t5x_env_script.sh <path/to>/PromptEngineering/
 ```
