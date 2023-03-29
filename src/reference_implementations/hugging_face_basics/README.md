@@ -8,9 +8,31 @@ The folder `hf_fine_tuning_examples` contains a few basic examples of using Hugg
 2) Fine-tuning a pre-trained GPT2 model for the AG news text classification task.
 3) Performing inference on a summarization task with a pre-trained BART model from the model hub and measuring performance on a benchmark dataset.
 
-There are notebooks for running the training in (1) and (2) and for performing the inference and measurements in (3). These notebooks have self-contained pip installs at the beginning. However, there are also python scripts for launching training on the cluster through a slurm script, should you want to do so. However, there isn't any venv setup here. Simply create your own venv using the pip installs from the notebooks if you would like to run them as scripts.
+There are notebooks for running the training in (1) and (2) and for performing the inference and measurements in (3).
 
-If you're running the scripts rather than working in the notebooks, you can do the following
+If you're running the notebooks on the cluster, simply select `prompt_engineering` from the available kernels and you should be good to go.
+
+If you want to create your own environment then you can do so by creating your own virtual environment with the command
+```
+python -m venv <name_of_venv>
+```
+then
+```
+source <name_of_venv>/bin/activate
+```
+finally run
+```bash
+pip install transformers evaluate datasets torch absl-py rouge_score
+```
+
+__Note__: You can also source `prompt_engineering` for running scripts by using
+```bash
+source /ssd003/projects/aieng/public/prompt_engineering/bin/activate
+```
+
+#### Running scripts instead of notebooks
+
+there are also python scripts for launching training on the cluster through a slurm script, should you want to do so. However, there isn't any venv setup here. Simply create your own venv using the pip installs from the notebooks if you would like to run them as scripts.
 
 1) Create a venv with
 ```bash
@@ -30,13 +52,22 @@ sbatch src/reference_implementations/run_singlenode_fine_tune.slrm \
 
 The notebook in this folder entitled `nlp_metrics_examples.ipynb` focuses on introducing some standard NLP metrics, specifically focusing on metrics common for natural language generation (NLG) tasks.
 
-The notebook has a pip install as one of the cells. If you are developing on the JupyterHub or a notebook launched from the cluster, you will have an isolated python environment to install into.
+If you're running the notebooks on the cluster, simply select `prompt_engineering` from the available kernels and you should be good to go.
 
-__However__: If you are working on this notebook locally, be sure to create a virtual environment to install the dependencies into. This can be done, for example, with the command
+If you want to create your own environment then you can do so by creating your own virtual environment with the command
 ```
 python -m venv <name_of_venv>
 ```
 then
 ```
 source <name_of_venv>/bin/activate
+```
+finally run
+```bash
+pip install evaluate torch transformers nltk absl-py rouge_score bert_score
+```
+
+__Note__: You can also source `prompt_engineering` for running scripts by using
+```bash
+source /ssd003/projects/aieng/public/prompt_engineering/bin/activate
 ```
