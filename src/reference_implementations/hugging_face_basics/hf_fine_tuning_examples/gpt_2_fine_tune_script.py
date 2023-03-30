@@ -3,13 +3,13 @@ import torch.nn as nn
 from torch import cuda
 from transformers import GPT2Config, GPT2ForSequenceClassification, GPT2Tokenizer
 
-from src.reference_implementations.hugging_face_basics.hf_fine_tuning_examples.ag_news_trainer import infer, train
 from src.reference_implementations.hugging_face_basics.hf_fine_tuning_examples.custom_dataloaders import (
     construct_dataloaders,
 )
 from src.reference_implementations.hugging_face_basics.hf_fine_tuning_examples.gpt2_classification_model import (
     Gpt2ClsModel,
 )
+from src.reference_implementations.hugging_face_basics.hf_fine_tuning_examples.hf_trainer import infer, train
 
 gpt2_tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 # Define PAD Token = EOS Token = 50256
