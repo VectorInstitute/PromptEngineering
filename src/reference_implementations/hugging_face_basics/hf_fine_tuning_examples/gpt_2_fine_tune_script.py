@@ -3,10 +3,10 @@ import torch.nn as nn
 from torch import cuda
 from transformers import GPT2Config, GPT2ForSequenceClassification, GPT2Tokenizer
 
-from src.reference_implementations.hugging_face_basics.hf_fine_tuning_examples.ag_news_dataloader import (
-    construct_ag_news_dataloaders,
-)
 from src.reference_implementations.hugging_face_basics.hf_fine_tuning_examples.ag_news_trainer import infer, train
+from src.reference_implementations.hugging_face_basics.hf_fine_tuning_examples.custom_dataloaders import (
+    construct_dataloaders,
+)
 from src.reference_implementations.hugging_face_basics.hf_fine_tuning_examples.gpt2_classification_model import (
     Gpt2ClsModel,
 )
@@ -16,8 +16,8 @@ gpt2_tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 gpt2_tokenizer.pad_token = gpt2_tokenizer.eos_token
 pad_token_id = gpt2_tokenizer.encode(gpt2_tokenizer.eos_token)[0]
 
-train_dataloader, val_dataloader, test_dataloader = construct_ag_news_dataloaders(
-    batch_size=8, train_split_ratio=0.8, tokenizer=gpt2_tokenizer
+train_dataloader, val_dataloader, test_dataloader = construct_dataloaders(
+    batch_size=8, train_split_ratio=0.8, tokenizer=gpt2_tokenizer, dataset_name="ag_news"
 )
 
 device = "cuda" if cuda.is_available() else "cpu"
