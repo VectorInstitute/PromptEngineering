@@ -50,6 +50,9 @@ def infer(
             n_correct += calcuate_accuracy(pred_label, targets)
             n_total += targets.size(0)
             n_batches += 1
+            if n_batches%50 == 0:
+                batches_to_complete = max_batches if max_batches is not None else len(dataloader)
+                print(f"Completed {n_batches} of {batches_to_complete}...")
     # Return the accuracy over the entire validation set
     # and the average loss per batch (to match training loss calculaiton)
     return n_correct * 100 / n_total, total_loss / n_batches
@@ -130,6 +133,7 @@ def train(
 
         epoch_loss = total_epoch_loss / total_training_steps
         # Loss and Accuracy computed over whole validation set.
+        print("Training rounds complete. Validating on entire validation set.")
         val_accuracy, val_loss = infer(model, loss_func, val_dataloader, device)
         print("------------------------------------------------")
         print(f"Training Loss Epoch: {epoch_loss}")
