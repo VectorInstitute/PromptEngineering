@@ -67,7 +67,7 @@ def train(
     n_epochs: int = 1,
     n_training_steps: int = 300,
 ) -> None:
-    optimizer = torch.optim.AdamW(model.parameters(), lr=0.0001, weight_decay=0.0001)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.00001, weight_decay=0.001)
     n_steps_per_report = 100
     # move model to the GPU (if available)
     model.to(device)
