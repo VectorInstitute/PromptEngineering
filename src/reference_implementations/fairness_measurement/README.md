@@ -89,3 +89,22 @@ finally run
 ```bash
 pip install torch kscope
 ```
+
+## Crow-S-Pairs Notebook for Bias Quantification
+
+In the folder `src/reference_implementations/fairness_measurement/crow_s_pairs/` there is notebook that facilitates running the Crow-S-Pairs task that aims at quantifying bias present in LLMs through estimation of likelihood of pairs of sentences. The details and links to the paper are described in detail in the notebook itself.
+
+If you're running the notebooks on the cluster, simply select `prompt_engineering` from the available kernels and you should be good to go.
+
+If you want to create your own environment then you can do so by creating your own virtual environment with the command
+```
+python -m venv <name_of_venv>
+```
+then
+```
+source <name_of_venv>/bin/activate
+```
+finally run
+```bash
+pip install transformers kscope pandas
+```

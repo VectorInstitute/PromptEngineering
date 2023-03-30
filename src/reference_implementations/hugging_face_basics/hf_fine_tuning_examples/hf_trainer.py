@@ -50,7 +50,7 @@ def infer(
             n_correct += calcuate_accuracy(pred_label, targets)
             n_total += targets.size(0)
             n_batches += 1
-            if n_batches%50 == 0:
+            if n_batches % 300 == 0:
                 batches_to_complete = max_batches if max_batches is not None else len(dataloader)
                 print(f"Completed {n_batches} of {batches_to_complete}...")
     # Return the accuracy over the entire validation set
@@ -98,7 +98,8 @@ def train(
             # forward pass
             outputs = model(input_ids=ids, attention_mask=mask)
             if type(outputs) in {SequenceClassifierOutput, SequenceClassifierOutputWithPast}:
-                # For a SequenceClassifierOutput object, we want logits which are of shape (batch size, 4)
+                # For a SequenceClassifierOutput object,
+                # we want logits which are of shape (batch size, dataset_num_labels)
                 loss = loss_func(outputs.logits, targets)
                 pred_label = torch.argmax(outputs.logits, dim=1)
             else:
