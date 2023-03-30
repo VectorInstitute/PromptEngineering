@@ -1,5 +1,7 @@
 # Measuring Fairness in Language Models
 
+## Fairness Through Fine-Tuning
+
 In this folder, we will measure the fairness of a number of foundation models through the lens of sentiment analysis. Specifically, we will measure if swapping out the name of the groups (e.g., young vs old) will affect the model's prediction of the sentence's sentiment. We will use additional metrics and visualization techniques devised at the Vector Institute to highlight groups of people that the models are in favor of or biased against.
 
 The test cases presented in this folder are from the following paper.
@@ -10,7 +12,7 @@ The test cases presented in this folder are from the following paper.
 
 (See `resources/czarnowska_templates/sentiment_fairness_tests.tsv`.)
 
-## Overview
+### Overview
 It takes three simple steps to measure the fairness of any given large language model:
 - Learn a prompt that enables the LLM to do three-way (positive/neutral/negative) sentiment analysis.
 - Using this prompt, predict the sentiment of the test cases.
@@ -18,7 +20,7 @@ It takes three simple steps to measure the fairness of any given large language 
 
 During the lab, we've covered a wide range of ways to prompt LLMs for text classification, including sentiment analysis. We know that any these prompting methods could invoke bias. Hence, we designed our pipeline to be modular, so that you can easily measure the fairness of a wide range of prompting techniques by changes only a few lines of code.
 
-### Step 1: Generating Sentiment labels
+#### Step 1: Generating Sentiment labels
 The first step is to predict the sentiment of each test case using. The script `fairness_eval_template.py` provides the boilerplate code for loading the test cases and formatting the output.
 
 To provide an overview of the pipeline, we use the following fine-tuned RoBERTa-base model from the HuggingFace hub ([link](https://huggingface.co/cardiffnlp/twitter-roberta-base-sentiment)) for sentiment analysis. While we aren't using prompting in this example, this RoBERTa-base model is simple and efficient enough to demonstrate how the pipeline will interact with your LLM. You can easily adjust `fairness_eval_template.py` to use a prompt-tuning approach.
@@ -61,9 +63,29 @@ python3 src/reference_implementations/fairness_measurement/fairness_eval_templat
 
 By default, this script will append predictions and info about the model to `PREDICTION_FILE_PATH`. If this file doesn't exist, the script will create a new one with the TSV header row.
 
-### Step 2: Calculate and Visualize biases
+#### Step 2: Calculate and Visualize biases
 Open the Jupyter notebook `fairness_measurement/group-fairness-plots.ipynb` to load the predictions and interactively evaluate the bias of each model.
 
 You do not need a GPU for this notebook. However, you might need to install additional packages for plotting. Refer to the notebook for more details.
 
 Note that the notebook is capable of visualizing confidence intervals. However, to see the intervals, you will need to run Step 1 at least twice with the same `MODEL`, `DATASET`, `NUM_PARAMS`, but different `RUN_ID` values. Otherwise, the CI widths in the notebook will be NaN and no confidence interval will be plotted.
+
+
+## BBQ A Question-Answering Framework for Bias Probing
+
+In the folder `src/reference_implementations/fairness_measurement/bbq_fairness_example` there is a small notebook that works through a few demonstrative examples of the BBQ task that was recently introduced to probe the bias inherent in large language models. The notebook describes the task and contains a link to the paper.
+
+If you're running the notebooks on the cluster, simply select `prompt_engineering` from the available kernels and you should be good to go.
+
+If you want to create your own environment then you can do so by creating your own virtual environment with the command
+```
+python -m venv <name_of_venv>
+```
+then
+```
+source <name_of_venv>/bin/activate
+```
+finally run
+```bash
+pip install torch kscope
+```
