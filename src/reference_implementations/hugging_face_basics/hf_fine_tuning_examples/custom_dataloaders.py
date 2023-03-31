@@ -32,6 +32,7 @@ def construct_dataloaders(
     )
 
     train_dataset = tokenized_dataset_dict["train"]
+    # Ensure that the dataloader yields PyTorch tensors, not lists of lists.
     train_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "label"])
 
     if "validation" in tokenized_dataset_dict.keys():
@@ -42,9 +43,7 @@ def construct_dataloaders(
         # split the original training dataset into a training and validation set.
         train_dataset, val_dataset = make_train_val_datasets(train_dataset, train_split_ratio)
 
-    # Ensure that the dataloader yields PyTorch tensors, not lists of lists.
-
-    # Create the AG news test set.
+    # Create the test set.
     test_dataset = tokenized_dataset_dict["test"]
     test_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "label"])
 

@@ -1,5 +1,7 @@
 
-# Installation On Vector's Cluster.
+# Some instructions and tips for using the code in Prompt Zoo
+
+Below are some tips on using the cluster to run the code in this folder. More specific instructions about how to run experiments and examine the results are discussed in the readmes under the `training_scripts` and `experiment_notebooks` folders and the `src/reference_implementations/prompt_zoo/experiment_notebooks/efficient_tuning_baselines.md` markdown. Once you've read through this readme, see those files to learn how to run experiments.
 
 ## Direct Access to a GPU Node.
 
@@ -57,13 +59,11 @@ Also note the URL output by the command to be used later. (ex. http://127.0.0.1:
 jupyter notebook --ip 0.0.0.0 --port 8888
 ```
 
-
 Using a new terminal window from our personal laptop, we need to create an ssh tunnel to that specific port of the gpu node:
 Note that `gpu001` is the name of the gpu we reserved at the beginnging. Remember that the port needs to be the same as your jupyter notebook port above.
 ```bash
 ssh username@v.vectorinstitute.ai -L 8888:gpu001:8888
 ```
-
 
 Keep the new connection alive by starting a tmux session in the new local terminal:
 ```bash

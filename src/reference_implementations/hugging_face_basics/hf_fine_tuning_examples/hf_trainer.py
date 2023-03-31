@@ -50,6 +50,9 @@ def infer(
             n_correct += calcuate_accuracy(pred_label, targets)
             n_total += targets.size(0)
             n_batches += 1
+            if n_batches % 300 == 0:
+                batches_to_complete = max_batches if max_batches is not None else len(dataloader)
+                print(f"Completed {n_batches} of {batches_to_complete}...")
     # Return the accuracy over the entire validation set
     # and the average loss per batch (to match training loss calculaiton)
     return n_correct * 100 / n_total, total_loss / n_batches
@@ -64,7 +67,7 @@ def train(
     n_epochs: int = 1,
     n_training_steps: int = 300,
 ) -> None:
-    optimizer = torch.optim.AdamW(model.parameters(), lr=0.0001, weight_decay=0.0001)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.00001, weight_decay=0.001)
     n_steps_per_report = 100
     # move model to the GPU (if available)
     model.to(device)
@@ -95,7 +98,8 @@ def train(
             # forward pass
             outputs = model(input_ids=ids, attention_mask=mask)
             if type(outputs) in {SequenceClassifierOutput, SequenceClassifierOutputWithPast}:
-                # For a SequenceClassifierOutput object, we want logits which are of shape (batch size, 4)
+                # For a SequenceClassifierOutput object,
+                # we want logits which are of shape (batch size, dataset_num_labels)
                 loss = loss_func(outputs.logits, targets)
                 pred_label = torch.argmax(outputs.logits, dim=1)
             else:
@@ -130,6 +134,7 @@ def train(
 
         epoch_loss = total_epoch_loss / total_training_steps
         # Loss and Accuracy computed over whole validation set.
+        print("Training rounds complete. Validating on entire validation set.")
         val_accuracy, val_loss = infer(model, loss_func, val_dataloader, device)
         print("------------------------------------------------")
         print(f"Training Loss Epoch: {epoch_loss}")

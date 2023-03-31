@@ -20,6 +20,8 @@ source prompt_torch-env/bin/activate
 
 This script orchestrates running a hyper parameter search for the learning rate on various kinds of prompt tuning and fine tuning setups. For more information on how to run each experiment individually see `experiments_notebooks/efficient_tuning_baselines.md`. REMEMBER to activate your environment (as instructed above). This script can be run from the top level directory as
 
+__NOTE__: Before running this script, you need to replace `snajafi` IN THE SCRIPT with your username to ensure that the results are logged to your path.
+
 ```bash
 bash ./src/reference_implementations/prompt_zoo/training_scripts/run_sst2_sentiment_experiments.sh
 ```
@@ -43,6 +45,8 @@ Then visit `https://localhost:6006`.
 ### run_sentiment_experiments_gradient_search
 
 This script orchestrates running gradient-based discrete prompt search for semeval and sst-2. REMEMBER to activate your environment (as instructed above). This script can be run from the top level directory as
+
+__NOTE__: Before running this script, you need to replace `snajafi` IN THE SCRIPT with your username to ensure that the results are logged to your path.
 
 ```bash
 bash ./src/reference_implementations/prompt_zoo/training_scripts/run_sentiment_experiments_gradient_search.sh
