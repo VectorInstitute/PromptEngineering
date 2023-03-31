@@ -42,6 +42,8 @@ ssh username@v.vectorinstitute.ai -L 6006:localhost:6006
 
 Then visit `https://localhost:6006`.
 
+__Note__: This script can also be used to run a hyper-parameter search for the semeval dataset by changing any mention of sst2 in the `run_sst2_sentiment_experiments.sh` to semeval.
+
 ### run_sentiment_experiments_gradient_search
 
 This script orchestrates running gradient-based discrete prompt search for semeval and sst-2. REMEMBER to activate your environment (as instructed above). This script can be run from the top level directory as
