@@ -1,4 +1,4 @@
-## Introduction to some NLP metrics
+## Introduction to some NLP metrics and Hugging Face Fine-tuning Setups
 
 ### HuggingFace Fine-tuning Examples
 
@@ -13,11 +13,11 @@ There are notebooks for running the training in (1) and (2) and for performing t
 If you're running the notebooks on the cluster, simply select `prompt_engineering` from the available kernels and you should be good to go.
 
 If you want to create your own environment then you can do so by creating your own virtual environment with the command
-```
+```bash
 python -m venv <name_of_venv>
 ```
 then
-```
+```bash
 source <name_of_venv>/bin/activate
 ```
 finally run
@@ -25,7 +25,7 @@ finally run
 pip install transformers evaluate datasets torch absl-py rouge_score
 ```
 
-__Note__: You can also source `prompt_engineering` for running scripts by using
+__Note__: You can also source `prompt_engineering` for running scripts by using. Please do not modify this env.
 ```bash
 source /ssd003/projects/aieng/public/prompt_engineering/bin/activate
 ```
@@ -41,7 +41,7 @@ python -m venv <name_of_venv>
 source <name_of_venv>/bin/activate
 pip install transformers datasets torch absl-py rouge_score
 ```
-2) Run the python script on a GPU after logging into the cluster. Make sure you run the sbatch command from the top directory.
+2) Run the python script on a GPU after logging into the cluster __with your venv active__. Make sure you run the sbatch command from the top directory.
 ```bash
 sbatch src/reference_implementations/run_singlenode_fine_tune.slrm \
     src/reference_implementations/hugging_face_basics/training_script/finetuning_roberta.sh \
@@ -55,11 +55,11 @@ The notebook in this folder entitled `nlp_metrics_examples.ipynb` focuses on int
 If you're running the notebooks on the cluster, simply select `prompt_engineering` from the available kernels and you should be good to go.
 
 If you want to create your own environment then you can do so by creating your own virtual environment with the command
-```
+```bash
 python -m venv <name_of_venv>
 ```
 then
-```
+```bash
 source <name_of_venv>/bin/activate
 ```
 finally run
@@ -67,7 +67,7 @@ finally run
 pip install evaluate torch transformers nltk absl-py rouge_score bert_score
 ```
 
-__Note__: You can also source `prompt_engineering` for running scripts by using
+__Note__: You can also source `prompt_engineering` for running scripts by using the command below. Please do not modify this env.
 ```bash
 source /ssd003/projects/aieng/public/prompt_engineering/bin/activate
 ```
