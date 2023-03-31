@@ -1,8 +1,8 @@
-### Introduction to some NLP metrics
+## Introduction to some NLP metrics
 
 ### HuggingFace Fine-tuning Examples
 
-The folder `hf_fine_tuning_examples` contains a few basic examples of using HuggingFace for inference and fine-tuning for a few downstream tasks. The examples are
+The folder `hf_fine_tuning_examples` contains a few basic examples of using HuggingFace for inference and fine-tuning for a few downstream tasks. There are examples, among others, of:
 
 1) Fine-tuning a pre-trained RoBERTa-base model for the AG news text classification task.
 2) Fine-tuning a pre-trained GPT2 model for the AG news text classification task.
@@ -32,14 +32,14 @@ source /ssd003/projects/aieng/public/prompt_engineering/bin/activate
 
 #### Running scripts instead of notebooks
 
-there are also python scripts for launching training on the cluster through a slurm script, should you want to do so. However, there isn't any venv setup here. Simply create your own venv using the pip installs from the notebooks if you would like to run them as scripts.
+There are also python scripts for launching training on the cluster through a slurm script, should you want to do so. However, there isn't any venv setup here. Simply create your own venv using the pip installs from the notebooks if you would like to run them as scripts.
 
 1) Create a venv with
 ```bash
 module load python/3.9.10
 python -m venv <name_of_venv>
 source <name_of_venv>/bin/activate
-pip install transformers datasets torch
+pip install transformers datasets torch absl-py rouge_score
 ```
 2) Run the python script on a GPU after logging into the cluster. Make sure you run the sbatch command from the top directory.
 ```bash
