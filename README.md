@@ -1,10 +1,10 @@
 # Prompt Engineering Laboratory
 
-This repository holds all of the code associated with the project considering prompt engineering for large language models. This includes work around reference implementations, demo notebooks.
+This repository holds all of the code associated with the project considering prompt engineering for large language models. This includes work around reference implementations and demo notebooks.
 
-The static code checker runs on python3.9
+The static code checker and all implementations run on python3.9
 
-All reference implementations are housed in `src/reference_implementations/`. Datasets to be used are placed in `resources/datasets`. There is also some information about JAX for those curious in learning more about that framework and the implementation of prompt tuning by Google (This is included but not supported in the prompt engineering lab).
+All reference implementations are housed in `src/reference_implementations/`. Datasets to be used are placed in `resources/datasets` or in the relevant resources subfolder for the implementation. There is also some information about JAX for those curious in learning more about that framework and the implementation of prompt tuning by Google (This is included but not supported in the prompt engineering lab due to issues with their current implementation).
 
 This repository is organized as follows
 
@@ -23,19 +23,27 @@ For more information about using and running the prompt tuning experiments using
 
 These reference implementations are housed in `src/reference_implementations/prompting_vector_llms/`
 
-This folder houses notebooks and implementations of prompting large language models hosted on Vector's compute cluster. There are notebooks for demonstrating various prompted downstream tasks, the affects of prompts on tasks like Aspect-Based Sentiment Analysis and text classification, along with prompt ensembling.
+This folder contains notebooks and implementations of prompting large language models hosted on Vector's compute cluster. There are notebooks for demonstrating various prompted downstream tasks, the affects of prompts on tasks like Aspect-Based Sentiment Analysis and text classification, along with prompt ensembling, activation fine-tuning, and experimenting with whether discrete prompts are transferable across architectures.
 
 ## Fairness in language models
 
 These reference implementations reside in `src/reference_implementations/fairness_measurement/`
 
-This folder contains implementations for measuring fairness for models that have been fine-tuning or prompted to complete a sentiment classification task. There is also an implementation of measuring fairness for LLMs like OPT-175B or Galactica accessed on Vector's cluster.
+This folder contains implementations for measuring fairness for languagle models. There is an implementation the assesses fairness through fine-tuning or prompting to complete a sentiment classification task. We also consider LLM performance on the CrowS-Pairs Tasks and the BBQ task as a means of probing model bias and fairness.
 
 ## Hugging Face Basics
 
 These reference implmenetations are in `src/reference_implementations/hugging_face_basics/`.
 
-The reference implementations here are of two kinds. The first is a couple of examples of using HuggingFace for basic ML tasks. The second is a discussion of some important metrics associated with NLP.
+The reference implementations here are of two kinds. The first is a collection of examples of using HuggingFace for basic ML tasks. The second is a discussion of some important metrics associated with NLP.
+
+## LLaMa Language Model
+
+In the folder `src/reference_implementations/llama_llm` we have scripts that facilitate using one of the news large language models known as [LLaMa](https://ai.facebook.com/blog/large-language-model-llama-meta-ai/). The language model has been trained for much longer than the traditional LLMs and, while much smaller than OPT-175, can demonstrate equivalent or better performance.
+
+## T5x and Google Prompt Tuning
+
+These implementations exist in `src/reference_implementations/t5x` and `src/reference_implementations/google_prompt_tuning`, respectively. These folders contain scripts for fine-tuning a JAX implementation of T5 and using prompt tuning in JAX for T5 as well. These folders offer a good idea as to how you might use JAX to perform large model training and prompt tuning. However, they are not fully supported by this laboratory because their implementation is currently broken on the Google side of the repositories.
 
 ## Launching an interactive session on a GPU node
 
@@ -52,6 +60,7 @@ srun --gres=gpu:1 -c 8 --mem 16G -p a40 --pty bash
 ```bash
 source /ssd003/projects/aieng/public/prompt_zoo/bin/activate
 ```
+
 The above environment is for the `prompt_zoo` examples. Other required environments are discussed in the relevant folders.
 
 If you are using the pre-built environments *do not* modify it, as it will affect all users of the venv. To install your own environment that you can manipulate, follow the instructions below.
@@ -64,6 +73,7 @@ bash setup.sh OS=mac ENV_NAME=env_name DEV=true
 ```
 
 ### Virtualenv installing on Vector's Cluster
+
 You can call `setup.sh` with the `OS=vcluster` flag. This installs python in the linux cluster of Vector and installs the ML libraries for the GPU cards.
 ```bash
 bash setup.sh OS=vcluster ENV_NAME=env_name DEV=true
@@ -72,6 +82,7 @@ bash setup.sh OS=vcluster ENV_NAME=env_name DEV=true
 The `setup.sh` script takes an *ENV_NAME* argument value of `prompt_torch`. The value `prompt_torch` should be used for our `prompt_zoo`
 
 ## Using Pre-commit Hooks (for developing in this repository)
+
 To check your code at commit time
 ```
 pre-commit install
