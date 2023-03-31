@@ -126,7 +126,7 @@ def read_semeval_sentiment_file(file_path: str, instruction_type: str, repeat_in
         # required for grips experiments. for grips, we like to keep the repeated inputs together, therefore
         # we shuffle before creating the repeated rows. the dataloader shuffle for the grips experiment is set to 
         # False.
-        rand_indices = range(len(tweets))
+        rand_indices = list(range(len(tweets)))
         random.shuffle(rand_indices)
         tweets = [tweets[i] for i in rand_indices]
         sentiments = [sentiments[i] for i in rand_indices]
@@ -163,7 +163,7 @@ def read_sst2_sentiment_file(split_name: str, instruction_type: str, repeat_inpu
         # required for grips experiments. for grips, we like to keep the repeated inputs together, therefore
         # we shuffle before creating the repeated rows. the dataloader shuffle for the grips experiment is set to 
         # False.
-        rand_indices = range(len(tweets))
+        rand_indices = list(range(len(tweets)))
         random.shuffle(rand_indices)
         tweets = [tweets[i] for i in rand_indices]
         sentiments = [sentiments[i] for i in rand_indices]
