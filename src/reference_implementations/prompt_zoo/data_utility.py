@@ -111,7 +111,9 @@ def template_data(
     return SentimentRawData(inputs=inputs, outputs=outputs, class_indices=class_indices, gold_outputs=labels)
 
 
-def read_semeval_sentiment_file(file_path: str, instruction_type: str, repeat_input: bool = False) -> SentimentRawData:
+def read_semeval_sentiment_file(
+    file_path: str, instruction_type: str, repeat_input: bool = False, is_grips: bool = False
+) -> SentimentRawData:
     """This function reads the semeval 2018 data files for sentiment analysis.
 
     Example header: 'ID  Tweet Affect Dimension  Intensity Class'
@@ -121,21 +123,24 @@ def read_semeval_sentiment_file(file_path: str, instruction_type: str, repeat_in
     tweets = [white_space_fix(tweet) for tweet in df["Tweet"].tolist()]
     sentiments = [preprocess_semeval_sentiment(sent) for sent in df["Intensity Class"].tolist()]
 
-    if "train" in file_path.lower():
+    if "train" in file_path.lower() and is_grips:
         # also shuffle dataset here.
-        # required for grips experiments.
-        # optional for other experiments as the dataloader will shuffle the dataset.
-        # for grips, we like to keep the repeated inputs together, therefore we shuffle before
-        # creating the repeated rows. the dataloader shuffle for the grips experiment is set to False.
-        random.shuffle(tweets)
-        random.shuffle(sentiments)
+        # required for grips experiments. for grips, we like to keep the repeated inputs together, therefore
+        # we shuffle before creating the repeated rows. the dataloader shuffle for the grips experiment is set to
+        # False.
+        rand_indices = list(range(len(tweets)))
+        random.shuffle(rand_indices)
+        tweets = [tweets[i] for i in rand_indices]
+        sentiments = [sentiments[i] for i in rand_indices]
 
     # the test data may have examples for some of the labels.
     assert set(sentiments).issubset({"positive", "negative", "neutral"})
     return template_data(class_to_id, tweets, sentiments, instruction_type, repeat_input)
 
 
-def read_sst2_sentiment_file(split_name: str, instruction_type: str, repeat_input: bool = False) -> SentimentRawData:
+def read_sst2_sentiment_file(
+    split_name: str, instruction_type: str, repeat_input: bool = False, is_grips: bool = False
+) -> SentimentRawData:
     """Load the sst2 sentiment analysis split for train, validation or test."""
     assert split_name in {"train", "validation", "test"}
     dataset = load_dataset("sst2", split=split_name)
@@ -157,14 +162,15 @@ def read_sst2_sentiment_file(split_name: str, instruction_type: str, repeat_inpu
         sentences.append(row["sentence"])
         labels.append(row["sentiment"])
 
-    if split_name == "train":
+    if split_name == "train" and is_grips:
         # also shuffle dataset here.
-        # required for grips experiments.
-        # optional for other experiments as the dataloader will shuffle the dataset.
-        # for grips, we like to keep the repeated inputs together, therefore we shuffle before
-        # creating the repeated rows. the dataloader shuffle for the grips experiment is set to False.
-        random.shuffle(labels)
-        random.shuffle(sentences)
+        # required for grips experiments. for grips, we like to keep the repeated inputs together, therefore
+        # we shuffle before creating the repeated rows. the dataloader shuffle for the grips experiment is set to
+        # False.
+        rand_indices = list(range(len(sentences)))
+        random.shuffle(rand_indices)
+        sentences = [sentences[i] for i in rand_indices]
+        labels = [labels[i] for i in rand_indices]
 
     # the test data may only have examples with one label.
     assert set(labels).issubset({"positive", "negative"})
@@ -207,9 +213,9 @@ def create_sentiment_dataset(
     models on the sentiment analysis task."""
 
     if task_name == "semeval":
-        rawdata = read_semeval_sentiment_file(file_name, instruction_type, repeat_input)
+        rawdata = read_semeval_sentiment_file(file_name, instruction_type, repeat_input, FLAGS.t5_exp_type == "grips")
     elif task_name == "sst2":
-        rawdata = read_sst2_sentiment_file(file_name, instruction_type, repeat_input)
+        rawdata = read_sst2_sentiment_file(file_name, instruction_type, repeat_input, FLAGS.t5_exp_type == "grips")
     else:
         raise Exception(f"this {task_name} is not supported!")
 
