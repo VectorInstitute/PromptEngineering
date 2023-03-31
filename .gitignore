@@ -150,3 +150,6 @@ settings.json
 **/resources/predictions/**
 **/fairness_measurement/stats/**
 **/plot.png
+
+# vim
+*.swp
