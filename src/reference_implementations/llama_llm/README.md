@@ -1,15 +1,15 @@
 # Usage
 ## Building the environment
-First run `setup_env.sh` to automatically create your environment.
+First run `setup_env.sh` to automatically create your environment. Try to run this on a GPU node rather than the login nodes.
 `bash setup_env.sh`
 
 ## Launching the script with default prompts
 Next, run the slurm script to queue your job on 4 A40s (default). Make sure to
 pass in the correct path to the LLaMA checkpoint weights.
-`sbatch launch_slurm.slrm /path/to/LLaMA`
+`sbatch launch_slurm.slrm /ssd003/projects/aieng/public/llama`
 
 You can check for the output of the model in the `/logs` directory that was
-created for you.
+created for you. Make sure not to delete this folder, or else your jobs may fail.
 
 ## Launching the script with custom prompts
 You can change the prompts used for inference by going into the
