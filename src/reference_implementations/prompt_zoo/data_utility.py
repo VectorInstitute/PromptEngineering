@@ -163,10 +163,10 @@ def read_sst2_sentiment_file(split_name: str, instruction_type: str, repeat_inpu
         # required for grips experiments. for grips, we like to keep the repeated inputs together, therefore
         # we shuffle before creating the repeated rows. the dataloader shuffle for the grips experiment is set to 
         # False.
-        rand_indices = list(range(len(tweets)))
+        rand_indices = list(range(len(sentences)))
         random.shuffle(rand_indices)
-        tweets = [tweets[i] for i in rand_indices]
-        sentiments = [sentiments[i] for i in rand_indices]
+        sentences = [sentences[i] for i in rand_indices]
+        labels = [labels[i] for i in rand_indices]
 
     # the test data may only have examples with one label.
     assert set(labels).issubset({"positive", "negative"})
