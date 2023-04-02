@@ -18,7 +18,7 @@ source prompt_torch-env/bin/activate
 
 ### run_sst2_sentiment_experiments (Hyper parameter search)
 
-This script orchestrates running a hyper parameter search for the learning rate on various kinds of prompt tuning and fine tuning setups. For more information on how to run each experiment individually see `experiments_notebooks/efficient_tuning_baselines.md`. __REMEMBER__ to activate your environment (as instructed above). 
+This script orchestrates running a hyper parameter search for the learning rate on various kinds of prompt tuning and fine tuning setups. For more information on how to run each experiment individually see `experiments_notebooks/efficient_tuning_baselines.md`. __REMEMBER__ to activate your environment (as instructed above).
 
 __NOTE__: Before running this script, you need to replace `snajafi` IN THE SCRIPT with your username to ensure that the results are logged to your path.
 
@@ -48,7 +48,7 @@ __Note__: This script can also be used to run a hyper-parameter search for the s
 
 ### run_sentiment_experiments_gradient_search
 
-This script orchestrates running gradient-based discrete prompt search for semeval and sst-2. __REMEMBER__ to activate your environment (as instructed above). 
+This script orchestrates running gradient-based discrete prompt search for semeval and sst-2. __REMEMBER__ to activate your environment (as instructed above).
 
 __NOTE__: Before running this script, you need to replace `snajafi` IN THE SCRIPT with your username to ensure that the results are logged to your path.
 
