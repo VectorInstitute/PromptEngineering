@@ -1,4 +1,3 @@
-
 # Some instructions and tips for using the code in Prompt Zoo
 
 Below are some tips on using the cluster to run the code in this folder. More specific instructions about how to run experiments and examine the results are discussed in the readmes under the `training_scripts` and `experiment_notebooks` folders and the `src/reference_implementations/prompt_zoo/experiment_notebooks/efficient_tuning_baselines.md` markdown. Once you've read through this readme, see those files to learn how to run experiments.
@@ -9,7 +8,7 @@ We assume you are following this instruction online from the vector's github rep
 https://github.com/VectorInstitute/PromptEngineering
 
 
-Login to Vector's Vaughan cluster. I use the username `username` as an example.
+Login to Vector's Vaughan cluster. The username `username` is an example, you should replace it with your username
 ```bash
 ssh username@v.vectorinstitute.ai
 ```

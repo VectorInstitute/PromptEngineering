@@ -9,19 +9,18 @@
   <li><b>output-finetuning</b>: We update only the language modelling head on top of the T5 decoder on the downstream task. For this baseline a learning rate such as 0.001 is effective.
   </li></br>
 
-  <li><b>input-finetuning</b>: We update only input embedding table for the T5 encoder on the downstream task. For this baseline a learning rate such as 0.001 is effective.
+  <li><b>input-finetuning</b>: We update only the input embedding table for the T5 encoder on the downstream task. For this baseline a learning rate such as 0.001 is effective.
   </li></br>
 
-  <li><b>classifier-finetuning</b>: We update only feedforward classifier which is built on the top of the T5 encoder on the downstream task. For this baseline a learning rate such as 0.001 is effective.
+  <li><b>classifier-finetuning</b>: We train an auxiliary feedforward classifier which is built on the top of the T5 encoder on the downstream task. For this baseline a learning rate such as 0.001 is effective.
   </li></br>
 
-  <li><b>soft-prompt tuning</b>: We update only prompt table included in the encoder-decoder T5 on the downstream task.
-  For soft-prompt tuning, a large learning rate around 0.3 is effective. In the experiments, we use 100 prompt tokens. Therefore our prompt length is 100.
+  <li><b>soft-prompt tuning</b>: We train only an auxiliary prompt table included in the encoder-decoder T5 model on the downstream task. For soft-prompt tuning, a large learning rate around 0.3 is effective. In the experiments, we use 100 prompt tokens. Therefore our prompt length is 100.
   </li></br>
 </ul>
 
 
-<b>We are training these baselines on the semeval-2018 sentiment dataset for up to 30 epochs. We will use the vector's GPU cluster and the slurm scheduler to submit four GPU jobs to train these models. For this experiment, we don't need to login to a specific GPU node and we can submit the jobs from the login nodes on the vector vaughan cluster.</b>
+<b>We are training these baselines on the semeval-2018 sentiment dataset or the SST2 sentiment dataset for up to 30 epochs. We use the vector's GPU cluster and the slurm scheduler to submit five GPU jobs to train these models with the various configurations described above. For this experiment, we don't need to login to a specific GPU node and we can submit the jobs from the login nodes on the vector vaughan cluster.</b>
 
 # Virtual Environment Setup
 You have two options.
@@ -39,7 +38,7 @@ bash setup.sh OS=vcluster ENV_NAME=prompt_torch DEV=true
 *Note*: If the env already exists in your repository you need not run the setup again. Just source it as instructed below.
 then activate the environment.
 
-*Note*: This assumes that your are at the top directory. If you are not, you should manipulate the directory to point to the environment. All jobs should also be run from the top directory.
+*Note*: This assumes that you are at the top directory. If you are not, you should manipulate the path to point to the environment. All jobs should also be run from the top directory.
 ```bash
 source ./prompt_torch-env/bin/activate
 ```
@@ -47,7 +46,7 @@ source ./prompt_torch-env/bin/activate
 
 We need to create the following directories to save the model checkpoints on the vector's cluster.
 Note that the following directories are created under the username `snajafi`.
-You should use your dedicated username to create similar directories. These directories will hold the training and evaluation results for each of the experiments. They can be viewed with tensorboard following the comment below.
+You should use your dedicated username to create similar directories. These directories will hold the training and evaluation results for each of the experiments. They can be viewed with tensorboard following the comments below.
 
 ```bash
 mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval
@@ -57,10 +56,11 @@ mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/output_f
 mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/classifier_finetune
 mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/soft_prompt_finetune
 ```
-*NOTE*: In the following also be sure to change the scratch directory in the bash commands
+__NOTE__: In the following also be sure to change the scratch directory in the bash commands to include your username (replacing `snajafi`)
 
 ## Fine Tuning all weights of T5
-submitting the job for `all_finetuning` baseline with the learning rate 0.0005:
+
+Submitting the job for `all_finetuning` baseline with the learning rate 0.0005:
 ```bash
 sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     src/reference_implementations/prompt_zoo/training_scripts/finetuning_sentiment.sh \
@@ -72,7 +72,8 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
 ```
 
 ## Fine tuning only the input layer of T5
-submitting the job for `input_finetuning` baseline with the learning rate 0.001:
+
+Submitting the job for `input_finetuning` baseline with the learning rate 0.3:
 ```bash
 sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     src/reference_implementations/prompt_zoo/training_scripts/finetuning_sentiment.sh \
@@ -84,7 +85,8 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
 ```
 
 ## Fine tuning only the output layer of T5
-submitting the job for `output_finetuning` baseline with the learning rate 0.001:
+
+Submitting the job for `output_finetuning` baseline with the learning rate 0.005:
 ```bash
 sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     src/reference_implementations/prompt_zoo/training_scripts/finetuning_sentiment.sh \
@@ -96,7 +98,8 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
 ```
 
 ## Fine tuning only a classifier on the output activations of T5
-submitting the job for `classifier finetuning` baseline with the learning rate 0.001:
+
+Submitting the job for `classifier finetuning` baseline with the learning rate 0.01:
 ```bash
 sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     src/reference_implementations/prompt_zoo/training_scripts/finetuning_sentiment.sh \
@@ -108,7 +111,8 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
 ```
 
 ## Soft Prompt Tuning 100 continuous prompt tokens for T5
-submitting the job for `soft_prompt_tuning` with the learning rate 0.3:
+
+Submitting the job for `soft_prompt_tuning` with the learning rate 0.3:
 ```bash
 sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     src/reference_implementations/prompt_zoo/training_scripts/soft_prompt_sentiment.sh \
@@ -127,20 +131,21 @@ tensorboard --logdir=/scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/seme
 
 *NOTE*: You will need to create a tunnel directory to the v instance that you are starting the tensorboard on. This will be one of `v1`, `v2`, or `v3`. It is written in your prompt as `username@v#`... so replace `v` in the command below with the `v#` that you have on your command line
 
-The tensorboard command will finish and stall in the terminal you're working with. Now, in aother terminal window, create an ssh tunnel to the port 6006 we used in the above command from your local computer:
+The tensorboard command will finish and stall in the terminal you're working with. Now, in another terminal window, create an ssh tunnel to the port 6006 we used in the above command from your local computer:
 ```bash
 ssh username@v.vectorinstitute.ai -L 6006:localhost:6006
 ```
 
 Then visit `https://localhost:6006`.
 
-__NOTE__: If you get an issue where the port is already in use, change all instances of `6008` above to another port number
+__NOTE__: If you get an issue where the port is already in use you can specify the point that tensorboard should use with `--port=xxxx`. Then change all instances of `6006` above to the newly specified port
 
 # Submitting the Training Jobs on SST2 Dataset
 
 We need to create the following directories to save the model checkpoints on the vector's cluster.
-Note that the following directories are created under the username `snajafi`.
-You should use your dedicated username to create similar directories. These directories will hold the training and evaluation results for each of the experiments. They can be viewed with tensorboard following the comment below.
+
+__Note__ that the following directories are created under the username `snajafi`.
+You should use your dedicated username to create similar directories. These directories will hold the training and evaluation results for each of the experiments. They can be viewed with tensorboard following the comments below.
 
 ```bash
 mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2
@@ -150,10 +155,11 @@ mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/output_fine
 mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/classifier_finetune
 mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/soft_prompt_finetune
 ```
-*NOTE*: In the following also be sure to change the scratch directory in the bash commands
+__NOTE__: In the following also be sure to change the scratch directory in the bash commands to include your username (replacing `snajafi`)
 
 ## Fine Tuning all weights of T5
-submitting the job for `all_finetuning` baseline with the learning rate 0.0005:
+
+Submitting the job for `all_finetuning` baseline with the learning rate 0.0005:
 ```bash
 sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     src/reference_implementations/prompt_zoo/training_scripts/finetuning_sentiment.sh \
@@ -165,7 +171,8 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
 ```
 
 ## Fine tuning only the input layer of T5
-submitting the job for `input_finetuning` baseline with the learning rate 0.001:
+
+Submitting the job for `input_finetuning` baseline with the learning rate 0.3:
 ```bash
 sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     src/reference_implementations/prompt_zoo/training_scripts/finetuning_sentiment.sh \
@@ -177,7 +184,8 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
 ```
 
 ## Fine tuning only the output layer of T5
-submitting the job for `output_finetuning` baseline with the learning rate 0.001:
+
+Submitting the job for `output_finetuning` baseline with the learning rate 0.01:
 ```bash
 sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     src/reference_implementations/prompt_zoo/training_scripts/finetuning_sentiment.sh \
@@ -189,7 +197,8 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
 ```
 
 ## Fine tuning only a classifier on the output activations of T5
-submitting the job for `classifier finetuning` baseline with the learning rate 0.001:
+
+Submitting the job for `classifier finetuning` baseline with the learning rate 0.01:
 ```bash
 sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     src/reference_implementations/prompt_zoo/training_scripts/finetuning_sentiment.sh \
@@ -201,7 +210,8 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
 ```
 
 ## Soft Prompt Tuning 50 continuous prompt tokens for T5
-submitting the job for `soft_prompt_tuning` with the learning rate 0.3:
+
+Submitting the job for `soft_prompt_tuning` with the learning rate 0.5:
 ```bash
 sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     src/reference_implementations/prompt_zoo/training_scripts/soft_prompt_sentiment.sh \
@@ -220,18 +230,24 @@ tensorboard --logdir=/scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2
 
 *NOTE*: You will need to create a tunnel directory to the v instance that you are starting the tensorboard on. This will be one of `v1`, `v2`, or `v3`. It is written in your prompt as `username@v#`... so replace `v` in the command below with the `v#` that you have on your command line
 
-The tensorboard command will finish and stall in the terminal you're working with. Now, in aother terminal window, create an ssh tunnel to the port 6008 we used in the above command from your local computer:
+The tensorboard command will finish and stall in the terminal you're working with. Now, in aother terminal window, create an ssh tunnel to the port 6006 we used in the above command from your local computer:
 ```bash
 ssh username@v.vectorinstitute.ai -L 6006:localhost:6006
 ```
 
 Then visit `https://localhost:6006`.
 
+__NOTE__: If you get an issue where the port is already in use you can specify the point that tensorboard should use with `--port=xxxx`. Then change all instances of `6006` above to the newly specified port
+
 # Running hyper-parameter search and training of fine-tuning baselines on `SST2`:
 
 This will kick off a learning rate hyper-parameter sweep for both the various fine-tuning strategies and the soft prompt tuning algorithm.
+
+__NOTE__: Before running this script, you need to replace `snajafi` IN THE SCRIPT with your username to ensure that the results are logged to your path.
 
 ```bash
 source prompt_torch-env/bin/activate
 bash ./train_scripts/run_sst2_sentiment_experiments.sh
 ```
+
+__Note__: This script can also be used to run a hyper-parameter search for the semeval dataset by changing any mention of sst2 in the `run_sst2_sentiment_experiments.sh` to semeval.
