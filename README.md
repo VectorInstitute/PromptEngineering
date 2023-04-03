@@ -29,7 +29,7 @@ This folder contains notebooks and implementations of prompting large language m
 
 These reference implementations reside in `src/reference_implementations/fairness_measurement/`
 
-This folder contains implementations for measuring fairness for languagle models. There is an implementation the assesses fairness through fine-tuning or prompting to complete a sentiment classification task. We also consider LLM performance on the CrowS-Pairs Tasks and the BBQ task as a means of probing model bias and fairness.
+This folder contains implementations for measuring fairness for languagle models. There is an implementation that assesses fairness through fine-tuning or prompting to complete a sentiment classification task. We also consider LLM performance on the CrowS-Pairs Tasks and the BBQ task as a means of probing model bias and fairness.
 
 ## Hugging Face Basics
 
