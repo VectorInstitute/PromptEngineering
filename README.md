@@ -14,6 +14,7 @@ Automatic Prompt Tuning Methods are implemented under `src/reference_implementat
 * Prompt Tuning
 * Gradient-based Discrete search
 * GrIPS
+
 There are also several alternatives to prompt optimization implemented, including full model tuning and partial fine-tuning.
 
 For more information about using and running the prompt tuning experiments using the T5 language model, please see the corresponding .md file.
