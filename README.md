@@ -6,13 +6,15 @@ The static code checker and all implementations run on python3.9
 
 All reference implementations are housed in `src/reference_implementations/`. Datasets to be used are placed in `resources/datasets` or in the relevant resources subfolder for the implementation. There is also some information about JAX for those curious in learning more about that framework and the implementation of prompt tuning by Google (This is included but not supported in the prompt engineering lab due to issues with their current implementation).
 
+__NOTE__: Below is a brief description of the contents of each folder in the reference implementations directory. In addition, each directory has at least a few readmes with more in depth discussions. Finally, many of the notebooks are heavily documented
+
 This repository is organized as follows
 
 ## Prompt Tuning Reference Implementaitons
 
 Automatic Prompt Tuning Methods are implemented under `src/reference_implementations/prompt_zoo`. Currently supported methods include:
 * Prompt Tuning
-* Gradient-based Discrete search
+* Gradient-based Discrete search (AutoPrompt)
 * GrIPS
 
 There are also several alternatives to prompt optimization implemented, including full model tuning and partial fine-tuning.
