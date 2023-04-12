@@ -50,8 +50,17 @@ source ./prompt_torch-env/bin/activate
 ```
 *Note*: If the env already exists in your repository you need not run the setup again. Just source it as instructed below. The above will take a few moments to complete
 
-Now we can run a jupyter notebook on this gpu node. We start the notebook on the example port `8888`:
-If the port `8888` is taken, try another random port between 1024 and 65000.
+## Starting a notebook from a GPU Node.
+
+Now we can run a jupyter notebook on this gpu node.
+
+Before starting up your notebook, you should run
+```bash
+source ./src/reference_implementations/setup_gpu_worker.sh
+```
+This script sets up your PATH and some CUDA path for the notebook to use when launching scripts via python.
+
+We start the notebook on the example port `8888`: If the port `8888` is taken, try another random port between 1024 and 65000.
 Also note the URL output by the command to be used later. (ex. http://127.0.0.1:8888/?token=7ba0ba5c3e9f5668f92518e4c5e723fea8b69aca065b4d57)
 
 ```bash
