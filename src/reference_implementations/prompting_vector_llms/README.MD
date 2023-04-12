@@ -8,6 +8,10 @@ This folder contains a number of notebooks and reference implementations working
 
 __NOTE__: Due to their size, and depending on the size of the sequence input, the largest models may take some time to respond. In addition, the model can be sensitive to Out-of-memory errors if a large batch of inputs and activations are requested. So please be sure to batch your inputs, as is done in the notebooks.
 
+## LLM Configuration
+
+Below we briefly describe the contents of the folders and notebooks in this section of the repository. However, we also have some details associated with the generation configs used by the Vector hosted LLMs for those who are less familiar with some of the parameters used to control how they generate text. See `src/reference_implementations/prompting_vector_llms/CONFIG_README.md`
+
 ## LLM Prompting Examples
 
 This folder gathers a number of example demonstrations of LLM prompting. There are five notebooks considering different tasks. The notebooks explore the effects of manual prompt optimization, varying instruction prompts, zero- and few-shot performance. The tasks considered are:

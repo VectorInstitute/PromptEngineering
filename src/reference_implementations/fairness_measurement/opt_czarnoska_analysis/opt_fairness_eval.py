@@ -56,6 +56,8 @@ while model.state != "ACTIVE":
 last_layer_name = model.module_names[-1]
 last_layer_name
 
+# For a discussion of the configuration parameters see:
+# src/reference_implementations/prompting_vector_llms/CONFIG_README.md
 short_generation_config = {"max_tokens": 2, "top_k": 4, "top_p": 3, "rep_penalty": 1.2, "temperature": 1.0}
 
 label_lookup = {
