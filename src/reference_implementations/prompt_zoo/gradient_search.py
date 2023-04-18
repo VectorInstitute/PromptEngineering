@@ -164,6 +164,8 @@ class SearchT5(MyBaseT5):
         try:
             with open(os.path.join(m_path, f"{ckp_name}.pkl"), "rb") as inp:
                 self.search_memory.beam = pickle.load(inp)
+                # update the prompt length
+                FLAGS.prompt_length = len(self.search_memory.beam[0].tokens)
         except Exception as e:
             raise Exception("Could not load the checkpoint due to error:{}".format(e))
 
