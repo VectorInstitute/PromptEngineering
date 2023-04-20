@@ -59,21 +59,24 @@ srun --gres=gpu:1 -c 8 --mem 16G -p a40 --pty bash
 ### Setting up VSCode Server and Tunnel on GPU Node
 After the cluster fulfilled your request for a GPU session, run the following to set up VSCode Server on the GPU node.
 
-This command downloads and saves VSCode in your home directory on the cluster.
+This command downloads and saves VSCode in your home folder on the cluster. You need to do this only once:
 ```bash
 cd ~/
 
 curl -Lk 'https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-x64' --output vscode_cli.tar.gz
 
 tar -xf vscode_cli.tar.gz
+rm vscode_cli.tar.gz
 ```
 
-You can now spin up a tunnel to the GPU node using the following command: `~/code tunnel`. Please verify the beginning of the command prompt and make sure that you are running this command from a GPU node (e.g., `user@gpu001`) and not the login node (`user@v`).
+Please verify the beginning of the command prompt and make sure that you are running this command from a GPU node (e.g., `user@gpu001`) and not the login node (`user@v`). After that, you can spin up a tunnel to the GPU node using the following command: `~/code tunnel`.
 ```bash
 user@gpu001:~$ ~/code tunnel
 ```
 
-You will be prompted to authenticate via Github. After that, you can access the tunnel through your browser. If you've logged into Github on your VSCode desktop app, you can also connect from there by installing the extension `ms-vscode.remote-server`, pressing Shift-Command-P (Shift-Control-P), and entering `Remote-Tunnels: Connect to Tunnel`.
+You will be prompted to authenticate via Github. On the first run, you might also need to review Microsoft's terms of services. After that, you can access the tunnel through your browser. If you've logged into Github on your VSCode desktop app, you can also connect from there by installing the extension `ms-vscode.remote-server`, pressing Shift-Command-P (Shift-Control-P), and entering `Remote-Tunnels: Connect to Tunnel`.
+
+Note that you will need to keep the SSH connection running while using the tunnel. After you are done with the work, stop your session by pressing Control-C.
 
 ## Installing dependencies
 
