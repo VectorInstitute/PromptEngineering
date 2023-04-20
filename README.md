@@ -73,7 +73,7 @@ You can now spin up a tunnel to the GPU node using the following command: `~/cod
 user@gpu001:~$ ~/code tunnel
 ```
 
-You will be prompted to authenticate via Github. After that, you can access the tunnel either through your browser. If you've logged into Github on your VSCode desktop app, you can also connect from there by installing the extension `ms-vscode.remote-server`, pressing Shift-Command-P (Shift-Control-P), and entering `Remote-Tunnels: Connect to Tunnel`.
+You will be prompted to authenticate via Github. After that, you can access the tunnel through your browser. If you've logged into Github on your VSCode desktop app, you can also connect from there by installing the extension `ms-vscode.remote-server`, pressing Shift-Command-P (Shift-Control-P), and entering `Remote-Tunnels: Connect to Tunnel`.
 
 ## Installing dependencies
 
