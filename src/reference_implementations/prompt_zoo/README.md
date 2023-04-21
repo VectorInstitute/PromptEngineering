@@ -1,5 +1,11 @@
 # Some instructions and tips for using the code in Prompt Zoo
 
+Methods covered in this folder:
+
+* [Prompt Tuning](https://aclanthology.org/2021.emnlp-main.243.pdf)
+* [Gradient-based Discrete search (AutoPrompt)](https://arxiv.org/pdf/2010.15980.pdf)
+* [GrIPS](https://arxiv.org/abs/2203.07281)
+
 Below are some tips on using the cluster to run the code in this folder. More specific instructions about how to run experiments and examine the results are discussed in the readmes under the `training_scripts` and `experiment_notebooks` folders and the `src/reference_implementations/prompt_zoo/experiment_notebooks/efficient_tuning_baselines.md` markdown. Once you've read through this readme, see those files to learn how to run experiments.
 
 ## Direct Access to a GPU Node.
@@ -58,7 +64,7 @@ Before starting up your notebook, you should run
 ```bash
 source ./src/reference_implementations/setup_gpu_worker.sh
 ```
-This script sets up your PATH and some CUDA path for the notebook to use when launching scripts via python.
+This script sets up your PATH and some CUDA path variables for the notebook to use when launching scripts via python.
 
 We start the notebook on the example port `8888`: If the port `8888` is taken, try another random port between 1024 and 65000.
 Also note the URL output by the command to be used later. (ex. http://127.0.0.1:8888/?token=7ba0ba5c3e9f5668f92518e4c5e723fea8b69aca065b4d57)

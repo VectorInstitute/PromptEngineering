@@ -1,5 +1,6 @@
-# Usage
+# [LLaMa](https://ai.facebook.com/blog/large-language-model-llama-meta-ai/) Usage
 ## Building the environment
+
 First run `setup_env.sh` to automatically create your environment. Try to run this on a GPU node rather than the login nodes by first running
 ```
 srun --gres=gpu:1 -c 8 --mem 16G -p t4v2 --pty bash
@@ -7,6 +8,7 @@ srun --gres=gpu:1 -c 8 --mem 16G -p t4v2 --pty bash
 to secure a GPU then running `bash setup_env.sh`
 
 ## Launching the script with default prompts
+
 Next, run the slurm script to queue your job on 4 A40s (default). Make sure to
 pass in the correct path to the LLaMA checkpoint weights.
 `sbatch launch_slurm.slrm /ssd003/projects/aieng/public/llama`
@@ -15,6 +17,7 @@ You can check for the output of the model in the `/logs` directory that was
 created for you during your env install. Make sure not to delete this folder, or else your jobs may fail.
 
 ## Launching the script with custom prompts
+
 You can change the prompts used for inference by going into the
 `llama/example.py` file located in the `git clone`'d LLaMA repository. In the
 `main()` function, there is a list of strings called `prompts`. Feel free to
@@ -22,6 +25,7 @@ add or remove prompt strings. You can also extend this file to generate these
 prompts in any way you choose.
 
 ## Multi-node use case (Running LLaMA 65B)
+
 If you would like to run the largest version of LLaMA, then this section will
 tell you how to do so. You'll first have to change `launch_slurm.slrm`:
 `#SBATCH --nodes=2`

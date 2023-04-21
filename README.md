@@ -6,16 +6,32 @@ The static code checker and all implementations run on python3.9
 
 All reference implementations are housed in `src/reference_implementations/`. Datasets to be used are placed in `resources/datasets` or in the relevant resources subfolder for the implementation. There is also some information about JAX for those curious in learning more about that framework and the implementation of prompt tuning by Google (This is included but not supported in the prompt engineering lab due to issues with their current implementation).
 
-__NOTE__: Below is a brief description of the contents of each folder in the reference implementations directory. In addition, each directory has at least a few readmes with more in depth discussions. Finally, many of the notebooks are heavily documented
+## A Few Tips for Getting Started
+
+1. As part of your cluster account, you have been allocated a scratch folder where checkpoints, training artifacts, and other files will be stored. It should be located at the path:
+
+     `/scratch/ssd004/scratch/<cluster username>`
+
+    If you don't see this path, please let your facilitator know and we will ensure that it exists.
+
+2. If you are running any experiments in `prompt_zoo`, it is best to use an A40 GPU. This can be achieved by following the instructions in `src/reference_implementations/prompt_zoo/README.md`.
+
+    __Note__: Using JupyterHub to directly access a GPU is limited to T4V2 GPUs, which are generally insufficient to running `prompt_zoo` experiments.
+
+3. We have provided some exploration guidance in the markdown `Exploration_Guide.md`. This guide provides some suggestions for exploration for each hands-on session based on the concepts covered in preceding lectures.
+
+    __Note__: This guide is simply a suggestion. You should feel free to explore whatever is most interesting to you.
+
+Below is a brief description of the contents of each folder in the reference implementations directory. In addition, each directory has at least a few readmes with more in depth discussions. Finally, many of the notebooks are heavily documented
 
 This repository is organized as follows
 
 ## Prompt Tuning Reference Implementaitons
 
 Automatic Prompt Tuning Methods are implemented under `src/reference_implementations/prompt_zoo`. Currently supported methods include:
-* Prompt Tuning
-* Gradient-based Discrete search (AutoPrompt)
-* GrIPS
+* [Prompt Tuning](https://aclanthology.org/2021.emnlp-main.243.pdf)
+* [Gradient-based Discrete search (AutoPrompt)](https://arxiv.org/pdf/2010.15980.pdf)
+* [GrIPS](https://arxiv.org/abs/2203.07281)
 
 There are also several alternatives to prompt optimization implemented, including full model tuning and partial fine-tuning.
 
@@ -32,7 +48,7 @@ This folder contains notebooks and implementations of prompting large language m
 
 These reference implementations reside in `src/reference_implementations/fairness_measurement/`
 
-This folder contains implementations for measuring fairness for languagle models. There is an implementation that assesses fairness through fine-tuning or prompting to complete a sentiment classification task. We also consider LLM performance on the CrowS-Pairs Tasks and the BBQ task as a means of probing model bias and fairness.
+This folder contains implementations for measuring fairness for languagle models. There is an implementation that assesses fairness through fine-tuning or prompting to complete a sentiment classification task. We also consider LLM performance on the [CrowS-Pairs](https://aclanthology.org/2020.emnlp-main.154/) Tasks and the [BBQ](https://aclanthology.org/2022.findings-acl.165/) task as a means of probing model bias and fairness.
 
 ## Hugging Face Basics
 
@@ -55,6 +71,44 @@ From any of the v-login nodes, run the following. This will reserve an A40 GPU a
 ```bash
 srun --gres=gpu:1 -c 8 --mem 16G -p a40 --pty bash
 ```
+
+## Starting a notebook from a GPU Node.
+
+Now we can run a jupyter notebook on this gpu node.
+
+Before starting up your notebook, you should run
+```bash
+source ./src/reference_implementations/setup_gpu_worker.sh
+```
+This script sets up your PATH and some CUDA path variable for the notebook to use when launching scripts via python.
+
+We start the notebook on the example port `8888`: If the port `8888` is taken, try another random port between 1024 and 65000.
+Also note the URL output by the command to be used later. (ex. http://127.0.0.1:8888/?token=7ba0ba5c3e9f5668f92518e4c5e723fea8b69aca065b4d57)
+
+```bash
+jupyter notebook --ip 0.0.0.0 --port 8888
+```
+
+Using a new terminal window from our personal laptop, we need to create an ssh tunnel to that specific port of the gpu node:
+Note that `gpu001` is the name of the gpu we reserved at the beginnging. Remember that the port needs to be the same as your jupyter notebook port above.
+```bash
+ssh username@v.vectorinstitute.ai -L 8888:gpu001:8888
+```
+
+Keep the new connection alive by starting a tmux session in the new local terminal:
+```bash
+tmux
+```
+
+Now we can access the notebooks using our local browser. Copy the URL given by the jupyter notebook server into your local webbrowser:
+```bash
+(Example Token)
+http://127.0.0.1:8888/?token=7ba0ba5c3e9f5668f92518e4c5e723fea8b69aca065b4d57
+```
+
+You should now be able to navigate to the notebooks and run them.
+
+**Don't close the local terminal windows in your personal laptop!**
 
 ## Installing dependencies
 
