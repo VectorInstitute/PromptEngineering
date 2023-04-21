@@ -48,13 +48,35 @@ In the folder `src/reference_implementations/llama_llm` we have scripts that fac
 
 These implementations exist in `src/reference_implementations/t5x` and `src/reference_implementations/google_prompt_tuning`, respectively. These folders contain scripts for fine-tuning a JAX implementation of T5 and using prompt tuning in JAX for T5 as well. These folders offer a good idea as to how you might use JAX to perform large model training and prompt tuning. However, they are not fully supported by this laboratory because their implementation is currently broken on the Google side of the repositories.
 
-## Launching an interactive session on a GPU node
+## Launching an interactive session and VSCode Server/Tunnel on a GPU node
 
 From any of the v-login nodes, run the following. This will reserve an A40 GPU and provide you a terminal to run commands on that node.
 
 ```bash
 srun --gres=gpu:1 -c 8 --mem 16G -p a40 --pty bash
 ```
+
+### Setting up VSCode Server and Tunnel on GPU Node
+After the cluster fulfilled your request for a GPU session, run the following to set up VSCode Server on the GPU node.
+
+This command downloads and saves VSCode in your home folder on the cluster. You need to do this only once:
+```bash
+cd ~/
+
+curl -Lk 'https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-x64' --output vscode_cli.tar.gz
+
+tar -xf vscode_cli.tar.gz
+rm vscode_cli.tar.gz
+```
+
+Please verify the beginning of the command prompt and make sure that you are running this command from a GPU node (e.g., `user@gpu001`) and not the login node (`user@v`). After that, you can spin up a tunnel to the GPU node using the following command: `~/code tunnel`.
+```bash
+user@gpu001:~$ ~/code tunnel
+```
+
+You will be prompted to authenticate via Github. On the first run, you might also need to review Microsoft's terms of services. After that, you can access the tunnel through your browser. If you've logged into Github on your VSCode desktop app, you can also connect from there by installing the extension `ms-vscode.remote-server`, pressing Shift-Command-P (Shift-Control-P), and entering `Remote-Tunnels: Connect to Tunnel`.
+
+Note that you will need to keep the SSH connection running while using the tunnel. After you are done with the work, stop your session by pressing Control-C.
 
 ## Installing dependencies
 
