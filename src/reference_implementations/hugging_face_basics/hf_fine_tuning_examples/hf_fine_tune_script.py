@@ -16,7 +16,12 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer
 # dataset_name = "ag_news"
 # dataset_num_labels = 4
 
-dataset_name = "jacobthebanana/sst5-mapped-extreme"
+# dataset_name = "jacobthebanana/sst5-mapped-extreme"
+# dataset_num_labels = 3
+# dataset_config = None
+
+dataset_name = "tweet_eval"
+dataset_config = "sentiment"
 dataset_num_labels = 3
 
 # Uncomment the code below to use the SST2 dataset for sentiment analysis.
@@ -66,7 +71,7 @@ tokenizer = AutoTokenizer.from_pretrained(hf_model_name)
 # Set the maximum number of tokens in each input.
 tokenizer.model_max_length = 512
 train_dataloader, val_dataloader, test_dataloader = construct_dataloaders(
-    batch_size=8, train_split_ratio=0.8, tokenizer=tokenizer, dataset_name=dataset_name
+    batch_size=8, train_split_ratio=0.8, tokenizer=tokenizer, dataset_name=dataset_name, dataset_config=dataset_config
 )
 
 # %% [markdown]

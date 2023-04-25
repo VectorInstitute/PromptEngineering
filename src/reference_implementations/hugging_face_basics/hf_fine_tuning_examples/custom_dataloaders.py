@@ -22,8 +22,12 @@ def construct_dataloaders(
     train_split_ratio: float,  # This value is used only the dataset is missing a "validation" split.
     tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast],
     dataset_name: str,
+    dataset_config: str = None
 ) -> Tuple[DataLoader, DataLoader, DataLoader]:
-    dataset_dict = load_dataset(dataset_name)
+    if dataset_config is None:
+        dataset_dict = load_dataset(dataset_name)
+    else:
+        dataset_config = load_dataset(dataset_name, dataset_config)
     assert isinstance(dataset_dict, datasets.DatasetDict)
 
     # Tokenize the text data using the model tokenizer
