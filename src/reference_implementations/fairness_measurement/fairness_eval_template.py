@@ -1,16 +1,19 @@
 import os
+import sys
 from typing import Dict, Iterable, List, Literal, Tuple
 
 from tqdm.auto import tqdm
 from transformers import pipeline
 
-# Path to sentiment fairness test cases
-TEST_FILE_PATH = (
-    "src/reference_implementations/fairness_measurement/resources/czarnowska_templates/sentiment_fairness_tests.tsv"
-)
+#change line 11, 15, 27, 30, 33, 39
 
-# Append formatted predictions to this file.
-PREDICTION_FILE_PATH = "src/reference_implementations/fairness_measurement/resources/predictions/predictions.tsv"
+# Path to sentiment fairness test cases
+template_name = "amazon"
+TEST_FILE_PATH = (
+    # "src/reference_implementations/fairness_measurement/resources/race_templates/regard_samples.tsv"
+    # "src/reference_implementations/fairness_measurement/resources/race_templates/NS-prompts_samples.tsv"
+    "src/reference_implementations/fairness_measurement/resources/race_templates/amazon_samples.tsv"
+)
 
 # Batch size.
 BATCH_SIZE = 8
@@ -18,13 +21,25 @@ BATCH_SIZE = 8
 # HuggingFace Model to load for this demo.
 # Feel free to delete this line if you replaced the fine-tuned RoBERTa model with
 # LLM + prompt-tuning.
-DEMO_HF_MODEL = "cardiffnlp/twitter-roberta-base-sentiment"
+# DEMO_HF_MODEL = "src/reference_implementations/fairness_measurement/resources/fk-models/roberta-base_sst5-mapped-extreme_47"
+# DEMO_HF_MODEL = "cardiffnlp/twitter-roberta-base-sentiment"
+model_index = sys.argv[1]
+DEMO_HF_MODEL = "/h/fkohankh/fk-models/roberta-large_sst5-mapped-extreme_" + model_index
 
 # Data entries below are used only for plotting the fairness diagrams.
-MODEL = "RoBERTa-base fine-tuned"
-DATASET = "TweetEval"  # Name of the labelled task-specific dataset
-NUM_PARAMS = 0.125  # billions
-RUN_ID = "example_run_a"  # E.g., distinguishes between different random seeds.
+MODEL = "RoBERTa-large fine-tuned"
+# DATASET = "TweetEval"  # Name of the labelled task-specific dataset
+DATASET = "SST5"  # Name of the labelled task-specific dataset
+NUM_PARAMS = 0.350  # billions
+RUN_ID = "r" + model_index  # E.g., distinguishes between different random seeds.
+
+
+# Append formatted predictions to this file.
+
+model_name = "roberta-large"
+dataset_name = "sst5"
+PREDICTION_FILE_PATH = "src/reference_implementations/fairness_measurement/resources/predictions/" + template_name + "_" + model_name + "_" + dataset_name + ".tsv"
+
 
 # Initialize model here.
 # Example: fine-tuned RoBERTa model via HuggingFace pipeline
