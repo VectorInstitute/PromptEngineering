@@ -61,9 +61,9 @@ These reference implmenetations are in `src/reference_implementations/hugging_fa
 
 The reference implementations here are of two kinds. The first is a collection of examples of using HuggingFace for basic ML tasks. The second is a discussion of some important metrics associated with NLP, specifically generative NLP.
 
-## LLaMa Language Model
+## LLaMA Language Model
 
-In the folder `src/reference_implementations/llama_llm/`, we have scripts that facilitate using one of the new large language models known as [LLaMa](https://ai.facebook.com/blog/large-language-model-llama-meta-ai/). The language model has been trained for much longer than the traditional LLMs and, while much smaller than OPT-175, can demonstrate equivalent or better performance.
+In the folder `src/reference_implementations/llama_llm/`, we have scripts that facilitate using one of the new large language models known as [LLaMA](https://ai.facebook.com/blog/large-language-model-llama-meta-ai/). The language model has been trained for much longer than the traditional LLMs and, while much smaller than OPT-175, can demonstrate equivalent or better performance.
 
 ## T5x and Google Prompt Tuning (Currently Broken)
 

@@ -15,38 +15,40 @@
   <li><b>classifier-finetuning</b>: We train an auxiliary feedforward classifier which is built on the top of the T5 encoder on the downstream task. For this baseline a learning rate such as 0.001 is effective.
   </li></br>
 
-  <li><b>soft-prompt tuning</b>: We train only an auxiliary prompt table included in the encoder-decoder T5 model on the downstream task. For soft-prompt tuning, a large learning rate around 0.3 is effective. In the experiments, we use 100 prompt tokens. Therefore our prompt length is 100.
+  <li><b>soft-prompt tuning</b>: We train only an auxiliary prompt table included in the encoder-decoder T5 model on the downstream task. For soft-prompt tuning, a large learning rate around 0.3 is effective. In the experiments, we use 500 or 100 prompt tokens, depending on the task. Therefore our prompt length is either 50 or 100 in the script inputs.
   </li></br>
 </ul>
 
 
-<b>We are training these baselines on the semeval-2018 sentiment dataset or the SST2 sentiment dataset for up to 30 epochs. We use the vector's GPU cluster and the slurm scheduler to submit five GPU jobs to train these models with the various configurations described above. For this experiment, we don't need to login to a specific GPU node and we can submit the jobs from the login nodes on the vector vaughan cluster.</b>
+<b>We are training these baselines on the semeval-2018 sentiment dataset or the SST2 sentiment dataset for up to 30 epochs. We use Vector's GPU cluster and the slurm scheduler to submit five GPU jobs to train these models with the various configurations described above. For this experiment, we don't need to login to a specific GPU node and we can submit the jobs from the login nodes on the Vector Vaughan cluster.</b>
 
 # Virtual Environment Setup
-You have two options.
 
-1) If you want to use our pre-built environment to run experiments, simply run
-```bash
-source /ssd003/projects/aieng/public/prompt_zoo/bin/activate
-```
-If you are using the pre-built environments *do not* modify it, as it will affect all users of the venv.
+1. If you want to use our pre-built environment to run experiments, simply run
+    ```bash
+    source /ssd003/projects/aieng/public/prompt_zoo/bin/activate
+    ```
 
-2) You can build your own venv that you are free to modify by running the commands below. We install our prompt module in the development mode so if we change code, the env gets updated with our changes.
-```bash
-bash setup.sh OS=vcluster ENV_NAME=prompt_torch DEV=true
-```
-*Note*: If the env already exists in your repository you need not run the setup again. Just source it as instructed below.
-then activate the environment.
+    If you are using the pre-built environments you do not have permissions to modify it. That is, you cannot pip install any new dependencies.
 
-*Note*: This assumes that you are at the top directory. If you are not, you should manipulate the path to point to the environment. All jobs should also be run from the top directory.
-```bash
-source ./prompt_torch-env/bin/activate
-```
+2. The first option is recommended. However, you are free to modify by running the commands below. We install our prompt module in the development mode so if we change code, the env gets updated with our changes.
+
+    ```bash
+    bash setup.sh OS=vcluster ENV_NAME=prompt_torch DEV=true
+    ```
+    then activate the environment
+    ```bash
+    source ./prompt_torch-env/bin/activate
+    ```
+
+    __Note__: If the env already exists in your repository you need not run the setup again. Just source it as instructed. The above will take a few moments to complete
+
 # Submitting the Training Jobs on SemEval Dataset
 
-We need to create the following directories to save the model checkpoints on the vector's cluster.
-Note that the following directories are created under the username `snajafi`.
-You should use your dedicated username to create similar directories. These directories will hold the training and evaluation results for each of the experiments. They can be viewed with tensorboard following the comments below.
+We need to create the following directories to save the model checkpoints on the Vector's cluster.
+
+__Note__ that the following directories are created under the username `snajafi`.
+You should use your dedicated username to create similar directories. These directories will hold the training and evaluation results for each of the experiments. They can be viewed with tensorboard following the comments below. If you do not have access to a scratch directory, please let your facilitator know!
 
 ```bash
 mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval
@@ -56,7 +58,8 @@ mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/output_f
 mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/classifier_finetune
 mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/soft_prompt_finetune
 ```
-__NOTE__: In the following also be sure to change the scratch directory in the bash commands to include your username (replacing `snajafi`)
+
+__NOTE__: In the commands below, you need to replace any instances of `snajafi` with your own username.
 
 ## Fine Tuning all weights of T5
 
@@ -125,13 +128,15 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
 ```
 
 To view the tensorboard with the training status for all of the submitted jobs:
-```
+
+```bash
 tensorboard --logdir=/scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/ --bind_all
 ```
 
-*NOTE*: You will need to create a tunnel directory to the v instance that you are starting the tensorboard on. This will be one of `v1`, `v2`, or `v3`. It is written in your prompt as `username@v#`... so replace `v` in the command below with the `v#` that you have on your command line
+__NOTE__: You will need to create a tunnel directory to the v instance that you are starting the tensorboard on. This will be one of `v1`, `v2`, or `v3`. It is written in your prompt as `username@v#`... so replace `v` in the command below with the `v#` that you have on your command line
 
-The tensorboard command will finish and stall in the terminal you're working with. Now, in another terminal window, create an ssh tunnel to the port 6006 we used in the above command from your local computer:
+The tensorboard command will finish and stall in the terminal you're working with. Now, in another terminal window, create an ssh tunnel to the port bound by the tensorboard command. We used in the command below from out local computer, where the bound port was, for example, `6006`:
+
 ```bash
 ssh username@v.vectorinstitute.ai -L 6006:localhost:6006
 ```
@@ -145,7 +150,7 @@ __NOTE__: If you get an issue where the port is already in use you can specify t
 We need to create the following directories to save the model checkpoints on the vector's cluster.
 
 __Note__ that the following directories are created under the username `snajafi`.
-You should use your dedicated username to create similar directories. These directories will hold the training and evaluation results for each of the experiments. They can be viewed with tensorboard following the comments below.
+You should use your dedicated username to create similar directories. These directories will hold the training and evaluation results for each of the experiments. They can be viewed with tensorboard following the comments below. If you do not have access to a scratch directory, please let your facilitator know!
 
 ```bash
 mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2
@@ -224,13 +229,15 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
 ```
 
 To view the tensorboard with the training status for all of the submitted jobs:
-```
+
+```bash
 tensorboard --logdir=/scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/ --bind_all
 ```
 
-*NOTE*: You will need to create a tunnel directory to the v instance that you are starting the tensorboard on. This will be one of `v1`, `v2`, or `v3`. It is written in your prompt as `username@v#`... so replace `v` in the command below with the `v#` that you have on your command line
+__NOTE__: You will need to create a tunnel directory to the v instance that you are starting the tensorboard on. This will be one of `v1`, `v2`, or `v3`. It is written in your prompt as `username@v#`... so replace `v` in the command below with the `v#` that you have on your command line
 
-The tensorboard command will finish and stall in the terminal you're working with. Now, in aother terminal window, create an ssh tunnel to the port 6006 we used in the above command from your local computer:
+The tensorboard command will finish and stall in the terminal you're working with. Now, in another terminal window, create an ssh tunnel to the port bound by the tensorboard command. We used in the command below from out local computer, where the bound port was, for example, `6006`:
+
 ```bash
 ssh username@v.vectorinstitute.ai -L 6006:localhost:6006
 ```
@@ -246,7 +253,10 @@ This will kick off a learning rate hyper-parameter sweep for both the various fi
 __NOTE__: Before running this script, you need to replace `snajafi` IN THE SCRIPT with your username to ensure that the results are logged to your path.
 
 ```bash
-source prompt_torch-env/bin/activate
+source /ssd003/projects/aieng/public/prompt_zoo/bin/activate
+```
+then
+```bash
 bash ./train_scripts/run_sst2_sentiment_experiments.sh
 ```
 
