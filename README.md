@@ -10,39 +10,44 @@ All reference implementations are housed in `src/reference_implementations/`. Da
 
 1. As part of your cluster account, you have been allocated a scratch folder where checkpoints, training artifacts, and other files will be stored. It should be located at the path:
 
-     `/scratch/ssd004/scratch/<cluster username>`
+     `/scratch/ssd004/scratch/<cluster_username>`
 
-    If you don't see this path, please let your facilitator know and we will ensure that it exists.
+    If you don't see this path, please let your facilitator know, and we will ensure that it exists.
 
-2. If you are running any experiments in `prompt_zoo`, it is best to use an A40 GPU. This can be achieved by following the instructions in `src/reference_implementations/prompt_zoo/README.md`.
+2. If you are running any experiments in `prompt_zoo/`, it is best to use an A40 GPU. This can be achieved by following the instructions in `src/reference_implementations/prompt_zoo/README.md`.
 
     __Note__: Using JupyterHub to directly access a GPU is limited to T4V2 GPUs, which are generally insufficient to running `prompt_zoo` experiments.
 
-3. We have provided some exploration guidance in the markdown `Exploration_Guide.md`. This guide provides some suggestions for exploration for each hands-on session based on the concepts covered in preceding lectures.
+3. We have __two__ pre-constructed environments for running experiments. They are __not__ interchangeable.
+
+    * `/ssd003/projects/aieng/public/prompt_zoo` is used to run the experiments in the `prompt_zoo` directory __only__.
+
+    * `/ssd003/projects/aieng/public/prompt_engineering` is used to run all of the other code in this repository.
+
+4. We have provided some exploration guidance in the markdown `Exploration_Guide.md`. This guide provides some suggestions for exploration for each hands-on session based on the concepts covered in preceding lectures.
 
     __Note__: This guide is simply a suggestion. You should feel free to explore whatever is most interesting to you.
 
-Below is a brief description of the contents of each folder in the reference implementations directory. In addition, each directory has at least a few readmes with more in depth discussions. Finally, many of the notebooks are heavily documented
+Below is a brief description of the contents of each folder in the reference implementations directory. In addition, each directory has at least a few readmes with more in-depth discussions. Finally, many of the notebooks are heavily documented
 
 This repository is organized as follows
 
 ## Prompt Tuning Reference Implementaitons
 
-Automatic Prompt Tuning Methods are implemented under `src/reference_implementations/prompt_zoo`. Currently supported methods include:
+Automatic Prompt Tuning Methods are implemented under `src/reference_implementations/prompt_zoo/`. Currently supported methods are:
 * [Prompt Tuning](https://aclanthology.org/2021.emnlp-main.243.pdf)
 * [Gradient-based Discrete search (AutoPrompt)](https://arxiv.org/pdf/2010.15980.pdf)
 * [GrIPS](https://arxiv.org/abs/2203.07281)
 
-There are also several alternatives to prompt optimization implemented, including full model tuning and partial fine-tuning.
+There are also several alternatives to prompt optimization implemented, including full model tuning and partial fine-tuning (classifier layer, input layer).
 
-For more information about using and running the prompt tuning experiments using the T5 language model, please see the corresponding .md file.
-[README.md](/src/reference_implementations/prompt_zoo/README.md) describes the steps to setup the environment and access gpus in the vector's cluster for the experiments around different prompt techniques.
+For more information about using and running the prompt tuning experiments using the T5 language model, please see [README.md](/src/reference_implementations/prompt_zoo/README.md). The README describes the steps to source the environment and access gpus on Vector's cluster for the experiments around different prompt techniques.
 
 ## Prompting OPT-175B, Galactica, or Other Large Language Models On the Cluster
 
 These reference implementations are housed in `src/reference_implementations/prompting_vector_llms/`
 
-This folder contains notebooks and implementations of prompting large language models hosted on Vector's compute cluster. There are notebooks for demonstrating various prompted downstream tasks, the affects of prompts on tasks like Aspect-Based Sentiment Analysis and text classification, along with prompt ensembling, activation fine-tuning, and experimenting with whether discrete prompts are transferable across architectures.
+This folder contains notebooks and implementations of prompting large language models hosted on Vector's compute cluster. There are notebooks for demonstrating various prompted downstream tasks, the affects of prompts on tasks like aspect-based sentiment analysis, text classification, summarization, and translation, along with prompt ensembling, activation fine-tuning, and experimenting with whether discrete prompts are transferable across architectures.
 
 ## Fairness in language models
 
@@ -54,17 +59,19 @@ This folder contains implementations for measuring fairness for languagle models
 
 These reference implmenetations are in `src/reference_implementations/hugging_face_basics/`.
 
-The reference implementations here are of two kinds. The first is a collection of examples of using HuggingFace for basic ML tasks. The second is a discussion of some important metrics associated with NLP.
+The reference implementations here are of two kinds. The first is a collection of examples of using HuggingFace for basic ML tasks. The second is a discussion of some important metrics associated with NLP, specifically generative NLP.
 
 ## LLaMa Language Model
 
-In the folder `src/reference_implementations/llama_llm` we have scripts that facilitate using one of the news large language models known as [LLaMa](https://ai.facebook.com/blog/large-language-model-llama-meta-ai/). The language model has been trained for much longer than the traditional LLMs and, while much smaller than OPT-175, can demonstrate equivalent or better performance.
+In the folder `src/reference_implementations/llama_llm/`, we have scripts that facilitate using one of the new large language models known as [LLaMa](https://ai.facebook.com/blog/large-language-model-llama-meta-ai/). The language model has been trained for much longer than the traditional LLMs and, while much smaller than OPT-175, can demonstrate equivalent or better performance.
 
-## T5x and Google Prompt Tuning
+## T5x and Google Prompt Tuning (Currently Broken)
 
-These implementations exist in `src/reference_implementations/t5x` and `src/reference_implementations/google_prompt_tuning`, respectively. These folders contain scripts for fine-tuning a JAX implementation of T5 and using prompt tuning in JAX for T5 as well. These folders offer a good idea as to how you might use JAX to perform large model training and prompt tuning. However, they are not fully supported by this laboratory because their implementation is currently broken on the Google side of the repositories.
+These implementations exist in `src/reference_implementations/t5x` and `src/reference_implementations/google_prompt_tuning`, respectively. These folders contain scripts for fine-tuning a JAX implementation of T5 and using prompt tuning in JAX for T5 as well. These folders offer a good idea as to how you might use JAX to perform large model training and prompt tuning. __However, they are not fully supported by this laboratory because their implementation is currently broken on the Google side of the repositories.__
 
-## Launching an interactive session and VSCode Server/Tunnel on a GPU node
+## Accessing Compute Resources
+
+### Launching an interactive session on a GPU node and connecting VSCode Server/Tunnel.
 
 From any of the v-login nodes, run the following. This will reserve an A40 GPU and provide you a terminal to run commands on that node.
 
@@ -72,37 +79,30 @@ From any of the v-login nodes, run the following. This will reserve an A40 GPU a
 srun --gres=gpu:1 -c 8 --mem 16G -p a40 --pty bash
 ```
 
-### Setting up VSCode Server and Tunnel on GPU Node
-After the cluster fulfilled your request for a GPU session, run the following to set up VSCode Server on the GPU node.
+Note that `-p a40` requests an a40 gpu. You can also access smaller `t4v2` and `rtx6000` gpus this way. The `-c 8` requests 8 supporting CPUs and `--mem 16G` request 16 GB of cpu memory.
 
-This command downloads and saves VSCode in your home folder on the cluster. You need to do this only once:
+### Virtual Environments
+
+As mentioned above, we offer two pre-built environments for running different parts of the code.
+
+* `/ssd003/projects/aieng/public/prompt_zoo` is used to run the experiments in the `prompt_zoo` directory __only__.
+
+* `/ssd003/projects/aieng/public/prompt_engineering` is used to run all of the other code in this repository.
+
+Before starting a notebook or running code, you should source one of these two environments with the command:
 ```bash
-cd ~/
-
-curl -Lk 'https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-x64' --output vscode_cli.tar.gz
-
-tar -xf vscode_cli.tar.gz
-rm vscode_cli.tar.gz
+source /ssd003/projects/aieng/public/prompt_zoo/bin/activate
+```
+or
+```bash
+source /ssd003/projects/aieng/public/prompt_engineering/bin/activate
 ```
 
-Please verify the beginning of the command prompt and make sure that you are running this command from a GPU node (e.g., `user@gpu001`) and not the login node (`user@v`). After that, you can spin up a tunnel to the GPU node using the following command: `~/code tunnel`.
-```bash
-user@gpu001:~$ ~/code tunnel
-```
+When using the pre-built environments, you are not allowed to pip install to them. If you would like to setup your own environments, see section `Installing Custom Dependencies`.
 
-You will be prompted to authenticate via Github. On the first run, you might also need to review Microsoft's terms of services. After that, you can access the tunnel through your browser. If you've logged into Github on your VSCode desktop app, you can also connect from there by installing the extension `ms-vscode.remote-server`, pressing Shift-Command-P (Shift-Control-P), and entering `Remote-Tunnels: Connect to Tunnel`.
+### Starting a Notebook from a GPU Node.
 
-Note that you will need to keep the SSH connection running while using the tunnel. After you are done with the work, stop your session by pressing Control-C.
-
-## Starting a notebook from a GPU Node.
-
-Now we can run a jupyter notebook on this gpu node.
-
-Before starting up your notebook, you should run
-```bash
-source ./src/reference_implementations/setup_gpu_worker.sh
-```
-This script sets up your PATH and some CUDA path variable for the notebook to use when launching scripts via python.
+Once an interactive session has been started, we can run a jupyter notebook on the gpu node.
 
 We start the notebook on the example port `8888`: If the port `8888` is taken, try another random port between 1024 and 65000.
 Also note the URL output by the command to be used later. (ex. http://127.0.0.1:8888/?token=7ba0ba5c3e9f5668f92518e4c5e723fea8b69aca065b4d57)
@@ -132,17 +132,33 @@ You should now be able to navigate to the notebooks and run them.
 
 **Don't close the local terminal windows in your personal laptop!**
 
-## Installing dependencies
+### Connecting a VSCode Server and Tunnel on that GPU Node
 
-*Note*: The following instructions are for anyone who would like to create there own python virtual environment to run experiments. If you would just like to run the code you can use one of our pre-built virtual environments by simply running, for example,
+Rather than working through hosted Jupyter Notebooks, you can also connect directly to a VS Code instance on the GPU. After the cluster has fulfilled your request for a GPU session, run the following to set up a VSCode Server on the GPU node.
 
+This command downloads and saves VSCode in your home folder on the cluster. You need to do this only once:
 ```bash
-source /ssd003/projects/aieng/public/prompt_zoo/bin/activate
+cd ~/
+
+curl -Lk 'https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-x64' --output vscode_cli.tar.gz
+
+tar -xf vscode_cli.tar.gz
+rm vscode_cli.tar.gz
 ```
 
-The above environment is for the `prompt_zoo` examples. Other required environments are discussed in the relevant folders.
+Please verify the beginning of the command prompt and make sure that you are running this command from a __GPU node__ (e.g., `user@gpu001`) and not the login node (`user@v`). After that, you can spin up a tunnel to the GPU node using the following command:
 
-If you are using the pre-built environments *do not* modify it, as it will affect all users of the venv. To install your own environment that you can manipulate, follow the instructions below.
+```bash
+~/code tunnel
+```
+
+You will be prompted to authenticate via Github. On the first run, you might also need to review Microsoft's terms of services. After that, you can access the tunnel through your browser. If you've logged into Github on your VSCode desktop app, you can also connect from there by installing the extension `ms-vscode.remote-server`, pressing Shift-Command-P (Shift-Control-P), and entering `Remote-Tunnels: Connect to Tunnel`.
+
+Note that you will need to keep the SSH connection running while using the tunnel. After you are done with the work, stop your session by pressing Control-C.
+
+## Installing Custom Dependencies
+
+__Note__: The following instructions are for anyone who would like to create their own python virtual environment to run experiments in `prompt_zoo`. If you would just like to run the code you can use one of our pre-built virtual environments by following the instructions in Section `Virtual Environments`, above. Instructions for creating environments for experiments outside of `prompt_zoo` are contained in the relevant subfolders.
 
 ### Virtualenv installing on macOS
 
@@ -160,6 +176,14 @@ bash setup.sh OS=vcluster ENV_NAME=env_name DEV=true
 
 The `setup.sh` script takes an *ENV_NAME* argument value of `prompt_torch`. The value `prompt_torch` should be used for our `prompt_zoo`
 
+## A note on disk space
+
+Many of the experiments, especially in `prompt_zoo`, in this respository will end up writing to your scratch directory. An example path is:
+```
+/scratch/ssd004/scratch/snajafi/
+```
+where `snajafi` is replaced with your cluster username. This directory has a maximum capacity of 50GB. If you run multiple hyperparameter sweeps, you may fill this directory with model checkpoints. If this directory fills, it may interrupt your jobs or cause them to fail. Please be cognizant of the space and clean up old runs if you begin to fill the directory.
+
 ## Using Pre-commit Hooks (for developing in this repository)
 
 To check your code at commit time
@@ -171,11 +195,3 @@ You can also get pre-commit to fix your code
 ```
 pre-commit run
 ```
-
-## A note on disk space
-
-Many of the experiments in this respository will end up writing to your scratch directory. An example path is:
-```
-/scratch/ssd004/scratch/snajafi/
-```
-where `snajafi` is replaced with your cluster username. This directory has a maximum capacity of 50GB. If you run multiple hyperparameter sweeps, you may fill this directory with model checkpoints. If this directory fills, it may interrupt your jobs or cause them to fail. Please be cognizant of the space and clean up old runs if you begin to fill the directory.
