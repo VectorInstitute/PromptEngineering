@@ -1,56 +1,62 @@
 import os
 import sys
 from typing import Dict, Iterable, List, Literal, Tuple
-
+from torch import cuda
 from tqdm.auto import tqdm
 from transformers import pipeline
 
-#change line 11, 15, 27, 30, 33, 39
 
 # Path to sentiment fairness test cases
-template_name = "amazon"
+TEMPLATE_NAME = sys.argv[3]
+
 TEST_FILE_PATH = (
-    # "src/reference_implementations/fairness_measurement/resources/race_templates/regard_samples.tsv"
-    # "src/reference_implementations/fairness_measurement/resources/race_templates/NS-prompts_samples.tsv"
-    "src/reference_implementations/fairness_measurement/resources/race_templates/amazon_samples.tsv"
+    f"src/reference_implementations/fairness_measurement/resources/race_templates/{TEMPLATE_NAME}_samples.tsv"
 )
 
 # Batch size.
-BATCH_SIZE = 8
+BATCH_SIZE = 512
 
 # HuggingFace Model to load for this demo.
 # Feel free to delete this line if you replaced the fine-tuned RoBERTa model with
 # LLM + prompt-tuning.
 # DEMO_HF_MODEL = "src/reference_implementations/fairness_measurement/resources/fk-models/roberta-base_sst5-mapped-extreme_47"
 # DEMO_HF_MODEL = "cardiffnlp/twitter-roberta-base-sentiment"
-model_index = sys.argv[1]
-DEMO_HF_MODEL = "/h/fkohankh/fk-models/roberta-large_sst5-mapped-extreme_" + model_index
+MODEL_NAME = sys.argv[1]
+IDX = sys.argv[2]
+DEMO_HF_MODEL = f"/h/fkohankh/fk-models/{MODEL_NAME}_sst5-mapped-extreme_{IDX}"
 
 # Data entries below are used only for plotting the fairness diagrams.
-MODEL = "RoBERTa-large fine-tuned"
+MODEL = f"{MODEL_NAME} fine-tuned"
 # DATASET = "TweetEval"  # Name of the labelled task-specific dataset
 DATASET = "SST5"  # Name of the labelled task-specific dataset
 NUM_PARAMS = 0.350  # billions
-RUN_ID = "r" + model_index  # E.g., distinguishes between different random seeds.
+if MODEL_NAME == "opt-125m":
+    NUM_PARAMS = 0.125
+RUN_ID = f"r{IDX}"  # E.g., distinguishes between different random seeds.
 
 
 # Append formatted predictions to this file.
 
-model_name = "roberta-large"
-dataset_name = "sst5"
-PREDICTION_FILE_PATH = "src/reference_implementations/fairness_measurement/resources/predictions/" + template_name + "_" + model_name + "_" + dataset_name + ".tsv"
+PREDICTION_FILE_PATH = f"src/reference_implementations/fairness_measurement/resources/predictions/{TEMPLATE_NAME}_{MODEL_NAME}_{DATASET}.tsv"
 
 
 # Initialize model here.
 # Example: fine-tuned RoBERTa model via HuggingFace pipeline
 
 # HuggingFace pipeline combining model and tokenizer.
-sentiment_analysis_pipeline = pipeline("text-classification", model=DEMO_HF_MODEL)
+device = 0 if cuda.is_available() else -1
+device_str = "cuda" if device == 0 else "cpu"
+print(f"Detected Device {device_str}")
+
+sentiment_analysis_pipeline = pipeline("text-classification", model=DEMO_HF_MODEL, device=device)
 label_lookup = {
     "LABEL_0": 0,  # Negative
     "LABEL_1": 1,  # Neutral
     "LABEL_2": 2,  # Positive
 }  # Maps string labels to integers.
+
+
+# Determine whether cuda and a GPU are available to speed up processing
 
 
 def get_predictions_batched(input_texts: List[str]) -> Iterable[int]:
