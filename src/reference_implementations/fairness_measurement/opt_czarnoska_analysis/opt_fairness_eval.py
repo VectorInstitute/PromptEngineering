@@ -51,7 +51,7 @@ model = client.load_model("OPT-6.7B")
 while model.state != "ACTIVE":
     time.sleep(1)
 
-# We're interested in the activations from the last layer of the model, because this will allow us to caculation the
+# We're interested in the activations from the last layer of the model, because this will allow us to calculate the
 # likelihoods
 last_layer_name = model.module_names[-1]
 last_layer_name
