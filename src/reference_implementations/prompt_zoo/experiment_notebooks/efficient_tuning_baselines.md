@@ -19,6 +19,11 @@
   </li></br>
 </ul>
 
+```bash
+# define the user main directory to store predictions and training checkpoints.
+import os
+os.environ['USER_DIR'] = f"/scratch/ssd004/scratch/{os.environ['USER']}"
+```
 
 <b>We are training these baselines on the semeval-2018 sentiment dataset or the SST2 sentiment dataset for up to 30 epochs. We use the vector's GPU cluster and the slurm scheduler to submit five GPU jobs to train these models with the various configurations described above. For this experiment, we don't need to login to a specific GPU node and we can submit the jobs from the login nodes on the vector vaughan cluster.</b>
 
@@ -49,14 +54,14 @@ Note that the following directories are created under the username `snajafi`.
 You should use your dedicated username to create similar directories. These directories will hold the training and evaluation results for each of the experiments. They can be viewed with tensorboard following the comments below.
 
 ```bash
-mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval
-mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/all_finetune
-mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/input_finetune
-mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/output_finetune
-mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/classifier_finetune
-mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/soft_prompt_finetune
+mkdir -p ${USER_DIR}/semeval
+mkdir -p ${USER_DIR}/semeval/all_finetune
+mkdir -p ${USER_DIR}/semeval/input_finetune
+mkdir -p ${USER_DIR}/semeval/output_finetune
+mkdir -p ${USER_DIR}/semeval/classifier_finetune
+mkdir -p ${USER_DIR}/semeval/soft_prompt_finetune
 ```
-__NOTE__: In the following also be sure to change the scratch directory in the bash commands to include your username (replacing `snajafi`)
+
 
 ## Fine Tuning all weights of T5
 
@@ -67,7 +72,7 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     ./torch-prompt-tuning-exps-logs \
     all_finetune \
     semeval \
-    /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/all_finetune \
+    ${USER_DIR}/semeval/all_finetune \
     0.0005
 ```
 
@@ -80,7 +85,7 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     ./torch-prompt-tuning-exps-logs \
     input_finetune \
     semeval \
-    /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/input_finetune \
+    ${USER_DIR}/semeval/input_finetune \
     0.3
 ```
 
@@ -93,7 +98,7 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     ./torch-prompt-tuning-exps-logs \
     output_finetune \
     semeval \
-    /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/output_finetune \
+    ${USER_DIR}/semeval/output_finetune \
     0.005
 ```
 
@@ -106,7 +111,7 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     ./torch-prompt-tuning-exps-logs \
     classifier_finetune \
     semeval \
-    /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/classifier_finetune \
+    ${USER_DIR}/semeval/classifier_finetune \
     0.01
 ```
 
@@ -119,19 +124,23 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     ./torch-prompt-tuning-exps-logs \
     soft_prompt_finetune \
     semeval \
-    /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/soft_prompt_finetune \
+    ${USER_DIR}/semeval/soft_prompt_finetune \
     0.3 \
     100
 ```
 
 To view the tensorboard with the training status for all of the submitted jobs:
 ```
-tensorboard --logdir=/scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/semeval/ --bind_all
+tensorboard --logdir=${USER_DIR}/semeval/ --bind_all
 ```
 
 *NOTE*: You will need to create a tunnel directory to the v instance that you are starting the tensorboard on. This will be one of `v1`, `v2`, or `v3`. It is written in your prompt as `username@v#`... so replace `v` in the command below with the `v#` that you have on your command line
 
 The tensorboard command will finish and stall in the terminal you're working with. Now, in another terminal window, create an ssh tunnel to the port 6006 we used in the above command from your local computer:
+```bash
+tensorboard --logdir=${USER_DIR}/semeval/ --bind_all
+```
+
 ```bash
 ssh username@v.vectorinstitute.ai -L 6006:localhost:6006
 ```
@@ -144,18 +153,15 @@ __NOTE__: If you get an issue where the port is already in use you can specify t
 
 We need to create the following directories to save the model checkpoints on the vector's cluster.
 
-__Note__ that the following directories are created under the username `snajafi`.
-You should use your dedicated username to create similar directories. These directories will hold the training and evaluation results for each of the experiments. They can be viewed with tensorboard following the comments below.
 
 ```bash
-mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2
-mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/all_finetune
-mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/input_finetune
-mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/output_finetune
-mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/classifier_finetune
-mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/soft_prompt_finetune
+mkdir -p ${USER_DIR}/sst2
+mkdir -p ${USER_DIR}/sst2/all_finetune
+mkdir -p ${USER_DIR}/sst2/input_finetune
+mkdir -p ${USER_DIR}/sst2/output_finetune
+mkdir -p ${USER_DIR}/sst2/classifier_finetune
+mkdir -p ${USER_DIR}/sst2/soft_prompt_finetune
 ```
-__NOTE__: In the following also be sure to change the scratch directory in the bash commands to include your username (replacing `snajafi`)
 
 ## Fine Tuning all weights of T5
 
@@ -166,7 +172,7 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     ./torch-prompt-tuning-exps-logs \
     all_finetune \
     sst2 \
-    /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/all_finetune \
+    ${USER_DIR}/sst2/all_finetune \
     0.0005
 ```
 
@@ -179,7 +185,7 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     ./torch-prompt-tuning-exps-logs \
     input_finetune \
     sst2 \
-    /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/input_finetune \
+    ${USER_DIR}/sst2/input_finetune \
     0.3
 ```
 
@@ -192,7 +198,7 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     ./torch-prompt-tuning-exps-logs \
     output_finetune \
     sst2 \
-    /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/output_finetune \
+    ${USER_DIR}/sst2/output_finetune \
     0.01
 ```
 
@@ -205,7 +211,7 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     ./torch-prompt-tuning-exps-logs \
     classifier_finetune \
     sst2 \
-    /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/classifier_finetune \
+    ${USER_DIR}/sst2/classifier_finetune \
     0.01
 ```
 
@@ -218,19 +224,23 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
     ./torch-prompt-tuning-exps-logs \
     soft_prompt_finetune \
     sst2 \
-    /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/soft_prompt_finetune \
+    ${USER_DIR}/sst2/soft_prompt_finetune \
     0.5 \
     50
 ```
 
 To view the tensorboard with the training status for all of the submitted jobs:
 ```
-tensorboard --logdir=/scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/ --bind_all
+tensorboard --logdir=${USER_DIR}/sst2/ --bind_all
 ```
 
 *NOTE*: You will need to create a tunnel directory to the v instance that you are starting the tensorboard on. This will be one of `v1`, `v2`, or `v3`. It is written in your prompt as `username@v#`... so replace `v` in the command below with the `v#` that you have on your command line
 
 The tensorboard command will finish and stall in the terminal you're working with. Now, in aother terminal window, create an ssh tunnel to the port 6006 we used in the above command from your local computer:
+```bash
+tensorboard --logdir=${USER_DIR}/sst2/ --bind_all
+```
+
 ```bash
 ssh username@v.vectorinstitute.ai -L 6006:localhost:6006
 ```
@@ -243,7 +253,6 @@ __NOTE__: If you get an issue where the port is already in use you can specify t
 
 This will kick off a learning rate hyper-parameter sweep for both the various fine-tuning strategies and the soft prompt tuning algorithm.
 
-__NOTE__: Before running this script, you need to replace `snajafi` IN THE SCRIPT with your username to ensure that the results are logged to your path.
 
 ```bash
 source prompt_torch-env/bin/activate
