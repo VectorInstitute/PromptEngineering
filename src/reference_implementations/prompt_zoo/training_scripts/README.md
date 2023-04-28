@@ -63,7 +63,7 @@ This script should be run from the top level directory as
 bash ./src/reference_implementations/prompt_zoo/training_scripts/run_sentiment_experiments_gradient_search.sh
 ```
 
-After all of the experiments are complete (or while they are running) you can view the results on tensorboard by running the following command. Note that `snajafi` should be replaced with your own username in the tensorboard command.
+After all of the experiments are complete (or while they are running) you can view the results on tensorboard by running the following command.
 
 To view the tensorboard with the training status for all of the submitted jobs and take note of the port:
 ```
