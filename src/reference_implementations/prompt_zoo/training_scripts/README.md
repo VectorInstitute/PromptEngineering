@@ -28,20 +28,17 @@ source prompt_torch-env/bin/activate
 
 This script orchestrates running a hyper-parameter search for the learning rate on various kinds of prompt-tuning and fine-tuning setups. For more information on how to run each experiment individually see `experiments_notebooks/efficient_tuning_baselines.md`. __REMEMBER__ to activate your environment (as instructed above).
 
-__NOTE__: Before running this script, you need to replace `snajafi` IN THE SCRIPT with your username to ensure that the results are logged to your path. Otherwise you'll receive permission denied errors
-
 This script can be run from the top level directory as
 
 ```bash
 bash ./src/reference_implementations/prompt_zoo/training_scripts/run_sst2_sentiment_experiments.sh
 ```
 
-After all of the experiments are complete (or while they are running) you can view the results on tensorboard by running the following. Note that `snajafi` should be replaced with your own username both in the script and below in the tensorboard command.
+After all of the experiments are complete (or while they are running) you can view the results on tensorboard by running the following command.
 
 To view the tensorboard with the training status for all of the submitted jobs:
-
-```bash
-tensorboard --logdir=/scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/ --bind_all
+```
+tensorboard --logdir=/scratch/ssd004/scratch/${USER}/sst2/ --bind_all
 ```
 
 __NOTE__: You will need to create a tunnel directory to the v instance that you are starting the tensorboard on. This will be one of `v1`, `v2`, or `v3`. It is written in your prompt as `username@v#`... so replace `v` in the command below with the `v#` that you have on your command line
@@ -60,20 +57,17 @@ __Note__: This script can also be used to run a hyper-parameter search for the s
 
 This script orchestrates running gradient-based discrete prompt search for semeval and sst-2. __REMEMBER__ to activate your environment (as instructed above).
 
-__NOTE__: Before running this script, you need to replace `snajafi` IN THE SCRIPT with your username to ensure that the results are logged to your path.
-
 This script should be run from the top level directory as
 
 ```bash
 bash ./src/reference_implementations/prompt_zoo/training_scripts/run_sentiment_experiments_gradient_search.sh
 ```
 
-After all of the experiments are complete (or while they are running) you can view the results on tensorboard by running the following. Note that `snajafi` should be replaced with your own username both in the script and below in the tensorboard command.
+After all of the experiments are complete (or while they are running) you can view the results on tensorboard by running the following command. Note that `snajafi` should be replaced with your own username in the tensorboard command.
 
-To view the tensorboard with the training status for all of the submitted jobs:
-
-```bash
-tensorboard --logdir=/scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/ --bind_all
+To view the tensorboard with the training status for all of the submitted jobs and take note of the port:
+```
+tensorboard --logdir=/scratch/ssd004/scratch/${USER}/gradient_search_long_training/ --bind_all
 ```
 
 __NOTE__: You will need to create a tunnel directory to the v instance that you are starting the tensorboard on. This will be one of `v1`, `v2`, or `v3`. It is written in your prompt as `username@v#`... so replace `v` in the command below with the `v#` that you have on your command line
