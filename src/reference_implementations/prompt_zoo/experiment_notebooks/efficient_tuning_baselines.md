@@ -19,12 +19,6 @@
   </li></br>
 </ul>
 
-```bash
-# define the user main directory to store predictions and training checkpoints.
-import os
-os.environ['USER_DIR'] = f"/scratch/ssd004/scratch/{os.environ['USER']}"
-```
-
 <b>We are training these baselines on the semeval-2018 sentiment dataset or the SST2 sentiment dataset for up to 30 epochs. We use the vector's GPU cluster and the slurm scheduler to submit five GPU jobs to train these models with the various configurations described above. For this experiment, we don't need to login to a specific GPU node and we can submit the jobs from the login nodes on the vector vaughan cluster.</b>
 
 # Virtual Environment Setup
@@ -50,10 +44,10 @@ source ./prompt_torch-env/bin/activate
 # Submitting the Training Jobs on SemEval Dataset
 
 We need to create the following directories to save the model checkpoints on the vector's cluster.
-Note that the following directories are created under the username `snajafi`.
-You should use your dedicated username to create similar directories. These directories will hold the training and evaluation results for each of the experiments. They can be viewed with tensorboard following the comments below.
+These directories will hold the training and evaluation results for each of the experiments. They can be viewed with tensorboard following the comments below.
 
 ```bash
+export USER_DIR="/scratch/ssd004/scratch/$USER"
 mkdir -p ${USER_DIR}/semeval
 mkdir -p ${USER_DIR}/semeval/all_finetune
 mkdir -p ${USER_DIR}/semeval/input_finetune
@@ -155,6 +149,7 @@ We need to create the following directories to save the model checkpoints on the
 
 
 ```bash
+export USER_DIR="/scratch/ssd004/scratch/$USER"
 mkdir -p ${USER_DIR}/sst2
 mkdir -p ${USER_DIR}/sst2/all_finetune
 mkdir -p ${USER_DIR}/sst2/input_finetune
