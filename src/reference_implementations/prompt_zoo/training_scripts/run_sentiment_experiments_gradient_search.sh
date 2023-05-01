@@ -8,7 +8,7 @@ method_path="/scratch/ssd004/scratch/${USER}/gradient_search_long_training"
 
 
 # different tasks will have their own directories.
-semeval_path="${method_path}/semval"
+semeval_path="${method_path}/semeval"
 sst2_path="${method_path}/sst2"
 
 # create the directories if they don't exist.
