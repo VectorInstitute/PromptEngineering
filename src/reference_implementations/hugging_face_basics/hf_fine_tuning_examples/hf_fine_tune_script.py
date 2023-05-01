@@ -16,13 +16,13 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer
 # dataset_name = "ag_news"
 # dataset_num_labels = 4
 
-# dataset_name = "jacobthebanana/sst5-mapped-extreme"
-# dataset_num_labels = 3
-# dataset_config = None
-
-dataset_name = "tweet_eval"
-dataset_config = "sentiment"
+dataset_name = "jacobthebanana/sst5-mapped-extreme"
 dataset_num_labels = 3
+dataset_config = None
+
+# dataset_name = "tweet_eval"
+# dataset_config = "sentiment"
+# dataset_num_labels = 3
 
 # Uncomment the code below to use the SST2 dataset for sentiment analysis.
 # NOTE: If you're going to use the SST2 dataset, you need to make sure that use_hf_sequence_classification = True
