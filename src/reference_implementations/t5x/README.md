@@ -64,7 +64,7 @@ Then, you can monitor the training status using `tensorboard` by specifying the 
 tensorboard --logdir=/scratch/ssd004/scratch/snajafi/data_temp/t5x-exps/model --bind_all
 ```
 
-The tensorboard command will finish and stall in the terminal you're working with. Now, in aother terminal window, create an ssh tunnel to the port from tensorboard (ex. 6006) we used in the above command from your local computer:
+The tensorboard command will finish and stall in the terminal you're working with. Now, in another terminal window, create an ssh tunnel to the port from tensorboard (ex. 6006) we used in the above command from your local computer:
 ```bash
 ssh username@v.vectorinstitute.ai -L 6006:localhost:6006
 ```

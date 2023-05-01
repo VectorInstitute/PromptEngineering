@@ -15,7 +15,7 @@
   <li><b>classifier-finetuning</b>: We train an auxiliary feedforward classifier which is built on the top of the T5 encoder on the downstream task. For this baseline a learning rate such as 0.001 is effective.
   </li></br>
 
-  <li><b>soft-prompt tuning</b>: We train only an auxiliary prompt table included in the encoder-decoder T5 model on the downstream task. For soft-prompt tuning, a large learning rate around 0.3 is effective. In the experiments, we use 500 or 100 prompt tokens, depending on the task. Therefore our prompt length is either 50 or 100 in the script inputs.
+  <li><b>soft-prompt tuning</b>: We train only an auxiliary prompt table included in the encoder-decoder T5 model on the downstream task. For soft-prompt tuning, a large learning rate around 0.3 is effective. In the experiments, we use 50 or 100 prompt tokens, depending on the task. Therefore our prompt length is either 50 or 100 in the script inputs.
   </li></br>
 </ul>
 
