@@ -3,6 +3,8 @@ from typing import Optional, Tuple
 import torch
 import torch.nn as nn
 from transformers.modeling_outputs import SequenceClassifierOutput, SequenceClassifierOutputWithPast
+import datetime
+import wandb
 
 
 def calcuate_accuracy(preds: torch.Tensor, targets: torch.Tensor) -> int:
@@ -68,7 +70,7 @@ def train(
     n_training_steps: int = 300,
 ) -> None:
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.00001, weight_decay=0.001)
-    n_steps_per_report = 10
+    n_steps_per_report = 5
     # move model to the GPU (if available)
     model.to(device)
     model.train()
@@ -89,7 +91,7 @@ def train(
         train_batches = len(train_dataloader)
 
         for batch_number, batch in enumerate(train_dataloader):
-            print("Batch: ", batch_number)
+            # print("Batch: ", batch_number)
             if total_training_steps > n_training_steps or early_stop:
                 break
             # send the batch components to proper device
@@ -116,6 +118,8 @@ def train(
             total_steps_loss += batch_loss
             total_epoch_loss += batch_loss
 
+            wandb.log({"train_loss": batch_loss})
+
             n_correct += calcuate_accuracy(pred_label, targets)
             n_total += targets.size(0)
 
@@ -131,9 +135,13 @@ def train(
                 n_total = 0
                 total_steps_loss = 0.0
 
-                if len(prev_val_losses) > 0 and early_stop_threshold > 0:
+                if len(prev_val_losses) > early_stop_threshold and early_stop_threshold > 0:
                     if val_loss > max(prev_val_losses[-early_stop_threshold:]):
+                        print("Early Stopped.")
                         early_stop = True
+                
+                prev_val_losses.append(val_loss)
+                wandb.log({"val_acc": val_accuracy, "val_loss": val_loss})
 
             optimizer.zero_grad()
             loss.backward()
@@ -150,3 +158,4 @@ def train(
         print(f"Validation Loss: {val_loss}")
         print(f"Validation accuracy: {val_accuracy}")
         print("------------------------------------------------")
+

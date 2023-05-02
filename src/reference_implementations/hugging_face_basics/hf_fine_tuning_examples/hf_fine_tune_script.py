@@ -7,6 +7,8 @@ from roberta_classification_model import RobertaClsModel
 from torch import cuda
 import random
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
+import datetime
+import wandb
 
 # %% [markdown]
 # Choose your dataset. Make sure that the number of classes in your model matches the number of different labels in that dataset.
@@ -89,11 +91,30 @@ classifier_model = (
     else RobertaClsModel()
 )
 loss_function = nn.CrossEntropyLoss()
-n_training_epochs = 1
-n_training_steps = 300
+n_training_epochs = 100
+n_training_steps = 30000
+
+#model output
+seed = random.randint(0, 10000)
+models_path = "/h/fkohankh/fk-models/"
+hf_model_name_formatted = hf_model_name.split("/")[-1]
+dataset_name_formatted = dataset_name.split("/")[-1]
+output_model_file = f"{models_path}{hf_model_name_formatted}_{dataset_name_formatted}_{str(seed)}/"
+
 
 # %% [markdown]
 # Train the model on the training dataset
+
+#intialize wandb
+wandb_run_name = hf_model_name + "_" + datetime.datetime.now().isoformat()
+wandb.init(
+project="hf fine-tuning",
+name=wandb_run_name,
+config={
+    "model": hf_model_name,
+    "dataset": "SST5",
+    "model address": output_model_file
+})
 
 # %%
 print("Begin Model Training...")
@@ -113,27 +134,11 @@ print("Training Complete")
 
 # %%
 print("Saving model...")
-models_path = "/h/fkohankh/fk-models/"
-hf_model_name_formatted = hf_model_name.split("/")[-1]
-dataset_name_formatted = dataset_name.split("/")[-1]
-
-seed = random.randint(0, 10000)
-output_model_file = f"{models_path}{hf_model_name_formatted}_{dataset_name_formatted}_{str(seed)}/"
 classifier_model.save_pretrained(output_model_file)
 tokenizer.save_pretrained(output_model_file)
-
 # output_model_file = f"{models_path}{hf_model_name_formatted}_{dataset_name_formatted}_{str(seed)}torch_model.bin"
 # torch.save(classifier_model, output_model_file)
-
 print("Model saved to", output_model_file)
-
-# %% [markdown]
-# Load model back up and perform inference on the test set
-
-# %%
-# print("Loading model...")
-# classifier_model = torch.load(output_model_file)
-# print("Model loaded.")
 
 print("Evaluating model on test set...")
 test_accuracy, test_loss = infer(classifier_model, loss_function, test_dataloader, device)
