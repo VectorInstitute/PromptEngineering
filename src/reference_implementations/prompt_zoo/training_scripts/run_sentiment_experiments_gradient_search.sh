@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # This is the main directory where the model checkpoints will be saved.
-# if you are working under a different username on the vector's cluster,
-# please create a specific directory under your username: /scratch/ssd004/scratch/username/
-# the following directory is created under the username snajafi.
-method_path="/scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/gradient_search"
+# if you are working under a different directory on the vector's cluster,
+# you may want to change the following method_path. The following
+# directory is created under your username.
+method_path="/scratch/ssd004/scratch/${USER}/gradient_search_long_training"
 
 
 # different tasks will have their own directories.
-semeval_path="${method_path}/semval"
+semeval_path="${method_path}/semeval"
 sst2_path="${method_path}/sst2"
 
 # create the directories if they don't exist.

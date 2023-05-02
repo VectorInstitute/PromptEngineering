@@ -1,10 +1,11 @@
 #!/bin/bash
 
 # This is the main directory where the model checkpoints will be saved.
-# if you are working under a different username on the vector's cluster,
-# please create a specific directory under your username: /scratch/ssd004/scratch/username/
-# the following directory is created under the username snajafi.
-mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/
+# if you are working under a different directory on the vector's cluster,
+# you may want to change the following sst2_path. The following directory
+# is created under your username.
+sst2_path="/scratch/ssd004/scratch/${USER}/sst2"
+mkdir -p ${sst2_path}
 
 rates=(0.3 0.1 0.001 0.01 0.0005 0.005)
 exps=(all_finetune classifier_finetune input_finetune output_finetune)
@@ -15,14 +16,14 @@ do
     for j in ${!exps[@]};
     do
         exp=${exps[$j]}
-        mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/${exp}
-        mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/${exp}/${rate}
+        mkdir -p ${sst2_path}/${exp}
+        mkdir -p ${sst2_path}/${exp}/${rate}
         sbatch src/reference_implementations/run_singlenode_prompt.slrm \
             src/reference_implementations/prompt_zoo/training_scripts/finetuning_sentiment.sh \
             ./torch-prompt-tuning-exps-logs \
             ${exp} \
             sst2 \
-            /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/${exp}/${rate} \
+            ${sst2_path}/${exp}/${rate} \
             ${rate}
     done
 done
@@ -37,14 +38,14 @@ do
     for j in ${!exps[@]};
     do
         exp=${exps[$j]}
-        mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/${exp}
-        mkdir -p /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/${exp}/${rate}
+        mkdir -p ${sst2_path}/${exp}
+        mkdir -p ${sst2_path}/${exp}/${rate}
         sbatch src/reference_implementations/run_singlenode_prompt.slrm \
             src/reference_implementations/prompt_zoo/training_scripts/soft_prompt_sentiment.sh \
             ./torch-prompt-tuning-exps-logs \
             ${exp} \
             sst2 \
-            /scratch/ssd004/scratch/snajafi/data_temp/torch-prompt/sst2/${exp}/${rate} \
+            ${sst2_path}/${exp}/${rate} \
             ${rate} \
             50
     done
