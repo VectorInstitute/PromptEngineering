@@ -1,6 +1,6 @@
 # Training Scripts
 
-This folder houses training scripts to run various experiemnts in `src/reference_implementations/prompt_zoo/`. More details for running each script is given below.
+This folder houses training scripts to run various experiments in `src/reference_implementations/prompt_zoo/`. More details for running each script is given below.
 
 ## Large scale experiments
 

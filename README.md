@@ -16,7 +16,7 @@ All reference implementations are housed in `src/reference_implementations/`. Da
 
 2. If you are running any experiments in `prompt_zoo/`, it is best to use an A40 GPU. This can be achieved by following the instructions in `src/reference_implementations/prompt_zoo/README.md`.
 
-    __Note__: Using JupyterHub to directly access a GPU is limited to T4V2 GPUs, which are generally insufficient to running `prompt_zoo` experiments.
+    __Note__: Using JupyterHub to directly access a GPU is limited to T4V2 GPUs, which are generally insufficient for running `prompt_zoo` experiments.
 
 3. We have __two__ pre-constructed environments for running experiments. They are __not__ interchangeable.
 
@@ -43,7 +43,7 @@ There are also several alternatives to prompt optimization implemented, includin
 
 For more information about using and running the prompt tuning experiments using the T5 language model, please see [README.md](/src/reference_implementations/prompt_zoo/README.md). The README describes the steps to source the environment and access gpus on Vector's cluster for the experiments around different prompt techniques.
 
-## Prompting OPT-175B, Galactica, or Other Large Language Models On the Cluster
+## Prompting OPT-175B, LLaMA, or Other Large Language Models On the Cluster
 
 These reference implementations are housed in `src/reference_implementations/prompting_vector_llms/`
 
@@ -53,7 +53,7 @@ This folder contains notebooks and implementations of prompting large language m
 
 These reference implementations reside in `src/reference_implementations/fairness_measurement/`
 
-This folder contains implementations for measuring fairness for languagle models. There is an implementation that assesses fairness through fine-tuning or prompting to complete a sentiment classification task. We also consider LLM performance on the [CrowS-Pairs](https://aclanthology.org/2020.emnlp-main.154/) Tasks and the [BBQ](https://aclanthology.org/2022.findings-acl.165/) task as a means of probing model bias and fairness.
+This folder contains implementations for measuring fairness for languagle models. There is an implementation that assesses fairness through fine-tuning or prompting to complete a sentiment classification task. We also consider LLM performance on the [CrowS-Pairs](https://aclanthology.org/2020.emnlp-main.154/) task and the [BBQ](https://aclanthology.org/2022.findings-acl.165/) task as a means of probing model bias and fairness.
 
 ## Hugging Face Basics
 

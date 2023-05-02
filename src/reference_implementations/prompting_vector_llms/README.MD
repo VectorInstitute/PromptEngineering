@@ -4,7 +4,7 @@ This folder contains a number of notebooks and reference implementations aimed a
 
 1) OPT-175B: Currently the largest model in the OPT family at 175B parameters.
 2) OPT-6.7B: One of the moderate size generative models in the OPT family. It does not have as significant generalization capabilties but is faster to respond and can handle larger requests.
-3) Galactica-120B (Tentative): This model shares the same architecture as OPT but a different underlying training corpus. During training many academic and scientific texts were also included.
+3) LLaMA (Tentative): This model is smaller than OPT, but has been trained for significantly longer. It has been shown that this longer training produces similar or better performance to the larger LMs like OPT-175B.
 
 __NOTE__: Due to their size, and depending on the size of the sequence input, the largest models may take some time to respond. In addition, the model can be sensitive to Out-of-memory errors if a large batch of inputs and activations are requested. As such, the models are currently configured to only accept requests with batch sizes of 20 samples or less. Make sure to batch your requests to be under this sie,
 
@@ -64,7 +64,7 @@ The folder `activation_fine_tuning/` considers extracting intermedate layer acti
 
 ## Ensembling Example
 
-In the folder `prompt_ensembling/` is an example of how one might use prompt ensembling to improve the accuracy an LLM on a downstream task. The idea is to combine prompts in order to ask the model to perform a task in multiple ways, hopefully producing better performance by asking the same question in various forms.
+In the folder `prompt_ensembling/` is an example of how one might use prompt ensembling to improve the accuracy of an LLM's responses on a downstream task. The idea is to combine prompts in order to ask the model to perform a task in multiple ways, hopefully producing better performance by asking the same question in various forms.
 
 The notebook considers the Balanced Choice of Plausible Alternatives (CoPA) task, which is a harder version of the original CoPA task. We work with a small sample of the dataset and perform few-shot prompting of the Vector LLMs. The task, in short, is, given a context and a premise of either cause or effect, the model must choose between two distinct sentences to determine which is the logical following sentence. An example is:
 

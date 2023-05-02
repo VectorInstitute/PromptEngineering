@@ -31,7 +31,7 @@
 
     If you are using the pre-built environments you do not have permissions to modify it. That is, you cannot pip install any new dependencies.
 
-2. The first option is recommended. However, you are free to modify by running the commands below. We install our prompt module in the development mode so if we change code, the env gets updated with our changes.
+2. The first option is recommended. However, you can build your own venv that you are free to modify by running the commands below. We install our prompt module in the development mode so if we change code, the env gets updated with our changes.
 
     ```bash
     bash setup.sh OS=vcluster ENV_NAME=prompt_torch DEV=true
@@ -126,17 +126,14 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
 ```
 
 To view the tensorboard with the training status for all of the submitted jobs:
-```
+
+```bash
 tensorboard --logdir=${USER_DIR}/semeval/ --bind_all
 ```
 
 __NOTE__: You will need to create a tunnel directory to the v instance that you are starting the tensorboard on. This will be one of `v1`, `v2`, or `v3`. It is written in your prompt as `username@v#`... so replace `v` in the command below with the `v#` that you have on your command line
 
 The tensorboard command will finish and stall in the terminal you're working with. Now, in another terminal window, create an ssh tunnel to the port bound by the tensorboard command. We used in the command below from out local computer, where the bound port was, for example, `6006`:
-
-```bash
-tensorboard --logdir=${USER_DIR}/semeval/ --bind_all
-```
 
 ```bash
 ssh username@v.vectorinstitute.ai -L 6006:localhost:6006
@@ -228,17 +225,14 @@ sbatch src/reference_implementations/run_singlenode_prompt.slrm \
 ```
 
 To view the tensorboard with the training status for all of the submitted jobs:
-```
+
+```bash
 tensorboard --logdir=${USER_DIR}/sst2/ --bind_all
 ```
 
 __NOTE__: You will need to create a tunnel directory to the v instance that you are starting the tensorboard on. This will be one of `v1`, `v2`, or `v3`. It is written in your prompt as `username@v#`... so replace `v` in the command below with the `v#` that you have on your command line
 
 The tensorboard command will finish and stall in the terminal you're working with. Now, in another terminal window, create an ssh tunnel to the port bound by the tensorboard command. We used in the command below from out local computer, where the bound port was, for example, `6006`:
-
-```bash
-tensorboard --logdir=${USER_DIR}/sst2/ --bind_all
-```
 
 ```bash
 ssh username@v.vectorinstitute.ai -L 6006:localhost:6006

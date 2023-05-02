@@ -17,7 +17,7 @@ As such, some areas of this respository that may be of interest are:
 
     `src/reference_implementations/hugging_face_basics/`
 
-2. Examples of Prompt Design, manual optimization, zero- and few-shot prompting for various tasks. Tasks include classification, question answering, translation, summarization, and aspect-based sentiment analysis.
+2. Examples of Prompt design, manual optimization, zero- and few-shot prompting for various tasks. Tasks include classification, question answering, translation, summarization, and aspect-based sentiment analysis.
 
     `src/reference_implementations/prompting_vector_llms/llm_prompting_examples/`
 
@@ -35,7 +35,7 @@ In the lectures preceding Hands-On Day 2, we will have covered several new topic
 
 * Discrete and Continuous Prompt Optimization Techniques.
 * Introduction to fairness/bias analysis for NLP models, including through prompting.
-* Chain of Thought (CoT) prompting and vision prompts
+* Chain of Thought (CoT) prompting and vision prompts.
 
 As such, some areas of this respository that could be of interest are:
 

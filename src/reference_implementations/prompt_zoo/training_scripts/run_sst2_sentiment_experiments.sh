@@ -2,7 +2,7 @@
 
 # This is the main directory where the model checkpoints will be saved.
 # if you are working under a different directory on the vector's cluster,
-# you may want to change the following sst2_path. the following directory
+# you may want to change the following sst2_path. The following directory
 # is created under your username.
 sst2_path="/scratch/ssd004/scratch/${USER}/sst2"
 mkdir -p ${sst2_path}

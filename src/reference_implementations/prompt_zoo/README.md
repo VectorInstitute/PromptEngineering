@@ -26,7 +26,7 @@ From the login node of the Vector Vaughan cluster (v1,v2,v3) start a tmux sessio
 tmux
 ```
 
-Let's first request an interactive node with GPU access. We will use A40 NVIDIA gpus from vector's cluster. Most of the implementations in this
+Let's first request an interactive node with GPU access. We will use A40 NVIDIA gpus from vector's cluster. The implementations in this folder require A40s to run well.
 Note the resulting hostname of this gpu node (`gpu001` as an example).
 ```bash
 srun --gres=gpu:1 -c 8 --mem 16G -p a40 --pty bash
@@ -41,7 +41,7 @@ __Virtual Environment Setup__: You have two options.
 
     If you are using the pre-built environments you do not have permissions to modify it. That is, you cannot pip install any new dependencies.
 
-2. The first option is recommended. However, you are free to modify by running the commands below. We install our prompt module in the development mode so if we change code, the env gets updated with our changes.
+2. The first option is recommended. However, you can build your own venv that you are free to modify by running the commands below. We install our prompt module in the development mode so if we change code, the env gets updated with our changes.
 
     ```bash
     bash setup.sh OS=vcluster ENV_NAME=prompt_torch DEV=true
@@ -55,15 +55,7 @@ __Virtual Environment Setup__: You have two options.
 
 ## Starting a notebook from a GPU Node.
 
-Now we can run a jupyter notebook on our requested gpu node. Before starting up your notebook, you should run
-
-```bash
-source ./src/reference_implementations/setup_gpu_worker.sh
-```
-
-This script sets up your PATH and some CUDA path variables for the notebook to use when launching scripts via python.
-
-We start the notebook on the example port `8888`: If the port `8888` is taken, try another random port between 1024 and 65000. Also note the URL output by the command below to be used later. (ex. http://127.0.0.1:8888/?token=7ba0ba5c3e9f5668f92518e4c5e723fea8b69aca065b4d57)
+Now we can run a jupyter notebook on our requested gpu node. We start the notebook on the example port `8888`: If the port `8888` is taken, try another random port between 1024 and 65000. Also note the URL output by the command below to be used later. (ex. http://127.0.0.1:8888/?token=7ba0ba5c3e9f5668f92518e4c5e723fea8b69aca065b4d57)
 
 ```bash
 jupyter notebook --ip 0.0.0.0 --port 8888

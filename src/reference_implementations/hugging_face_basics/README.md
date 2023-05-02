@@ -2,7 +2,7 @@
 
 ## HuggingFace Fine-tuning Examples
 
-The folder `hf_fine_tuning_examples/` contains a few basic examples of using HuggingFace (HF) for inference and fine-tuning for a several downstream tasks. There are examples, among others, of:
+The folder `hf_fine_tuning_examples/` contains a few basic examples of using HuggingFace (HF) for inference and fine-tuning for several downstream tasks. There are examples, among others, of:
 
 1. Fine-tuning a pre-trained RoBERTa-base model for the AG news text classification task.
 2. Fine-tuning a pre-trained GPT2 model for the AG news text classification task.
@@ -50,7 +50,7 @@ sbatch src/reference_implementations/run_singlenode_fine_tune.slrm \
 
 ## NLP Metrics Examples
 
-The notebook in this folder entitled `nlp_metrics_examples.ipynb` focuses on introducing some standard NLP metrics. It specifically emphasizes metrics commonly for evaluating models performing natural language generation (NLG) tasks.
+The notebook in this folder entitled `nlp_metrics_examples.ipynb` focuses on introducing some standard NLP metrics. It specifically emphasizes metrics commonly used for evaluating models performing natural language generation (NLG) tasks.
 
 Before spinning up the notebooks on a GPU through the cluster, following the instructions in the top level [README](/README.md), make sure you source the `prompt_engineering` environment with the command
 

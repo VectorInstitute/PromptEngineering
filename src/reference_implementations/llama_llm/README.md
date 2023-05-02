@@ -1,6 +1,6 @@
 # [LLaMA](https://ai.facebook.com/blog/large-language-model-llama-meta-ai/) Usage
 
-LLaMA is a smaller model than OPT-175B but has been trained for much longer. As suggested in the [Chinchilla Paper](https://proceedings.neurips.cc/paper_files/paper/2022/file/c1e2faff6f588870935f114ebe04a3e5-Paper-Conference.pdf), many extremely large LMs may be under trained. LLaMA follow the suggested training scheme for "optimal" performance and is able to reproduce or exceed the performance level of the largest OPT/GPT models on many tasks, despite being much smaller.
+LLaMA is a smaller model than OPT-175B but has been trained for much longer. As suggested in the [Chinchilla Paper](https://proceedings.neurips.cc/paper_files/paper/2022/file/c1e2faff6f588870935f114ebe04a3e5-Paper-Conference.pdf), many extremely large LMs may be under trained. LLaMA follows the suggested training scheme for "optimal" performance and is able to reproduce or exceed the performance level of the largest OPT/GPT models on many tasks, despite being much smaller.
 
 ## Building the environment
 

@@ -2,7 +2,7 @@
 
 # This is the main directory where the model checkpoints will be saved.
 # if you are working under a different directory on the vector's cluster,
-# you may want to change the following method_path. the following
+# you may want to change the following method_path. The following
 # directory is created under your username.
 method_path="/scratch/ssd004/scratch/${USER}/gradient_search_long_training"
 
