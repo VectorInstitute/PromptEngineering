@@ -258,7 +258,7 @@ source /ssd003/projects/aieng/public/prompt_zoo/bin/activate
 ```
 then
 ```bash
-bash ./train_scripts/run_sst2_sentiment_experiments.sh
+bash ./src/reference_implementations/prompt_zoo/training_scripts/run_sst2_sentiment_experiments.sh
 ```
 
 __Note__: This script can also be used to run a hyper-parameter search for the semeval dataset by changing any mention of sst2 in the `run_sst2_sentiment_experiments.sh` to semeval.
