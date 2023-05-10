@@ -143,6 +143,10 @@ Then visit `https://localhost:6006`.
 
 __NOTE__: If you get an issue where the port is already in use you can specify the point that tensorboard should use with `--port=xxxx`. Then change all instances of `6006` above to the newly specified port
 
+## TensorBoard Results
+
+![SemEval Tensorboard](semeval_tensorboard_baselines.png)
+
 # Submitting the Training Jobs on SST2 Dataset
 
 We need to create the following directories to save the model checkpoints on the vector's cluster.
@@ -256,3 +260,7 @@ bash ./src/reference_implementations/prompt_zoo/training_scripts/run_sst2_sentim
 ```
 
 __Note__: This script can also be used to run a hyper-parameter search for the semeval dataset by changing any mention of sst2 in the `run_sst2_sentiment_experiments.sh` to semeval.
+
+## TensorBoard Results
+
+![SST2 TensorBoard](sst2_tensorboard_baselines.png)
