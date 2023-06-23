@@ -81,7 +81,7 @@ def get_predictions_batched(input_texts: List[str]) -> Iterable[int]:
     tokenizer_output = {k: v.to(device=device, non_blocking=True) for k, v in tokenizer_output.items()}
 
     raw_logits = causal_model(**tokenizer_output).logits
-    classification_logits = raw_logits[:, -1, [8178, 21104, 5374]]
+    classification_logits = raw_logits[:, -1, [8178, 21104, 6374]]
 
     labels = classification_logits.argmax(-1)
 
