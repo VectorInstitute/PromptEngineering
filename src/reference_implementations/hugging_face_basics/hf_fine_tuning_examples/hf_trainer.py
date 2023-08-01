@@ -68,14 +68,17 @@ def train(
     device: str,
     n_epochs: int = 1,
     n_training_steps: int = 300,
+    lr=0.00001,
+    weight_decay=0.001,
+    early_stop_threshold=5
 ) -> None:
-    optimizer = torch.optim.AdamW(model.parameters(), lr=0.00001, weight_decay=0.001)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
     n_steps_per_report = 5
     # move model to the GPU (if available)
     model.to(device)
     model.train()
     total_training_steps = 0
-    early_stop_threshold = 5
+    
     early_stop = False
     prev_val_losses = []
 

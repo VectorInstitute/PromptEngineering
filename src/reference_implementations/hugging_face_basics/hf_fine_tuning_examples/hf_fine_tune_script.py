@@ -9,6 +9,8 @@ import random
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import datetime
 import wandb
+import sys
+
 
 # %% [markdown]
 # Choose your dataset. Make sure that the number of classes in your model matches the number of different labels in that dataset.
@@ -55,7 +57,14 @@ dataset_config = None
 # NOTE: If you're going to use the SST2 dataset, you need to make sure that use_hf_sequence_classification = True
 # The custom RoBERTa model is only defined for ag_news
 use_hf_sequence_classification = True  # set to True to use the HuggingFace abstraction
-hf_model_name = "roberta-base"
+
+lr = float(sys.argv[1])
+wd = float(sys.argv[2])
+es = int(sys.argv[3])
+idx = int(sys.argv[4])
+hf_model_name = sys.argv[5]
+
+# hf_model_name = "roberta-base"
 # hf_model_name = "roberta-large"
 # hf_model_name = "facebook/opt-125m"
 # hf_model_name = "facebook/opt-350m"
@@ -95,28 +104,29 @@ n_training_epochs = 100
 n_training_steps = 30000
 
 #model output
-seed = random.randint(0, 10000)
-models_path = "/h/fkohankh/fk-models/"
+# seed = random.randint(0, 10000)
+models_path = "/ssd005/projects/llm/fair-llm/"
 hf_model_name_formatted = hf_model_name.split("/")[-1]
 dataset_name_formatted = dataset_name.split("/")[-1]
-output_model_file = f"{models_path}{hf_model_name_formatted}_{dataset_name_formatted}_{str(seed)}/"
+output_model_file = f"{models_path}{hf_model_name_formatted}_{dataset_name_formatted}_{str(idx)}/"
 
 
-# %% [markdown]
 # Train the model on the training dataset
-
 #intialize wandb
-wandb_run_name = hf_model_name + "_" + datetime.datetime.now().isoformat()
+wandb_run_name = f"{hf_model_name_formatted}_lr={lr}_wd={wd}_es={es}_idx={idx}"
 wandb.init(
 project="hf fine-tuning",
 name=wandb_run_name,
+tags=["best_hparam"],
 config={
     "model": hf_model_name,
     "dataset": "SST5",
-    "model address": output_model_file
+    "model address": output_model_file,
+    "lr": lr,
+    "wd": wd,
+    "es": es
 })
 
-# %%
 print("Begin Model Training...")
 train(
     classifier_model,
@@ -126,18 +136,16 @@ train(
     device,
     n_training_epochs,
     n_training_steps,
+    lr=lr,
+    weight_decay=wd,
+    early_stop_threshold=es
 )
 print("Training Complete")
 
-# %% [markdown]
 # Save the final model to disk
-
-# %%
 print("Saving model...")
 classifier_model.save_pretrained(output_model_file)
 tokenizer.save_pretrained(output_model_file)
-# output_model_file = f"{models_path}{hf_model_name_formatted}_{dataset_name_formatted}_{str(seed)}torch_model.bin"
-# torch.save(classifier_model, output_model_file)
 print("Model saved to", output_model_file)
 
 print("Evaluating model on test set...")
@@ -146,7 +154,4 @@ print(f"Test Loss: {test_loss}")
 print(f"Test Accuracy: {test_accuracy}%")
 print("Model evaluated.")
 
-with open(output_model_file + "fine_tune_log.txt", 'w') as f:
-    f.write(f"Test Accuracy: {test_accuracy}%")
-    f.write('\n')
-    f.write(f"Test Loss: {test_loss}")
+wandb.log({"test_acc": test_accuracy, "test_loss": test_loss})

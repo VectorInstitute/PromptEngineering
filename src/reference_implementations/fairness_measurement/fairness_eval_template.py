@@ -23,21 +23,21 @@ BATCH_SIZE = 512
 # DEMO_HF_MODEL = "cardiffnlp/twitter-roberta-base-sentiment"
 MODEL_NAME = sys.argv[1]
 IDX = sys.argv[2]
-DEMO_HF_MODEL = f"/h/fkohankh/fk-models/{MODEL_NAME}_sst5-mapped-extreme_{IDX}"
+DEMO_HF_MODEL = f"/ssd005/projects/llm/fair-llm/{MODEL_NAME}_sst5-mapped-extreme_{IDX}"
 
 # Data entries below are used only for plotting the fairness diagrams.
 MODEL = f"{MODEL_NAME} fine-tuned"
 # DATASET = "TweetEval"  # Name of the labelled task-specific dataset
 DATASET = "SST5"  # Name of the labelled task-specific dataset
 NUM_PARAMS = 0.350  # billions
-if MODEL_NAME == "opt-125m":
+if MODEL_NAME == "opt-125m" or MODEL_NAME == "roberta-base":
     NUM_PARAMS = 0.125
 RUN_ID = f"r{IDX}"  # E.g., distinguishes between different random seeds.
 
 
 # Append formatted predictions to this file.
 
-PREDICTION_FILE_PATH = f"src/reference_implementations/fairness_measurement/resources/predictions/{TEMPLATE_NAME}_{MODEL_NAME}_{DATASET}.tsv"
+PREDICTION_FILE_PATH = f"src/reference_implementations/fairness_measurement/resources/predictions_all/{TEMPLATE_NAME}_{MODEL_NAME}_{DATASET}.tsv"
 
 
 # Initialize model here.
