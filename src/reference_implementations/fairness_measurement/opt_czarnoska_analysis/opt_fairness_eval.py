@@ -43,7 +43,7 @@ RUN_ID = "run_1"
 BATCH_SIZE = 10
 
 # HuggingFace pipeline combining model and tokenizer.
-client = kscope.Client(gateway_host="llm.cluster.local", gateway_port=3001)
+client = kscope.Client(gateway_host="llm.cluster.local", gateway_port=6001)
 print(f"Models Status: {client.model_instances}")
 model = client.load_model("OPT-6.7B")
 # If this model is not actively running, it will get launched in the background.
