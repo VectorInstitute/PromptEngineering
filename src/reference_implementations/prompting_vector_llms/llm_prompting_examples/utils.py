@@ -41,5 +41,5 @@ def get_label_with_highest_likelihood(
     return int_to_label_map[max_label_index.item()]
 
 
-def split_prompts_into_batches(prompts: List[str], batch_size: int = 10) -> List[List[str]]:
+def split_prompts_into_batches(prompts: List[str], batch_size: int = 1) -> List[List[str]]:
     return [prompts[x : x + batch_size] for x in range(0, len(prompts), batch_size)]
