@@ -28,6 +28,7 @@ def get_label_with_highest_likelihood(
     layer_matrix: torch.Tensor,
     label_token_ids: torch.Tensor,
     int_to_label_map: Dict[int, str],
+    right_shift: bool = False,
 ) -> str:
     # The activations we care about are the last token (corresponding to our label token) and the values for our label
     #  vocabulary
@@ -38,6 +39,9 @@ def get_label_with_highest_likelihood(
     label_distributions = softmax(label_activations)
     # We select the label index with the largest value
     max_label_index = torch.argmax(label_distributions)
+    if right_shift:
+        # Some labels start at 1, so we add one to argmax
+        max_label_index += 1
     # We then map that index back tot the label string that we care about via the map provided.
     return int_to_label_map[max_label_index.item()]
 

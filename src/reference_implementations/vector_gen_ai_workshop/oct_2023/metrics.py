@@ -41,8 +41,8 @@ def report_metrics(preds: List[str], labels: List[str], labels_order: List[str])
     print("========================================================")
     for label_index, label_name in enumerate(labels_order):
         print(
-            f"Label: {label_name}, F1: {f1[label_index]}, Precision: {recall[label_index]}, "
-            f"Recall: {precision[label_index]}"
+            f"Label: {label_name}, F1: {f1[label_index]}, Recall: {recall[label_index]}, "
+            f"Precision: {precision[label_index]}"
         )
 
 
