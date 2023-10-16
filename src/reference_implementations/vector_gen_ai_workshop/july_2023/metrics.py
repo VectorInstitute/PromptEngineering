@@ -1,5 +1,5 @@
 from random import sample
-from typing import List
+from typing import Dict, List
 
 import numpy as np
 from sklearn.metrics import confusion_matrix
@@ -44,3 +44,7 @@ def report_metrics(preds: List[str], labels: List[str], labels_order: List[str])
             f"Label: {label_name}, F1: {f1[label_index]}, Precision: {recall[label_index]}, "
             f"Recall: {precision[label_index]}"
         )
+
+
+def map_ag_news_int_labels(raw_labels: List[str], int_to_string_map: Dict[int, str]) -> List[str]:
+    return [int_to_string_map[int(raw_label)] for raw_label in raw_labels]
