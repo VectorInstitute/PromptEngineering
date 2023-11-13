@@ -20,7 +20,7 @@ import sys
 # dataset_name = "ag_news"
 # dataset_num_labels = 4
 
-dataset_name = "jacobthebanana/sst5-mapped-extreme"
+dataset_name = "jacobthebanana/sst5_mapped_grouped"
 dataset_num_labels = 3
 dataset_config = None
 
@@ -120,7 +120,7 @@ name=wandb_run_name,
 tags=["best_hparam"],
 config={
     "model": hf_model_name,
-    "dataset": "SST5",
+    "dataset": "SST5-Grouped",
     "model address": output_model_file,
     "lr": lr,
     "wd": wd,

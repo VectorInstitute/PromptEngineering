@@ -23,7 +23,7 @@ BATCH_SIZE = 512
 # DEMO_HF_MODEL = "cardiffnlp/twitter-roberta-base-sentiment"
 MODEL_NAME = sys.argv[1]
 IDX = sys.argv[2]
-DEMO_HF_MODEL = f"/ssd005/projects/llm/fair-llm/{MODEL_NAME}_sst5-mapped-extreme_{IDX}"
+DEMO_HF_MODEL = f"/ssd005/projects/llm/fair-llm/{MODEL_NAME}_sst5_mapped_grouped_{IDX}"
 
 # Data entries below are used only for plotting the fairness diagrams.
 MODEL = f"{MODEL_NAME} fine-tuned"
@@ -37,7 +37,7 @@ RUN_ID = f"r{IDX}"  # E.g., distinguishes between different random seeds.
 
 # Append formatted predictions to this file.
 
-PREDICTION_FILE_PATH = f"src/reference_implementations/fairness_measurement/resources/predictions_all/{TEMPLATE_NAME}_{MODEL_NAME}_{DATASET}.tsv"
+PREDICTION_FILE_PATH = f"src/reference_implementations/fairness_measurement/resources/predictions_sst5_grouped/{TEMPLATE_NAME}_{MODEL_NAME}_{DATASET}.tsv"
 
 
 # Initialize model here.
