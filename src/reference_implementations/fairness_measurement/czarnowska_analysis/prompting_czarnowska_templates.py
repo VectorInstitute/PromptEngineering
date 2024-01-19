@@ -1,13 +1,12 @@
 import os
+import random
+import re
 import time
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
 import kscope
 import pandas as pd
-import torch
-import torch.nn as nn
 from tqdm.auto import tqdm
-from transformers import AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizerFast
 
 TrueLabel = int
 PredictedLabel = int
@@ -32,22 +31,21 @@ OutputEntry = Tuple[
 ]
 
 PATH_STUB = "src/reference_implementations/fairness_measurement/resources"
-TEST_FILE_PATH = f"{PATH_STUB}/czarnowska_templates/sentiment_fairness_tests.tsv"
+TEST_FILE_PATH = f"{PATH_STUB}/czarnowska_templates/sentiment_fairness_tests_cut.tsv"
 # Append results to this file.
-PREDICTION_FILE_PATH = f"{PATH_STUB}/predictions/opt_6_7_predictions.tsv"
+PREDICTION_FILE_PATH = f"{PATH_STUB}/predictions/llama_2_70b_predictions_r1.tsv"
 
-MODEL = "opt-6.7b"
+MODEL = "llama2-70b"
 DATASET = "SST5"  # Labeled task-specific dataset
-NUM_PARAMS = 6.7  # billions
+NUM_PARAMS: float = 70  # billions
 RUN_ID = "run_1"
 BATCH_SIZE = 10
 
-# HuggingFace pipeline combining model and tokenizer.
-client = kscope.Client(gateway_host="llm.cluster.local", gateway_port=6001)
+client = kscope.Client(gateway_host="llm.cluster.local", gateway_port=3001)
 print(f"Models Status: {client.model_instances}")
-model = client.load_model("OPT-6.7B")
-# If this model is not actively running, it will get launched in the background.
-# In this case, wait until it moves into an "ACTIVE" state before proceeding.
+model = client.load_model(MODEL)
+# # If this model is not actively running, it will get launched in the background.
+# # In this case, wait until it moves into an "ACTIVE" state before proceeding.
 while model.state != "ACTIVE":
     time.sleep(1)
 
@@ -58,7 +56,7 @@ last_layer_name
 
 # For a discussion of the configuration parameters see:
 # src/reference_implementations/prompting_vector_llms/CONFIG_README.md
-short_generation_config = {"max_tokens": 2, "top_k": 4, "top_p": 3, "rep_penalty": 1.2, "temperature": 1.0}
+short_generation_config = {"max_tokens": 5, "top_k": 1, "top_p": 1.0, "temperature": 1.0}
 
 label_lookup = {
     "negative": 0,  # Negative
@@ -68,19 +66,27 @@ label_lookup = {
 
 reverse_label_lookup = {label_int: label_str for label_str, label_int in label_lookup.items()}
 
-number_of_demonstrations = 10
-
-opt_tokenizer = AutoTokenizer.from_pretrained("facebook/opt-350m")
+number_of_demonstrations = 6
+number_of_demonstrations_per_label = number_of_demonstrations // 3
+number_of_random_demonstrations = number_of_demonstrations - number_of_demonstrations_per_label * 3
 
 
 def create_demonstrations() -> str:
-    path = "src/reference_implementations/fairness_measurement/opt_czarnoska_analysis/resources/processed_sst5.tsv"
-    sampled_df = pd.read_csv(path, sep="\t", header=0).sample(number_of_demonstrations)
+    path = "src/reference_implementations/fairness_measurement/czarnowska_analysis/resources/processed_sst5.tsv"
+    df = pd.read_csv(path, sep="\t", header=0)
+    # Trying to balance the number of labels represented in the demonstrations
+    sample_df_0 = df.Valence[df.Valence.eq(0)].sample(number_of_demonstrations_per_label).index
+    sample_df_1 = df.Valence[df.Valence.eq(1)].sample(number_of_demonstrations_per_label).index
+    sample_df_2 = df.Valence[df.Valence.eq(2)].sample(number_of_demonstrations_per_label).index
+    random_sampled_df = df.sample(number_of_random_demonstrations).index
+    sampled_df = df.loc[sample_df_0.union(sample_df_1).union(sample_df_2).union(random_sampled_df)]
     texts = sampled_df["Text"].tolist()
     valences = sampled_df["Valence"].apply(lambda x: int(x)).tolist()
-    demonstrations = "Classify the sentiment of the text.\n\n"
+    demonstrations = ""
     for text, valence in zip(texts, valences):
-        demonstrations = f"{demonstrations}Text: {text} The sentiment is {reverse_label_lookup[valence]}.\n\n"
+        demonstrations = (
+            f"{demonstrations}Text: {text}\nWhat is the sentiment of the text? {reverse_label_lookup[valence]}.\n\n"
+        )
     print("Example of demonstrations")
     print("---------------------------------------------------------------------")
     print(demonstrations)
@@ -89,7 +95,7 @@ def create_demonstrations() -> str:
 
 
 def create_prompt_for_text(text: str, demonstrations: str) -> str:
-    return f"{demonstrations}Text: {text} The sentiment is"
+    return f"{demonstrations}Text: {text}\nWhat is the sentiment of the text?"
 
 
 def create_prompts_for_batch(input_texts: List[str], demonstrations: str) -> List[str]:
@@ -99,31 +105,22 @@ def create_prompts_for_batch(input_texts: List[str], demonstrations: str) -> Lis
     return prompts
 
 
-def get_label_with_highest_likelihood(
-    layer_matrix: torch.Tensor,
-    label_token_ids: torch.Tensor,
-) -> int:
-    # The activations we can about are the last token (corresponding to our label token) and the values for our label
-    #  vocabulary
-    label_activations = layer_matrix[-1][label_token_ids].float()
-    softmax = nn.Softmax(dim=0)
-    # Softmax is not strictly necessary, but it helps to contextualize the "probability" the model associates with each
-    # label relative to the others
-    label_distributions = softmax(label_activations)
-    # We select the label index with the largest value
-    max_label_index = torch.argmax(label_distributions)
-    # We then map that index back tot the label string that we care about via the map provided.
-    return max_label_index.item()
+def extract_predicted_label(sequence: str) -> str:
+    match = re.search(r"positive|negative|neutral", sequence, flags=re.IGNORECASE)
+    if match:
+        return match.group().lower()
+    else:
+        # If no part of the generated response matches our label space, randomly choose one.
+        print(f"Unable to match to a valid label in {sequence}")
+        return random.choice(["positive", "negative", "neutral"])
 
 
-def get_predictions_batched(input_texts: List[str], demonstrations: str, label_token_ids: List[int]) -> List[int]:
+def get_predictions_batched(input_texts: List[str], demonstrations: str) -> List[str]:
     predicted_labels = []
     prompts = create_prompts_for_batch(input_texts, demonstrations)
-    activations = model.get_activations(prompts, [last_layer_name], short_generation_config)
-    for activations_single_prompt in activations.activations:
-        # For each prompt we extract the activations and calculate which label had the high likelihood.
-        last_layer_matrix = activations_single_prompt[last_layer_name]
-        predicted_label = get_label_with_highest_likelihood(last_layer_matrix, label_token_ids)
+    batched_sequences = model.generate(prompts, short_generation_config).generation["sequences"]
+    for prompt_sequence in batched_sequences:
+        predicted_label = extract_predicted_label(prompt_sequence)
         predicted_labels.append(predicted_label)
     assert len(predicted_labels) == len(input_texts)
     return predicted_labels
@@ -142,23 +139,10 @@ with open(TEST_FILE_PATH, "r") as template_file:
 batch: List[TestEntry] = []
 text_batch: List[str] = []
 
-
-def get_label_token_ids(
-    tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast], prompt_template: str, label_words: List[str]
-) -> List[int]:
-    # Need to consider the token ids of our labels in the context of the prompt, as they may be different in context.
-    tokenized_inputs = tokenizer(
-        [f"{prompt_template} {label_word}" for label_word in label_words], return_tensors="pt"
-    )["input_ids"]
-    label_token_ids = tokenized_inputs[:, -1]
-    return label_token_ids
-
-
 test_batches = [tests[x : x + BATCH_SIZE] for x in range(0, len(tests), BATCH_SIZE)]
 demonstrations = create_demonstrations()
-label_token_ids = get_label_token_ids(
-    opt_tokenizer, create_prompt_for_text("Dummy sentence.", demonstrations), ["negative", "neutral", "positive"]
-)
+example_prompt = create_prompt_for_text("I did not like that movie at all.", demonstrations)
+print(f"Example Prompt\n{example_prompt}")
 
 # If the prediction file doesn't exist, we create a new one and append the tsv header row.
 if not os.path.exists(PREDICTION_FILE_PATH):
@@ -184,11 +168,21 @@ with open(PREDICTION_FILE_PATH, "a") as prediction_file:
     for batch in tqdm(test_batches):
         output: List[OutputEntry] = []
         text_batch = [test_case[-1] for test_case in batch]  # Extract texts from the batch.
-        predictions = get_predictions_batched(text_batch, demonstrations, label_token_ids)
+        predictions = get_predictions_batched(text_batch, demonstrations)
 
         for prediction, test_entry in zip(predictions, batch):
             label, attribute, group, text = test_entry
-            output_entry = (label, prediction, attribute, group, text, MODEL, RUN_ID, DATASET, NUM_PARAMS)
+            output_entry = (
+                label,
+                label_lookup[prediction],
+                attribute,
+                group,
+                text,
+                MODEL,
+                RUN_ID,
+                DATASET,
+                NUM_PARAMS,
+            )
             output.append(output_entry)
 
         output_lines = []
