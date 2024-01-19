@@ -33,11 +33,11 @@ OutputEntry = Tuple[
 PATH_STUB = "src/reference_implementations/fairness_measurement/resources"
 TEST_FILE_PATH = f"{PATH_STUB}/czarnowska_templates/sentiment_fairness_tests_cut.tsv"
 # Append results to this file.
-PREDICTION_FILE_PATH = f"{PATH_STUB}/predictions/llama_2_70b_predictions_r1.tsv"
+PREDICTION_FILE_PATH = f"{PATH_STUB}/predictions/llama_2_7b_predictions_r2.tsv"
 
-MODEL = "llama2-70b"
+MODEL = "llama2-7b"
 DATASET = "SST5"  # Labeled task-specific dataset
-NUM_PARAMS: float = 70  # billions
+NUM_PARAMS: float = 7  # billions
 RUN_ID = "run_1"
 BATCH_SIZE = 10
 
@@ -66,7 +66,7 @@ label_lookup = {
 
 reverse_label_lookup = {label_int: label_str for label_str, label_int in label_lookup.items()}
 
-number_of_demonstrations = 6
+number_of_demonstrations = 8
 number_of_demonstrations_per_label = number_of_demonstrations // 3
 number_of_random_demonstrations = number_of_demonstrations - number_of_demonstrations_per_label * 3
 
