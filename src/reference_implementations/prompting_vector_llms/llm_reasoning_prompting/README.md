@@ -1,4 +1,4 @@
-## Prompt Ensembling
+## Using Reasoning in the Prompting of LLMs
 
 For an in-depth description of this task see the notebooks or the upper readme at `src/reference_implementations/prompting_vector_llms/README.MD`
 
